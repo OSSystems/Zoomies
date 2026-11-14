@@ -17,6 +17,12 @@ Boot the reference host in a VM:
 nix run .#nixosConfigurations.zoomies.config.system.build.vm
 ```
 
+It has sample kids (Ana has 20 minutes a day, Lia may only play early in the
+morning) and the grown-ups PIN is `1234`. To work on the shell, start it with
+`ZOOMIES_SHELL=$PWD/shell` in the environment: the VM then runs the Python
+code from the checkout, and
+`ssh -p 2222 root@localhost systemctl restart greetd` shows each edit.
+
 ## Install it on a PC
 
 Build the installer ISO and write it to a USB stick (this erases the stick):
@@ -77,6 +83,7 @@ All Nix code lives under `nix/` and is wired by
 | `nix/packages/installer-iso.nix` | `packages.installer-iso` |
 | `nix/packages/zoomies-shell/` | `packages.zoomies-shell` (greeter, launcher, grown-ups panel; Python source in `shell/`) |
 | `nix/checks/installer.nix` | `checks.installer` (BIOS/UEFI install and boot in QEMU) |
+| `nix/checks/kiosk.nix` | `checks.kiosk` (logins, PIN, screen time, network block, home reset) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
 | `nix/devshell.nix` | `devShells.default` |
 | `nix/formatter.nix` | `formatter` (`nix fmt`) |
