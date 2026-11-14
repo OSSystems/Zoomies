@@ -3,11 +3,10 @@
 import datetime
 import os
 import subprocess
-import xml.etree.ElementTree as ET
 
 import gi
 
-from . import state
+from . import art, state
 
 gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -87,37 +86,14 @@ def avatar(kid, size="big"):
     return label
 
 
-SVG = "http://www.w3.org/2000/svg"
-ET.register_namespace("", SVG)
-ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
-
 # Zip's poses: lift-off for resting screens, flying for when something starts.
 POSES = {"rest": "zip.svg", "fly": "zip-flying.svg"}
 
 
 def mascot_frames(path, height):
-    """Textures for every frame of the SVG's <animate> loops.
-
-    librsvg draws only the first frame of an SVG animation, so the frames
-    are rendered one by one and shown in turn.
-    """
-    tree = ET.parse(path)
-    animated = []
-    for element in tree.iter():
-        for animation in element.findall(f"{{{SVG}}}animate"):
-            if animation.get("attributeName") == "d":
-                values = animation.get("values").split(";")
-                # A loop repeats its first frame at the end.
-                if len(values) > 1 and values[-1] == values[0]:
-                    values.pop()
-                animated.append((element, values))
-            element.remove(animation)
-    count = min((len(values) for _, values in animated), default=1)
     textures = []
-    for frame in range(count):
-        for element, values in animated:
-            element.set("d", values[frame])
-        stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(ET.tostring(tree.getroot())))
+    for data in art.svg_frames(path):
+        stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(data))
         pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, -1, height, True, None)
         textures.append(Gdk.Texture.new_for_pixbuf(pixbuf))
     return textures
@@ -144,7 +120,7 @@ class Mascot(Gtk.Picture):
                 self.poses[pose] = mascot_frames(
                     os.path.join(self.assets, POSES[pose]), self.size
                 )
-            except (GLib.Error, OSError, ET.ParseError):
+            except (GLib.Error, OSError, art.ET.ParseError):
                 self.poses[pose] = []
         return self.poses[pose]
 

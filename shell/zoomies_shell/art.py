@@ -1,0 +1,33 @@
+"""Zip's artwork, kept free of any GTK version so GTK 3 and 4 apps share it."""
+
+import xml.etree.ElementTree as ET
+
+SVG = "http://www.w3.org/2000/svg"
+ET.register_namespace("", SVG)
+ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+
+
+def svg_frames(path):
+    """The SVG once per frame of its <animate> loops on path shapes.
+
+    librsvg draws only the first frame of an SVG animation, so the frames
+    are rendered one by one and shown in turn.
+    """
+    tree = ET.parse(path)
+    animated = []
+    for element in tree.iter():
+        for animation in element.findall(f"{{{SVG}}}animate"):
+            if animation.get("attributeName") == "d":
+                values = animation.get("values").split(";")
+                # A loop repeats its first frame at the end.
+                if len(values) > 1 and values[-1] == values[0]:
+                    values.pop()
+                animated.append((element, values))
+            element.remove(animation)
+    count = min((len(values) for _, values in animated), default=1)
+    frames = []
+    for frame in range(count):
+        for element, values in animated:
+            element.set("d", values[frame])
+        frames.append(ET.tostring(tree.getroot()))
+    return frames
