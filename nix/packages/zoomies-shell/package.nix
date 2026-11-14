@@ -2,6 +2,8 @@
   gobject-introspection,
   gtk4,
   libmanette,
+  libnotify,
+  libxcrypt,
   python3Packages,
   wrapGAppsHook4,
 }:
@@ -13,6 +15,11 @@ python3Packages.buildPythonApplication {
     libmanette
   ];
   dependencies = [ python3Packages.pygobject3 ];
+  # The admin service checks the PIN against /etc/shadow with crypt().
+  makeWrapperArgs = [
+    "--set-default ZOOMIES_LIBCRYPT ${libxcrypt}/lib/libcrypt.so.2"
+    "--suffix PATH : ${libnotify}/bin"
+  ];
   meta = {
     description = "Kid-friendly kiosk shell for Zoomies";
     mainProgram = "zoomies-launcher";

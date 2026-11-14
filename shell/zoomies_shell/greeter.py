@@ -13,7 +13,7 @@ import subprocess
 import sys
 import time
 
-from . import state, ui
+from . import admin, state, ui
 from .ui import GLib, Gtk
 
 PIN_ATTEMPTS = 3
@@ -34,18 +34,18 @@ class Greetd:
             data += chunk
         return data
 
-    def login(self, user, command, secret=None):
+    def login(self, user, command, secret=None, session_type="wayland"):
         """Return None on success or a short reason on failure."""
         if self.path is None:
             print(f"(no greetd) would start {command} for {user}", file=sys.stderr)
             return None
         try:
-            return self._login(user, command, secret)
+            return self._login(user, command, secret, session_type)
         except (OSError, ValueError, KeyError, struct.error) as error:
             print(f"greetd: {error!r}", file=sys.stderr)
             return "error"
 
-    def _login(self, user, command, secret):
+    def _login(self, user, command, secret, session_type):
         # greetd keeps one pending session per connection across requests,
         # so every request reuses the same socket.
         with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
@@ -75,7 +75,7 @@ class Greetd:
                 {
                     "type": "start_session",
                     "cmd": [command],
-                    "env": ["XDG_SESSION_TYPE=wayland", "XDG_CURRENT_DESKTOP=Zoomies"],
+                    "env": [f"XDG_SESSION_TYPE={session_type}"],
                 }
             )
             if reply["type"] == "error":
@@ -116,22 +116,22 @@ class Greeter(Gtk.ApplicationWindow):
         top.set_end_widget(ui.clock())
         page.append(top)
 
-        kids = Gtk.FlowBox(
-            selection_mode=Gtk.SelectionMode.NONE,
-            homogeneous=True,
-            max_children_per_line=4,
-            min_children_per_line=1,
-            column_spacing=32,
-            row_spacing=32,
+        self.kids = Gtk.Grid(
+            column_spacing=24,
+            row_spacing=24,
+            column_homogeneous=True,
             halign=Gtk.Align.CENTER,
             valign=Gtk.Align.CENTER,
-            vexpand=True,
+            # Room for the focus ring, which the scroller would clip.
+            margin_top=14,
+            margin_bottom=14,
+            margin_start=14,
+            margin_end=14,
         )
-        for kid in config["kids"]:
-            tile = self._kid_tile(kid)
-            kids.append(tile)
-            tile.get_parent().set_focusable(False)
-        page.append(kids)
+        # A big family must not push the grown-ups and power buttons away.
+        scroller = Gtk.ScrolledWindow(vexpand=True, child=self.kids)
+        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
         parent = ui.big_button("Grown-ups", "subtle", "🔒")
@@ -163,11 +163,56 @@ class Greeter(Gtk.ApplicationWindow):
         self.add_controller(keys)
         self.gamepad = ui.Gamepad(self, on_back=self.overlay.close)
 
-        self.refresh()
+        self.populate()
         GLib.timeout_add_seconds(5, self.refresh)
+        GLib.idle_add(self.maybe_set_up)
+
+    def populate(self):
+        self.config = state.load_config()
+        while child := self.kids.get_first_child():
+            self.kids.remove(child)
+        self.tiles = {}
+        kids = self.config["kids"]
+        columns = 5 if len(kids) > 6 or len(kids) == 5 else 4 if len(kids) > 4 else len(kids)
+        for index, kid in enumerate(kids):
+            self.kids.attach(self._kid_tile(kid), index % columns, index // columns, 1, 1)
+        if not self.tiles:
+            empty = Gtk.Label(label="No kids yet.\nGrown-ups can add them with the 🔒 button.")
+            empty.set_justify(Gtk.Justification.CENTER)
+            empty.add_css_class("dialog-title")
+            self.kids.attach(empty, 0, 0, 1, 1)
+        self.refresh()
         first = next(iter(self.tiles.values()), None)
         if first:
             first.grab_focus()
+
+    def hint(self, text):
+        self.hint_label.set_label(text)
+
+        def clear():
+            self.hint_label.set_label("")
+            return GLib.SOURCE_REMOVE
+
+        GLib.timeout_add_seconds(3, clear)
+
+    def pin_set(self):
+        """True, False, or None when the admin service cannot tell."""
+        try:
+            return bool(admin.request("status").get("pinSet"))
+        except admin.Refused as error:
+            print(f"setup check failed: {error}", file=sys.stderr)
+            return None
+
+    def maybe_set_up(self, tries=10):
+        if not self.config.get("parent"):
+            return GLib.SOURCE_REMOVE
+        pin_set = self.pin_set()
+        if pin_set is None and tries > 1:
+            # The service may still be starting on a slow first boot.
+            GLib.timeout_add_seconds(3, self.maybe_set_up, tries - 1)
+        elif pin_set is False:
+            Setup(self).start()
+        return GLib.SOURCE_REMOVE
 
     def _kid_tile(self, kid):
         button = Gtk.Button()
@@ -214,7 +259,10 @@ class Greeter(Gtk.ApplicationWindow):
             self.say(kid["avatar"], f"{describe(status)}, {kid['name']}!\nZip says: go run around outside!")
             return
         ui.play("service-login")
-        error = self.greetd.login(kid["user"], self.config["kidSession"])
+        if kid.get("kind") == "older":
+            error = self.greetd.login(kid["user"], self.config["olderSession"], session_type="x11")
+        else:
+            error = self.greetd.login(kid["user"], self.config["kidSession"])
         if error is None:
             self.get_application().quit()
             return
@@ -243,17 +291,17 @@ class Greeter(Gtk.ApplicationWindow):
         parent = self.config.get("parent")
         if not parent or self.overlay.open:
             return
+        if self.pin_set() is False:
+            Setup(self).start()
+            return
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         title = Gtk.Label(label="🔒\nGrown-ups only")
         title.set_justify(Gtk.Justification.CENTER)
         title.add_css_class("dialog-title")
         box.append(title)
-        entry = Gtk.PasswordEntry()
-        entry.add_css_class("pin")
-        entry.set_halign(Gtk.Align.CENTER)
+        entry = ui.pin_entry("PIN")
         box.append(entry)
-        message = Gtk.Label()
-        message.add_css_class("pin-message")
+        message = ui.message_label()
         box.append(message)
 
         pad = Gtk.Grid(row_spacing=10, column_spacing=10, halign=Gtk.Align.CENTER)
@@ -298,6 +346,116 @@ class Greeter(Gtk.ApplicationWindow):
         entry.connect("activate", lambda *_: submit())
         self.overlay.show(box)
         entry.grab_focus()
+
+
+class Setup:
+    """First boot: create the grown-ups PIN, then add the kids.
+
+    Runs in the greeter because nobody can log in yet; the admin service
+    accepts the PIN only while none is set, and kids only with that PIN.
+    """
+
+    def __init__(self, greeter):
+        self.greeter = greeter
+        self.overlay = greeter.overlay
+        self.pin = None
+        self.added = []
+
+    def start(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        title = Gtk.Label(
+            label="👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN.",
+            justify=Gtk.Justification.CENTER,
+        )
+        title.add_css_class("dialog-title")
+        box.append(title)
+        hint = Gtk.Label(label="4 to 12 digits. Kids should not see it!")
+        box.append(hint)
+        first = ui.pin_entry("New PIN")
+        again = ui.pin_entry("Same PIN again")
+        box.append(first)
+        box.append(again)
+        message = ui.message_label()
+        box.append(message)
+        save = ui.big_button("Save the PIN", "yes", "🔒")
+        save.set_halign(Gtk.Align.CENTER)
+        box.append(save)
+
+        def submit(*_):
+            if first.get_text() != again.get_text():
+                message.set_label("The two PINs are different. Try again.")
+                again.set_text("")
+                again.grab_focus()
+                return
+            try:
+                admin.request("set-pin", new=first.get_text())
+            except admin.Refused as error:
+                # The PIN may have been saved even though the answer got
+                # lost; asking again would then need the "old" PIN.
+                if self.greeter.pin_set() is not True:
+                    message.set_label(str(error).capitalize() + ".")
+                    return
+            self.pin = first.get_text()
+            self.kids()
+
+        first.connect("activate", lambda *_: again.grab_focus())
+        again.connect("activate", submit)
+        save.connect("clicked", submit)
+        # Nobody can log in before this is done, so it cannot be skipped.
+        self.overlay.show(box, modal=True)
+        first.grab_focus()
+
+    def kids(self):
+        config = state.load_config()
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        title = Gtk.Label(label="Who will play?", justify=Gtk.Justification.CENTER)
+        title.add_css_class("dialog-title")
+        box.append(title)
+        added = Gtk.Label(
+            label="  ".join(f"{k['avatar']} {k['name']}" for k in config["kids"])
+            or "Type a name, pick a face, then press Add.",
+            wrap=True,
+        )
+        added.add_css_class("kid-note")
+        box.append(added)
+        form = ui.KidForm(
+            older=config.get("olderEnabled", False),
+            used_avatars=[k["avatar"] for k in config["kids"]],
+        )
+        box.append(form)
+        message = ui.message_label()
+        box.append(message)
+        row = Gtk.Box(spacing=16, halign=Gtk.Align.CENTER)
+        add = ui.big_button("Add", "yes", "➕")
+        done = ui.big_button("Done", "subtle", "✔")
+        row.append(add)
+        row.append(done)
+        box.append(row)
+
+        def submit(*_):
+            values = form.values()
+            if not values["name"]:
+                if config["kids"]:
+                    finish()
+                else:
+                    message.set_label("Type the kid's name first.")
+                return
+            try:
+                admin.request("add-kid", pin=self.pin, **values)
+            except admin.Refused as error:
+                message.set_label(str(error).capitalize() + ".")
+                return
+            self.kids()
+
+        def finish(*_):
+            self.overlay.close(force=True)
+            self.greeter.populate()
+
+        form.name.connect("activate", submit)
+        add.connect("clicked", submit)
+        done.connect("clicked", finish)
+        self.overlay.show(box, modal=True)
+        form.name.grab_focus()
 
 
 def main():
