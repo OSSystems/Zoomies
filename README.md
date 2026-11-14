@@ -70,7 +70,7 @@ All Nix code lives under `nix/` and is wired by
 
 | Path | Output |
 |---|---|
-| `nix/modules/nixos/zoomies.nix` | `nixosModules.zoomies` (the desktop) |
+| `nix/modules/nixos/zoomies/` | `nixosModules.zoomies` (the desktop) |
 | `nix/modules/nixos/platform/` | `nixosModules.platform` (disk layout, hybrid boot, hardware) |
 | `nix/modules/nixos/installer/` | `nixosModules.installer` |
 | `nix/lib/` | `lib.mkInstallerIso` |
