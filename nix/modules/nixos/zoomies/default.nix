@@ -63,6 +63,18 @@ let
             }
           );
         };
+        kind = lib.mkOption {
+          default = "little";
+          description = ''
+            `little` gets the fullscreen game tiles and no network; `older`
+            gets a desktop with study apps, filtered web and a home that is
+            never reset.
+          '';
+          type = lib.types.enum [
+            "little"
+            "older"
+          ];
+        };
         name = lib.mkOption {
           default = name;
           defaultText = lib.literalExpression "<attribute name>";
@@ -74,15 +86,22 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-    assertions = lib.mapAttrsToList (user: _: {
-      assertion =
-        config.users.users.${user}.extraGroups == [ ]
-        && lib.all (group: !(lib.elem user group.members)) (lib.attrValues config.users.groups);
-      message = ''
-        Zoomies kid ${user} must not be in other groups: the network rules
-        match the kid's group, and kids could switch to any other one.
-      '';
-    }) cfg.kids;
+    assertions =
+      lib.mapAttrsToList (user: _: {
+        assertion =
+          config.users.users.${user}.extraGroups == [ ]
+          && lib.all (group: !(lib.elem user group.members)) (lib.attrValues config.users.groups);
+        message = ''
+          Zoomies kid ${user} must not be in other groups: the network rules
+          match the kid's group, and kids could switch to any other one.
+        '';
+      }) cfg.kids
+      ++ [
+        {
+          assertion = cfg.older.enable || lib.all (k: k.kind != "older") (lib.attrValues cfg.kids);
+          message = "zoomies.kids has older kids, but zoomies.older.enable is false.";
+        }
+      ];
     environment = {
       etc."zoomies/config.json".text = builtins.toJSON {
         assets = "${cfg.package}/share/zoomies";
@@ -97,8 +116,11 @@ in
             hours
             name
             ;
+          inherit (k) kind;
           games = map (game: toString (fixGame game)) k.games;
         }) cfg.kids;
+        olderEnabled = cfg.older.enable;
+        olderSession = if cfg.older.enable then cfg.sessions.older else null;
         parent = if cfg.parent.user == null then null else { inherit (cfg.parent) user; };
         parentSession = cfg.sessions.parent;
         resetKeep = cfg.resetHomes.keep;
@@ -114,13 +136,20 @@ in
       pulse.enable = true;
     };
     users = {
-      groups.zoomies-kids.gid = cfg.kidsGroupId;
-      # Kids get the kids group as their primary group: the network block
-      # matches sockets by their owner's group.
+      groups = {
+        zoomies-kids.gid = cfg.kidsGroupId;
+        zoomies-older.gid = cfg.kidsGroupId + 1;
+      };
+      # The primary group says which kind of kid this is: the network rules
+      # match sockets by their owner's group, and PAM lets both groups in
+      # without a password.
+      # That group must be their only one, and they get no subordinate id
+      # ranges, or sg, newgrp or newgidmap would make sockets the rules do
+      # not match. Sound, graphics and gamepads come from logind instead.
       users = lib.mapAttrs (_user: k: {
         autoSubUidGidRange = false;
         description = k.name;
-        group = "zoomies-kids";
+        group = if k.kind == "older" then "zoomies-older" else "zoomies-kids";
         isNormalUser = true;
       }) cfg.kids;
     };
@@ -129,6 +158,7 @@ in
     ./admin.nix
     ./kiosk.nix
     ./network.nix
+    ./older.nix
     ./reset.nix
     ./screen-time.nix
   ];
@@ -165,7 +195,10 @@ in
     };
     kidsGroupId = lib.mkOption {
       default = 2700;
-      description = "Fixed gid of the kids group, so firewall rules can match it.";
+      description = ''
+        Fixed gid of the little kids' group, so firewall rules can match it;
+        older kids get the next one.
+      '';
       type = lib.types.ints.positive;
     };
     package = lib.mkOption {
@@ -194,6 +227,11 @@ in
     sessions = {
       kid = lib.mkOption {
         description = "Command greetd starts for a kid.";
+        internal = true;
+        type = lib.types.path;
+      };
+      older = lib.mkOption {
+        description = "Command greetd starts for an older kid.";
         internal = true;
         type = lib.types.path;
       };

@@ -48,19 +48,76 @@ in
       pkgs.noto-fonts-color-emoji
     ];
     security = {
-      pam.services.greetd.rules.auth.zoomies-kids = {
-        # Kids have no password: picking the avatar is the login.
-        args = [
-          "quiet"
-          "user"
-          "ingroup"
-          "zoomies-kids"
-        ];
-        control = "sufficient";
-        modulePath = "${pam}/pam_succeed_if.so";
-        # Ahead of every module that would prompt for a password.
-        order = 10000;
-      };
+      pam.services =
+        let
+          # The PIN is short, so wrong guesses lock the grown-up account
+          # for a while, and the count survives reboots and greeter
+          # restarts. Kids never get here: they are let in earlier.
+          faillock = "${pam}/pam_faillock.so";
+          options = [
+            "deny=5"
+            "unlock_time=600"
+            "dir=/var/lib/zoomies/faillock"
+          ];
+          lockout = {
+            account.zoomies-faillock = {
+              args = options;
+              control = "required";
+              modulePath = faillock;
+              order = 10040;
+            };
+            auth = {
+              zoomies-faillock-authfail = {
+                args = [ "authfail" ] ++ options;
+                control = "[default=die]";
+                modulePath = faillock;
+                order = config.security.pam.services.login.rules.auth.unix.order + 50;
+              };
+              zoomies-faillock-preauth = {
+                args = [ "preauth" ] ++ options;
+                control = "required";
+                modulePath = faillock;
+                order = 10010;
+              };
+            };
+          };
+        in
+        {
+          # Kids have no password: picking the avatar is the login.
+          greetd.rules = lib.mkMerge [
+            lockout
+            {
+              auth = lib.listToAttrs (
+                lib.imap0
+                  (index: group: {
+                    name = group;
+                    value = {
+                      args = [
+                        "quiet"
+                        "user"
+                        "ingroup"
+                        group
+                      ];
+                      control = "sufficient";
+                      modulePath = "${pam}/pam_succeed_if.so";
+                      # Ahead of every module that would prompt for a
+                      # password, such as the early pam_unix that GNOME
+                      # Keyring adds.
+                      order = 10000 + index;
+                    };
+                  })
+                  [
+                    "zoomies-kids"
+                    "zoomies-older"
+                  ]
+              );
+            }
+          ];
+          # Older kids can reach a text console from their desktop.
+          login.rules = lockout;
+          # Kids could otherwise guess the PIN with su; grown-ups use sudo.
+          su.requireWheel = true;
+        };
       polkit.enable = true;
     };
     services.greetd = {
