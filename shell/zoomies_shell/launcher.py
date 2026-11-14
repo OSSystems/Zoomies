@@ -127,6 +127,7 @@ class Launcher(Gtk.ApplicationWindow):
 
         self.refresh()
         GLib.timeout_add_seconds(5, self.refresh)
+        ui.when_ready(self, "zoomies-launcher")
         first = self.grid.get_child_at(0, 0)
         if first:
             first.grab_focus()

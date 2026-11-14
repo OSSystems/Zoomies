@@ -147,10 +147,17 @@ pkgs.testers.runNixOSTest {
         )
 
 
+    def wait_for_ready(screen, user, node=machine):
+        # Keys sent before the window has focus are lost, and on a slow
+        # runner a lost key can land on the wrong screen; the screens mark
+        # when they take input.
+        node.wait_until_succeeds(
+            f"kill -0 \"$(cat /run/user/$(id -u {user})/{screen}-ready)\"", timeout=120
+        )
+
+
     def wait_for_greeter(node=machine):
-        node.wait_until_succeeds("pgrep -u greeter -f zoomies-greeter")
-        # The window needs a moment to map and take keyboard focus.
-        node.sleep(5)
+        wait_for_ready("zoomies-greeter", "greeter", node)
 
 
     def restart_greeter(node=machine):
@@ -206,9 +213,8 @@ pkgs.testers.runNixOSTest {
 
     with subtest("a kid logs in by picking the avatar"):
         machine.send_key("ret")
-        machine.wait_until_succeeds("pgrep -u ana -f zoomies-launcher")
+        wait_for_ready("zoomies-launcher", "ana")
         machine.succeed("loginctl show-user ana --property=State | grep -q active")
-        machine.sleep(5)
         machine.screenshot("launcher")
 
     with subtest("a game covers the launcher and quitting it goes home"):
@@ -333,7 +339,7 @@ pkgs.testers.runNixOSTest {
         machine.send_key("right")
         machine.sleep(1)
         machine.send_key("ret")
-        machine.wait_until_succeeds("pgrep -u ben -f zoomies-launcher")
+        wait_for_ready("zoomies-launcher", "ben")
         machine.succeed("chattr +i /var/lib/zoomies")
         machine.wait_until_fails("pgrep -u ben cage", timeout=90)
         machine.succeed("chattr -i /var/lib/zoomies")

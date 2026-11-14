@@ -165,6 +165,7 @@ class Greeter(Gtk.ApplicationWindow):
 
         self.populate()
         GLib.timeout_add_seconds(5, self.refresh)
+        self.ready = ui.when_ready(self, "zoomies-greeter", "setup")
         GLib.idle_add(self.maybe_set_up)
 
     def populate(self):
@@ -205,13 +206,16 @@ class Greeter(Gtk.ApplicationWindow):
 
     def maybe_set_up(self, tries=10):
         if not self.config.get("parent"):
+            self.ready("setup")
             return GLib.SOURCE_REMOVE
         pin_set = self.pin_set()
         if pin_set is None and tries > 1:
             # The service may still be starting on a slow first boot.
             GLib.timeout_add_seconds(3, self.maybe_set_up, tries - 1)
-        elif pin_set is False:
+            return GLib.SOURCE_REMOVE
+        if pin_set is False:
             Setup(self).start()
+        self.ready("setup")
         return GLib.SOURCE_REMOVE
 
     def _kid_tile(self, kid):

@@ -33,6 +33,33 @@ ABS_X, ABS_Y, ABS_HAT0X, ABS_HAT0Y = 0, 1, 16, 17
 SOUNDS = "/run/current-system/sw/share/sounds/freedesktop/stereo"
 
 
+def when_ready(window, name, *conditions):
+    """Leave a mark once the window has focus and every condition holds.
+
+    Keys pressed before that are lost, so tests (and anything else
+    scripting the kiosk) wait for the mark instead of guessing with sleeps.
+    The mark holds the pid, so a mark left by a previous run never counts.
+    """
+    pending = set(conditions) | {"focus"}
+
+    def done(condition):
+        pending.discard(condition)
+        runtime = os.environ.get("XDG_RUNTIME_DIR")
+        if pending or not runtime:
+            return
+        path = os.path.join(runtime, f"{name}-ready")
+        with open(path + ".tmp", "w") as f:
+            f.write(str(os.getpid()))
+        os.replace(path + ".tmp", path)
+
+    def active(*_):
+        if window.is_active():
+            done("focus")
+
+    window.connect("notify::is-active", active)
+    return done
+
+
 def load_css():
     provider = Gtk.CssProvider()
     provider.load_from_path(os.path.join(os.path.dirname(__file__), "style.css"))
