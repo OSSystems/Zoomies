@@ -17,7 +17,14 @@ let
   system = flake.nixosConfigurations.zoomies.extendModules {
     modules = [
       instrumentation
-      { zoomies.games = lib.mkForce [ ]; }
+      {
+        # Checks the PIN typed during the install against /etc/shadow.
+        environment.systemPackages = [ pkgs.perl ];
+        zoomies = {
+          games = lib.mkForce [ ];
+          older.apps = lib.mkForce [ ];
+        };
+      }
     ];
   };
 
@@ -84,6 +91,8 @@ pkgs.testers.runNixOSTest {
             "zoomies-installer: waiting for confirmation to erase /dev/sda"
         )
         machine.send_chars("ERASE\n")
+        machine.wait_for_console_text("zoomies-installer: waiting for the grown-ups PIN")
+        machine.send_chars("2468\n2468\n")
         machine.wait_for_console_text(
             "zoomies-installer: (Installation complete.|ERROR)", timeout=1800
         )
@@ -105,6 +114,11 @@ pkgs.testers.runNixOSTest {
             machine.succeed("test -d /sys/firmware/efi")
         else:
             machine.fail("test -d /sys/firmware/efi")
+
+        machine.succeed(
+            "perl -e 'exit(crypt($ARGV[0], $ARGV[1]) eq $ARGV[1] ? 0 : 1)' 2468"
+            " \"$(awk -F: '$1 == \"parent\" { print $2 }' /etc/shadow)\""
+        )
 
         machine.succeed("test -s /boot/EFI/BOOT/BOOTX64.EFI")
         machine.succeed("test -s /boot/grub/i386-pc/core.img")
