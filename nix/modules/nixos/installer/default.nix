@@ -15,6 +15,15 @@ let
     runtimeEnv = {
       CLOSURE_INFO = pkgs.closureInfo { rootPaths = [ target.toplevel ]; };
       DISKO_SCRIPT = target.diskoScript;
+      # Empty when the system has no grown-up account or already sets the PIN.
+      PARENT_USER =
+        let
+          parent = cfg.system.config.zoomies.parent or { };
+        in
+        if (cfg.system.config.zoomies.enable or false) && parent.initialHashedPassword == null then
+          toString parent.user
+        else
+          "";
       TOPLEVEL = target.toplevel;
     };
     runtimeInputs = [

@@ -140,6 +140,34 @@ while :; do
   esac
 done
 
+# Asked here, before the long copy, so nobody has to wait around for it.
+# The image is shared publicly, so the PIN cannot be part of it.
+pin=""
+if [ -n "$PARENT_USER" ]; then
+  echo
+  echo "Choose a PIN for grown-ups: 4 to 12 digits. It opens the settings"
+  echo "and lets you leave the kids' screens. Press Enter to choose it on"
+  echo "the first start instead."
+  echo "zoomies-installer: waiting for the grown-ups PIN" >/dev/kmsg 2>/dev/null || true
+  while :; do
+    read -rsp "PIN: " pin
+    echo
+    if [ -z "$pin" ]; then
+      break
+    fi
+    if [[ ! "$pin" =~ ^[0-9]{4,12}$ ]]; then
+      echo "Use 4 to 12 digits."
+      continue
+    fi
+    read -rsp "Same PIN again: " again
+    echo
+    if [ "$pin" = "$again" ]; then
+      break
+    fi
+    echo "The two PINs are different. Try again."
+  done
+fi
+
 for disk in "${stale[@]}"; do
   say "Erasing the old Zoomies install on $disk"
   wipefs -a "$disk"
@@ -158,6 +186,11 @@ fi
 
 say "Copying Zoomies to $target, this takes a while"
 nixos-install --root /mnt --system "$TOPLEVEL" --no-root-passwd --no-channel-copy
+
+if [ -n "$pin" ]; then
+  say "Setting the grown-ups PIN"
+  printf '%s:%s\n' "$PARENT_USER" "$pin" | nixos-enter --root /mnt -c chpasswd
+fi
 
 umount -R /mnt
 sync
