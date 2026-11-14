@@ -240,6 +240,10 @@ pkgs.testers.runNixOSTest {
         machine.wait_until_fails("pgrep -u ana cage", timeout=120)
         wait_for_greeter()
         machine.screenshot("time-up")
+        machine.send_key("ret")
+        machine.sleep(2)
+        machine.screenshot("time-up-zip")
+        machine.send_key("esc")
 
     with subtest("PAM refuses a kid whose time is up"):
         machine.fail("greetd-try ana")

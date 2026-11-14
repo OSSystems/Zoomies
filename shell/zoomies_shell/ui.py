@@ -3,6 +3,7 @@
 import datetime
 import os
 import subprocess
+import xml.etree.ElementTree as ET
 
 import gi
 
@@ -86,19 +87,90 @@ def avatar(kid, size="big"):
     return label
 
 
-def mascot(config, size):
-    # Rendered at the wanted size: a Picture of the SVG itself would ask for
-    # the SVG's large natural size and squeeze everything around it.
-    path = os.path.join(config.get("assets", ""), "zip.svg")
-    try:
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(path, size, size)
-        picture = Gtk.Picture.new_for_paintable(Gdk.Texture.new_for_pixbuf(pixbuf))
-    except GLib.Error:
-        picture = Gtk.Picture()
-    picture.set_can_shrink(False)
-    picture.set_valign(Gtk.Align.CENTER)
-    picture.add_css_class("mascot")
-    return picture
+SVG = "http://www.w3.org/2000/svg"
+ET.register_namespace("", SVG)
+ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+
+# Zip's poses: lift-off for resting screens, flying for when something starts.
+POSES = {"rest": "zip.svg", "fly": "zip-flying.svg"}
+
+
+def mascot_frames(path, height):
+    """Textures for every frame of the SVG's <animate> loops.
+
+    librsvg draws only the first frame of an SVG animation, so the frames
+    are rendered one by one and shown in turn.
+    """
+    tree = ET.parse(path)
+    animated = []
+    for element in tree.iter():
+        for animation in element.findall(f"{{{SVG}}}animate"):
+            if animation.get("attributeName") == "d":
+                values = animation.get("values").split(";")
+                # A loop repeats its first frame at the end.
+                if len(values) > 1 and values[-1] == values[0]:
+                    values.pop()
+                animated.append((element, values))
+            element.remove(animation)
+    count = min((len(values) for _, values in animated), default=1)
+    textures = []
+    for frame in range(count):
+        for element, values in animated:
+            element.set("d", values[frame])
+        stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(ET.tostring(tree.getroot())))
+        pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, -1, height, True, None)
+        textures.append(Gdk.Texture.new_for_pixbuf(pixbuf))
+    return textures
+
+
+class Mascot(Gtk.Picture):
+    FRAME_MS = 100
+
+    def __init__(self, config, size, pose="rest"):
+        super().__init__(can_shrink=False, valign=Gtk.Align.CENTER)
+        self.add_css_class("mascot")
+        self.assets = config.get("assets", "")
+        self.size = size
+        self.poses = {}
+        self.frames = []
+        self.frame = 0
+        self.timer = None
+        self.connect("unrealize", lambda *_: self._stop())
+        self.set_pose(pose)
+
+    def _load(self, pose):
+        if pose not in self.poses:
+            try:
+                self.poses[pose] = mascot_frames(
+                    os.path.join(self.assets, POSES[pose]), self.size
+                )
+            except (GLib.Error, OSError, ET.ParseError):
+                self.poses[pose] = []
+        return self.poses[pose]
+
+    def set_pose(self, pose):
+        self._stop()
+        self.frames = self._load(pose)
+        self.frame = 0
+        self.set_paintable(self.frames[0] if self.frames else None)
+        if len(self.frames) > 1:
+            self.timer = GLib.timeout_add(self.FRAME_MS, self._next)
+
+    def _next(self):
+        self.frame = (self.frame + 1) % len(self.frames)
+        self.set_paintable(self.frames[self.frame])
+        return GLib.SOURCE_CONTINUE
+
+    def _stop(self):
+        if self.timer is not None:
+            GLib.source_remove(self.timer)
+            self.timer = None
+
+
+def mascot(config, size, pose="rest"):
+    # Rendered at the wanted height: a Picture of the SVG itself would ask
+    # for the SVG's large natural size and squeeze everything around it.
+    return Mascot(config, size, pose)
 
 
 def clock():

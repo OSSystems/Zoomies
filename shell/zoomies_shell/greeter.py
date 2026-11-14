@@ -260,7 +260,7 @@ class Greeter(Gtk.ApplicationWindow):
     def play(self, kid):
         status = state.read_status().get(kid["user"])
         if status and not status["allowed"]:
-            self.say(kid["avatar"], f"{describe(status)}, {kid['name']}!\nZip says: go run around outside!")
+            self.send_outside(kid, status)
             return
         ui.play("service-login")
         if kid.get("kind") == "older":
@@ -274,13 +274,23 @@ class Greeter(Gtk.ApplicationWindow):
         # for example right as the allowed hours end.
         status = state.kid_status(kid, state.load_policy(), state.load_usage())
         if not status["allowed"]:
-            self.say(kid["avatar"], f"{describe(status)}, {kid['name']}!\nZip says: go run around outside!")
+            self.send_outside(kid, status)
             self.refresh()
         else:
             self.say("🙈", "Oops, that did not work.\nAsk a grown-up for help.")
 
-    def say(self, emoji, text):
+    def send_outside(self, kid, status):
+        text = f"{describe(status)}, {kid['name']}!\nZip says: go run around outside!"
+        self.say(kid["avatar"], text, flying=True)
+
+    def say(self, emoji, text, flying=False):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
+        if flying:
+            # A vertical box would size the picture for the full dialog
+            # width; a row gives it only its own width.
+            row = Gtk.Box(halign=Gtk.Align.CENTER)
+            row.append(ui.mascot(self.config, 120, "fly"))
+            box.append(row)
         label = Gtk.Label(label=f"{emoji}\n{text}", justify=Gtk.Justification.CENTER)
         label.add_css_class("dialog-title")
         box.append(label)
