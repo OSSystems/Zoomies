@@ -2,6 +2,10 @@
   description = "Zoomies - a playful NixOS desktop for kids, packed with open-source games";
 
   inputs = {
+    disko = {
+      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:nix-community/disko";
+    };
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     pedantix = {
       inputs.nixpkgs.follows = "nixpkgs";

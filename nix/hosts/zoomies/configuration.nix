@@ -1,12 +1,10 @@
 { flake, hostName, ... }:
 
 {
-  boot.loader.grub.device = "nodev";
-  fileSystems."/" = {
-    device = "/dev/disk/by-label/nixos";
-    fsType = "ext4";
-  };
-  imports = [ flake.nixosModules.zoomies ];
+  imports = [
+    flake.nixosModules.platform
+    flake.nixosModules.zoomies
+  ];
   networking.hostName = hostName;
   nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "26.05";
