@@ -7,8 +7,11 @@ else is removed. Symlinks are removed, never followed.
 
 import argparse
 import os
+import pwd
 import shutil
 import sys
+
+from . import state
 
 
 def remove(path):
@@ -32,14 +35,39 @@ def prune(directory, keep, prefix=""):
         remove(path)
 
 
-def main():
-    parser = argparse.ArgumentParser(prog="zoomies-reset-home")
-    parser.add_argument("home")
-    parser.add_argument("keep", nargs="*")
-    args = parser.parse_args()
-    if not os.path.isdir(args.home):
+def reset(home, keep):
+    if not os.path.isdir(home):
         return
-    keep = {os.path.normpath(k).lstrip("/") for k in args.keep}
+    keep = {os.path.normpath(k).lstrip("/") for k in keep}
     if any(k.startswith("..") for k in keep):
         sys.exit("keep paths must stay inside the home directory")
-    prune(args.home, keep)
+    prune(home, keep)
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="zoomies-reset-home")
+    parser.add_argument("--all", action="store_true", help="every little kid, as configured")
+    parser.add_argument("home", nargs="?")
+    parser.add_argument("keep", nargs="*")
+    args = parser.parse_args()
+    if not args.all:
+        if args.home is None:
+            parser.error("give a home directory or --all")
+        reset(args.home, args.keep)
+        return
+    config = state.load_config()
+    failed = False
+    # Older kids keep their homes: that is where their schoolwork lives.
+    for kid in config["kids"]:
+        if kid.get("kind") != "little":
+            continue
+        # One stuck home must not leave the other kids' homes unreset.
+        try:
+            home = pwd.getpwnam(kid["user"]).pw_dir
+            print(f"resetting {home}", flush=True)
+            reset(home, config.get("resetKeep", []))
+        except (KeyError, OSError) as error:
+            print(f"cannot reset {kid['user']}: {error}", file=sys.stderr, flush=True)
+            failed = True
+    if failed:
+        sys.exit(1)

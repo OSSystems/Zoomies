@@ -21,7 +21,24 @@ let
 in
 {
   config = lib.mkIf cfg.enable {
-    # The CLI lets parents grant time from a terminal or over SSH.
+    environment.etc."polkit-1/rules.d/00-zoomies.rules".text = ''
+      // Before NixOS's own rules, which would accept the grown-up's PIN
+      // (a wheel password) from a kid's session and so let kids guess it.
+      polkit.addAdminRule(function(action, subject) {
+        if (subject.isInGroup("zoomies-kids") || subject.isInGroup("zoomies-older")) {
+          return ["unix-user:root"];
+        }
+      });
+      // Lingering would keep a kid's programs running after their session
+      // ends, outside screen time.
+      polkit.addRule(function(action, subject) {
+        if (action.id == "org.freedesktop.login1.set-self-linger" &&
+            (subject.isInGroup("zoomies-kids") || subject.isInGroup("zoomies-older"))) {
+          return polkit.Result.NO;
+        }
+      });
+    '';
+    # The CLIs let parents manage kids and time from a terminal or over SSH.
     environment.systemPackages = [
       cfg.package
       pkgs.foot
@@ -41,7 +58,8 @@ in
         ];
         control = "sufficient";
         modulePath = "${pam}/pam_succeed_if.so";
-        order = config.security.pam.services.greetd.rules.auth.unix.order - 10;
+        # Ahead of every module that would prompt for a password.
+        order = 10000;
       };
       polkit.enable = true;
     };

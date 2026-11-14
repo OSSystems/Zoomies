@@ -1,9 +1,9 @@
-"""Grown-ups' panel: screen time rules, extra time, and the way out."""
+"""Grown-ups' panel: kids, screen time rules, extra time, the PIN, and the way out."""
 
 import subprocess
 import sys
 
-from . import state, ui
+from . import admin, state, ui
 from .ui import GLib, Gtk
 
 
@@ -36,7 +36,7 @@ def time_spin(low, high, value):
 
 
 class KidRow(Gtk.Box):
-    def __init__(self, kid):
+    def __init__(self, panel, kid):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         self.kid = kid
         self.add_css_class("parent-row")
@@ -44,15 +44,31 @@ class KidRow(Gtk.Box):
         header = Gtk.Box(spacing=20)
         header.append(ui.avatar(kid, "small"))
         names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
+        line = Gtk.Box(spacing=12)
         name = Gtk.Label(label=kid["name"], xalign=0)
         name.add_css_class("kid-name")
-        names.append(name)
+        line.append(name)
+        emoji, title, _hint = ui.KidForm.KIND_LABELS[kid.get("kind", "little")]
+        tag = Gtk.Label(label=f"{emoji} {title}", valign=Gtk.Align.CENTER)
+        tag.add_css_class("tag")
+        line.append(tag)
+        names.append(line)
         self.played = Gtk.Label(xalign=0)
         names.append(self.played)
         header.append(names)
-        extra = ui.big_button("+15 min today", "yes", "⏳")
+        extra = ui.big_button("+15 min", "yes", "⏳")
         extra.connect("clicked", lambda *_: self.grant(15))
         header.append(extra)
+        # Kids from the system configuration are changed there, not here.
+        if not kid.get("declared"):
+            edit = ui.big_button(None, "subtle", "✏️")
+            edit.set_tooltip_text("Edit")
+            edit.connect("clicked", lambda *_: panel.edit_kid(kid))
+            header.append(edit)
+            remove = ui.big_button(None, "subtle", "🗑️")
+            remove.set_tooltip_text("Remove")
+            remove.connect("clicked", lambda *_: panel.remove_kid(kid))
+            header.append(remove)
         self.append(header)
 
         policy = state.load_policy()
@@ -153,23 +169,19 @@ class Parent(Gtk.ApplicationWindow):
         title = Gtk.Label(label="Grown-ups", xalign=0, hexpand=True)
         title.add_css_class("title")
         top.append(title)
+        add = ui.big_button("Add a kid", "yes", "➕")
+        add.connect("clicked", lambda *_: self.edit_kid(None))
+        top.append(add)
+        pin = ui.big_button("Change PIN", "subtle", "🔑")
+        pin.connect("clicked", lambda *_: self.change_pin())
+        top.append(pin)
         top.append(ui.clock())
         page.append(top)
 
-        rows = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        self.rows = [KidRow(kid) for kid in config["kids"]]
-        for row in self.rows:
-            rows.append(row)
-        scroller = Gtk.ScrolledWindow(vexpand=True, child=rows)
+        self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        scroller = Gtk.ScrolledWindow(vexpand=True, child=self.list)
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         page.append(scroller)
-
-        hint = Gtk.Label(
-            label="To change the PIN, open the terminal and run passwd.",
-            xalign=0,
-        )
-        hint.add_css_class("kid-note")
-        page.append(hint)
 
         bottom = Gtk.Box(spacing=16)
         back = ui.big_button("Back to the kids", "yes", "🐧")
@@ -199,7 +211,100 @@ class Parent(Gtk.ApplicationWindow):
 
         self.overlay = ui.Overlay(page)
         self.set_child(self.overlay)
+        self.populate()
         GLib.timeout_add_seconds(5, self.refresh)
+
+    def populate(self):
+        self.config = state.load_config()
+        while child := self.list.get_first_child():
+            self.list.remove(child)
+        self.rows = [KidRow(self, kid) for kid in self.config["kids"]]
+        for row in self.rows:
+            self.list.append(row)
+        if not self.rows:
+            empty = Gtk.Label(label="No kids yet. Press ➕ Add a kid.")
+            empty.add_css_class("dialog-title")
+            self.list.append(empty)
+
+    def dialog(self, title, body, action, on_accept):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        label = Gtk.Label(label=title, justify=Gtk.Justification.CENTER)
+        label.add_css_class("dialog-title")
+        box.append(label)
+        box.append(body)
+        message = ui.message_label()
+        box.append(message)
+        row = Gtk.Box(spacing=16, halign=Gtk.Align.CENTER)
+        cancel = ui.big_button("Cancel", "no", "✖")
+        cancel.connect("clicked", lambda *_: self.overlay.close())
+        accept = ui.big_button(action, "yes", "✔")
+
+        def run(*_):
+            try:
+                on_accept()
+            except admin.Refused as error:
+                message.set_label(str(error).capitalize() + ".")
+                return
+            self.overlay.close()
+            self.populate()
+
+        accept.connect("clicked", run)
+        row.append(cancel)
+        row.append(accept)
+        box.append(row)
+        self.overlay.show(box)
+        return run
+
+    def edit_kid(self, kid):
+        form = ui.KidForm(
+            kid,
+            older=self.config.get("olderEnabled", False),
+            used_avatars=[k["avatar"] for k in self.config["kids"] if k is not kid],
+        )
+        if kid is None:
+            run = self.dialog(
+                "Add a kid", form, "Add", lambda: admin.request("add-kid", **form.values())
+            )
+        else:
+            run = self.dialog(
+                f"Edit {kid['name']}",
+                form,
+                "Save",
+                lambda: admin.request("edit-kid", user=kid["user"], **form.values()),
+            )
+        form.name.connect("activate", run)
+        form.name.grab_focus()
+
+    def remove_kid(self, kid):
+        warning = Gtk.Label(
+            label=f"{kid['avatar']} {kid['name']}'s saved games and files will be deleted.",
+            wrap=True,
+        )
+        self.dialog(
+            f"Remove {kid['name']}?",
+            warning,
+            "Remove",
+            lambda: admin.request("remove-kid", user=kid["user"]),
+        )
+
+    def change_pin(self):
+        fields = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        old = ui.pin_entry("Current PIN")
+        new = ui.pin_entry("New PIN")
+        again = ui.pin_entry("New PIN again")
+        for entry in (old, new, again):
+            fields.append(entry)
+
+        def accept():
+            if new.get_text() != again.get_text():
+                raise admin.Refused("the new PINs are different")
+            admin.request("set-pin", old=old.get_text(), new=new.get_text())
+
+        run = self.dialog("🔑 Change the PIN", fields, "Save", accept)
+        old.connect("activate", lambda *_: new.grab_focus())
+        new.connect("activate", lambda *_: again.grab_focus())
+        again.connect("activate", run)
+        old.grab_focus()
 
     def refresh(self):
         for row in self.rows:

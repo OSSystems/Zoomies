@@ -6,6 +6,8 @@ import subprocess
 
 import gi
 
+from . import state
+
 gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Gtk", "4.0")
@@ -245,3 +247,112 @@ class Gamepad:
             self._move(Gtk.DirectionType.RIGHT if value > 0 else Gtk.DirectionType.LEFT)
         elif axis == ABS_HAT0Y:
             self._move(Gtk.DirectionType.DOWN if value > 0 else Gtk.DirectionType.UP)
+
+
+class KidForm(Gtk.Box):
+    """Name, avatar, colour and kind of a kid, for adding or editing."""
+
+    KIND_LABELS = {
+        "little": ("🧸", "Little kid", "Just the games"),
+        "older": ("🎒", "Older kid", "A desktop for study and play"),
+    }
+
+    def __init__(self, kid=None, older=True, used_avatars=()):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        kid = kid or {}
+        free = [a for a in state.AVATARS if a not in used_avatars] or state.AVATARS
+        self.avatar = kid.get("avatar") or free[0]
+        self.color = kid.get("color") or state.COLORS[len(used_avatars) % len(state.COLORS)]
+        self.kind = kid.get("kind") or "little"
+
+        self.name = Gtk.Entry(text=kid.get("name", ""), placeholder_text="Name")
+        self.name.add_css_class("name-entry")
+        self.append(self.name)
+
+        avatars = Gtk.FlowBox(
+            selection_mode=Gtk.SelectionMode.NONE,
+            max_children_per_line=8,
+            min_children_per_line=8,
+            homogeneous=True,
+        )
+        self.avatar_buttons = {}
+        for emoji in state.AVATARS:
+            button = Gtk.ToggleButton(label=emoji, active=emoji == self.avatar)
+            button.add_css_class("avatar-choice")
+            button.connect("toggled", self._pick_avatar, emoji)
+            self.avatar_buttons[emoji] = button
+            avatars.append(button)
+        self.append(avatars)
+
+        colors = Gtk.Box(spacing=10, halign=Gtk.Align.CENTER)
+        self.color_buttons = {}
+        for color in state.COLORS:
+            button = Gtk.ToggleButton(active=color == self.color)
+            button.add_css_class("color-choice")
+            button.add_css_class(f"color-{color}")
+            button.set_tooltip_text(color)
+            button.connect("toggled", self._pick_color, color)
+            self.color_buttons[color] = button
+            colors.append(button)
+        self.append(colors)
+
+        kinds = Gtk.Box(spacing=14, halign=Gtk.Align.CENTER, homogeneous=True)
+        self.kind_buttons = {}
+        for kind, (emoji, title, hint) in self.KIND_LABELS.items():
+            if kind == "older" and not older:
+                continue
+            button = Gtk.ToggleButton(active=kind == self.kind)
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+            label = Gtk.Label(label=f"{emoji} {title}")
+            label.add_css_class("kind-title")
+            box.append(label)
+            box.append(Gtk.Label(label=hint))
+            button.set_child(box)
+            button.add_css_class("kind-choice")
+            button.connect("toggled", self._pick_kind, kind)
+            self.kind_buttons[kind] = button
+            kinds.append(button)
+        self.append(kinds)
+
+    def _pick(self, buttons, value, attribute):
+        if not buttons[value].get_active():
+            # Keep one choice selected: clicking the active one again
+            # should not leave nothing chosen.
+            if getattr(self, attribute) == value:
+                buttons[value].set_active(True)
+            return
+        setattr(self, attribute, value)
+        for other, button in buttons.items():
+            if other != value and button.get_active():
+                button.set_active(False)
+
+    def _pick_avatar(self, _button, emoji):
+        self._pick(self.avatar_buttons, emoji, "avatar")
+
+    def _pick_color(self, _button, color):
+        self._pick(self.color_buttons, color, "color")
+
+    def _pick_kind(self, _button, kind):
+        self._pick(self.kind_buttons, kind, "kind")
+
+    def values(self):
+        return {
+            "avatar": self.avatar,
+            "color": self.color,
+            "kind": self.kind,
+            "name": self.name.get_text().strip(),
+        }
+
+
+def pin_entry(placeholder):
+    entry = Gtk.PasswordEntry(placeholder_text=placeholder, show_peek_icon=False)
+    entry.set_size_request(340, -1)
+    entry.add_css_class("pin")
+    entry.set_halign(Gtk.Align.CENTER)
+    return entry
+
+
+def message_label():
+    label = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER)
+    label.add_css_class("pin-message")
+    return label

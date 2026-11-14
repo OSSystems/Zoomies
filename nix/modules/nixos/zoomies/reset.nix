@@ -14,12 +14,13 @@ in
         "systemd-user-sessions.service"
       ];
       description = "Reset the kids' home directories";
-      script = lib.concatMapStrings (user: ''
-        ${cfg.package}/bin/zoomies-reset-home ${
-          lib.escapeShellArgs ([ config.users.users.${user}.home ] ++ cfg.resetHomes.keep)
-        }
-      '') (lib.attrNames cfg.kids);
+      # Only at boot: rerunning it on a system switch would wipe the home
+      # of a kid who is playing right now.
+      restartIfChanged = false;
       serviceConfig = {
+        # Kids added from the panel are not known at build time, so the
+        # list comes from the merged profiles.
+        ExecStart = "${cfg.package}/bin/zoomies-reset-home --all";
         RemainAfterExit = true;
         Type = "oneshot";
       };
@@ -30,7 +31,7 @@ in
   options.zoomies.resetHomes = {
     enable = lib.mkOption {
       default = true;
-      description = "Wipe the kids' homes at boot, keeping only game data.";
+      description = "Wipe little kids' homes at boot, keeping only game data.";
       type = lib.types.bool;
     };
     keep = lib.mkOption {

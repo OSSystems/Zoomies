@@ -1,8 +1,10 @@
-"""Configuration, parental policy and screen time bookkeeping.
+"""Configuration, profiles, parental policy and screen time bookkeeping.
 
-The NixOS module writes the static configuration; parents change the policy
-at runtime; only the timekeeper (root) writes usage and status, so kids can
-read their remaining time but never change it.
+The NixOS module writes the static configuration and the kids declared in
+it; kids added from the grown-ups panel live in profiles.json, which only
+the root admin service writes. Parents change the policy at runtime; only
+the timekeeper (root) writes usage and status, so kids can read their
+remaining time but never change it.
 """
 
 import datetime
@@ -14,6 +16,7 @@ CONFIG = os.environ.get("ZOOMIES_CONFIG", "/etc/zoomies/config.json")
 STATE_DIR = os.environ.get("ZOOMIES_STATE_DIR", "/var/lib/zoomies")
 RUN_DIR = os.environ.get("ZOOMIES_RUN_DIR", "/run/zoomies")
 POLICY = os.path.join(STATE_DIR, "policy.json")
+PROFILES = os.path.join(STATE_DIR, "profiles.json")
 USAGE = os.path.join(STATE_DIR, "usage.json")
 STATUS = os.path.join(RUN_DIR, "status.json")
 
@@ -47,8 +50,33 @@ def write_json(path, data, mode=0o644):
         os.close(dirfd)
 
 
+KINDS = ("little", "older")
+AVATARS = "🦊 🐼 🦄 🐸 🐱 🐶 🐰 🐯 🦁 🐵 🐨 🐙 🐢 🦖 🐧 🦉".split()
+COLORS = ("orange", "green", "purple", "pink", "sky", "yellow", "red", "teal")
+
+
+def load_profiles():
+    return read_json(PROFILES, {"kids": []})
+
+
 def load_config():
-    return read_json(CONFIG, {"kids": [], "parent": None})
+    config = read_json(CONFIG, {"kids": [], "parent": None})
+    declared = {kid["user"] for kid in config["kids"]}
+    for kid in config["kids"]:
+        kid["declared"] = True
+        kid.setdefault("kind", "little")
+    for profile in load_profiles()["kids"]:
+        if profile["user"] in declared:
+            continue
+        kid = {
+            "dailyMinutes": None,
+            "declared": False,
+            "games": config.get("defaultGames", []),
+            "hours": None,
+        }
+        kid.update(profile)
+        config["kids"].append(kid)
+    return config
 
 
 def kids_by_user(config=None):

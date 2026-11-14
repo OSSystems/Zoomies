@@ -86,6 +86,7 @@ in
     environment = {
       etc."zoomies/config.json".text = builtins.toJSON {
         assets = "${cfg.package}/share/zoomies";
+        defaultGames = map (game: toString (fixGame game)) cfg.games;
         kidSession = cfg.sessions.kid;
         kids = lib.mapAttrsToList (user: k: {
           inherit user;
@@ -100,6 +101,7 @@ in
         }) cfg.kids;
         parent = if cfg.parent.user == null then null else { inherit (cfg.parent) user; };
         parentSession = cfg.sessions.parent;
+        resetKeep = cfg.resetHomes.keep;
         warningSound = "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
       };
       systemPackages = map fixGame (
@@ -124,6 +126,7 @@ in
     };
   };
   imports = [
+    ./admin.nix
     ./kiosk.nix
     ./network.nix
     ./reset.nix
@@ -146,10 +149,11 @@ in
       type = lib.types.listOf lib.types.package;
     };
     kids = lib.mkOption {
-      default.kid = { };
+      default = { };
       description = ''
-        One profile per kid. The attribute name is the login account; each
-        kid has their own saves and screen time.
+        Kids set in the configuration; grown-ups can add more from the
+        panel. The attribute name is the login account; each kid has their
+        own saves and screen time.
       '';
       example = lib.literalExpression ''
         {
@@ -169,6 +173,15 @@ in
       defaultText = lib.literalExpression "the Zoomies shell";
       description = "Greeter, launcher, grown-ups panel and screen time tools.";
       type = lib.types.package;
+    };
+    parent.initialHashedPassword = lib.mkOption {
+      default = null;
+      description = ''
+        Hash of the grown-ups PIN (`mkpasswd 1234`), for machines set up
+        ahead of time. Without it, the first boot asks for a PIN. Never set
+        it in an image shared with others.
+      '';
+      type = lib.types.nullOr lib.types.str;
     };
     parent.user = lib.mkOption {
       default = "parent";
