@@ -1,0 +1,195 @@
+/* Big, bright and forgiving: every target is easy to hit with a finger,
+   and the focused item is obvious when using a keyboard or a gamepad. */
+
+window {
+  background: linear-gradient(180deg, #7fd3ff 0%, #b8ecff 55%, #c8f5c0 100%);
+  color: #1d3557;
+  font-family: "Andika", "Noto Color Emoji", sans-serif;
+  font-size: 20px;
+}
+
+.page {
+  padding: 28px 36px;
+}
+
+.title {
+  font-size: 44px;
+  font-weight: bold;
+  color: #1d3557;
+}
+
+.clock {
+  font-size: 32px;
+  font-weight: bold;
+  background: alpha(white, 0.7);
+  border-radius: 999px;
+  padding: 6px 22px;
+}
+
+.mascot {
+  margin: 0 8px;
+}
+
+.avatar {
+  font-family: "Noto Color Emoji";
+  border-radius: 999px;
+  border: 6px solid white;
+}
+
+.avatar-big {
+  font-size: 96px;
+  min-width: 180px;
+  min-height: 180px;
+}
+
+.avatar-small {
+  font-size: 40px;
+  min-width: 76px;
+  min-height: 76px;
+  border-width: 4px;
+}
+
+.color-orange { background: #ffb259; }
+.color-green { background: #8be28b; }
+.color-purple { background: #c9a7ff; }
+.color-pink { background: #ffa8d2; }
+.color-sky { background: #8fd8ff; }
+.color-yellow { background: #ffe066; }
+.color-red { background: #ff8a80; }
+.color-teal { background: #6fe0cf; }
+
+button {
+  transition: background 150ms ease, box-shadow 150ms ease;
+}
+
+button:focus-visible,
+button:focus {
+  outline: 6px solid #ffd60a;
+  outline-offset: 4px;
+}
+
+.kid-tile,
+.game-tile {
+  background: alpha(white, 0.85);
+  border-radius: 36px;
+  border: none;
+  box-shadow: 0 8px 0 alpha(#1d3557, 0.18);
+  padding: 22px 26px;
+  min-width: 200px;
+}
+
+.kid-tile:hover,
+.game-tile:hover {
+  background: white;
+}
+
+.kid-tile:active,
+.game-tile:active {
+  box-shadow: 0 2px 0 alpha(#1d3557, 0.18);
+  margin-top: 6px;
+}
+
+.kid-tile.resting {
+  opacity: 0.55;
+}
+
+.kid-name {
+  font-size: 34px;
+  font-weight: bold;
+}
+
+.kid-note {
+  font-size: 20px;
+  color: #3d5a80;
+}
+
+.game-name {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.time-pill {
+  font-size: 30px;
+  font-weight: bold;
+  background: #8be28b;
+  border-radius: 999px;
+  padding: 6px 22px;
+}
+
+.time-pill.low {
+  background: #ffb259;
+}
+
+.bubble {
+  font-size: 26px;
+  background: white;
+  border-radius: 24px;
+  padding: 12px 22px;
+}
+
+.big-button {
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 999px;
+  padding: 14px 28px;
+  border: none;
+  box-shadow: 0 5px 0 alpha(#1d3557, 0.2);
+}
+
+.button-emoji {
+  font-family: "Noto Color Emoji", "Andika";
+  font-size: 30px;
+}
+
+.big-button.subtle {
+  background: alpha(white, 0.75);
+}
+
+.big-button.yes,
+.pin-key.yes {
+  background: #8be28b;
+}
+
+.big-button.no {
+  background: #ffb3ab;
+}
+
+.scrim {
+  background: alpha(#1d3557, 0.45);
+}
+
+.dialog {
+  background: white;
+  border-radius: 40px;
+  padding: 36px 48px;
+  box-shadow: 0 12px 0 alpha(#1d3557, 0.25);
+}
+
+.dialog-title {
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.pin {
+  font-size: 36px;
+  min-width: 260px;
+  border-radius: 20px;
+}
+
+.pin-message {
+  color: #c1121f;
+}
+
+.pin-key {
+  font-size: 32px;
+  font-weight: bold;
+  min-width: 88px;
+  min-height: 72px;
+  border-radius: 24px;
+}
+
+.parent-row {
+  background: alpha(white, 0.85);
+  border-radius: 28px;
+  padding: 16px 24px;
+}
