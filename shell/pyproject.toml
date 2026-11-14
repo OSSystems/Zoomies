@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zoomies-shell"
+version = "0.1.0"
+description = "Kid-friendly kiosk shell for Zoomies"
+requires-python = ">=3.11"
+
+[project.scripts]
+zoomies-greeter = "zoomies_shell.greeter:main"
+zoomies-launcher = "zoomies_shell.launcher:main"
+zoomies-parent = "zoomies_shell.parent:main"
+zoomies-reset-home = "zoomies_shell.reset_home:main"
+zoomies-time = "zoomies_shell.timekeeper:main"
+
+[tool.setuptools.package-data]
+zoomies_shell = ["*.css"]

@@ -70,11 +70,12 @@ All Nix code lives under `nix/` and is wired by
 
 | Path | Output |
 |---|---|
-| `nix/modules/nixos/zoomies/` | `nixosModules.zoomies` (the desktop) |
+| `nix/modules/nixos/zoomies/` | `nixosModules.zoomies` (the kiosk desktop) |
 | `nix/modules/nixos/platform/` | `nixosModules.platform` (disk layout, hybrid boot, hardware) |
 | `nix/modules/nixos/installer/` | `nixosModules.installer` |
 | `nix/lib/` | `lib.mkInstallerIso` |
 | `nix/packages/installer-iso.nix` | `packages.installer-iso` |
+| `nix/packages/zoomies-shell/` | `packages.zoomies-shell` (greeter, launcher, grown-ups panel; Python source in `shell/`) |
 | `nix/checks/installer.nix` | `checks.installer` (BIOS/UEFI install and boot in QEMU) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
 | `nix/devshell.nix` | `devShells.default` |
