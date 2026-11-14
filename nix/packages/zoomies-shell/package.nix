@@ -32,8 +32,9 @@ python3Packages.buildPythonApplication {
   postInstall = ''
     # The README art sits on a card; the shell draws Zip straight on the sky.
     mkdir -p $out/share/zoomies
-    sed 's|<rect width="600" height="640" rx="48" fill="#e9faf4"/>||' \
-      ${../../../assets/mascot/zip.svg} > $out/share/zoomies/zip.svg
+    for art in ${../../../assets/mascot}/*.svg; do
+      sed 's|<rect [^>]*fill="#e9faf4"/>||' "$art" > $out/share/zoomies/$(basename "$art")
+    done
   '';
   pyproject = true;
   src = ../../../shell;
