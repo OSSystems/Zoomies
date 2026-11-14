@@ -1,14 +1,41 @@
-# Blocks every connection made by kid processes except to localhost. Games
-# that talk to a local server keep working; nothing reaches the internet.
+# Little kids' programs reach nothing but localhost: games that talk to a
+# local server keep working, nothing reaches the internet. Older kids are
+# online, but only the system resolver may do DNS, so the family filter
+# cannot be skipped by simply asking another server.
 { config, lib, ... }:
 
 let
   cfg = config.zoomies;
-  gid = toString cfg.kidsGroupId;
-  rule = "OUTPUT ! -o lo -m owner --gid-owner ${gid} -j REJECT";
+  little = toString cfg.kidsGroupId;
+  older = toString (cfg.kidsGroupId + 1);
+  dnsPorts = [
+    "53"
+    "853"
+  ];
+
+  rules =
+    lib.optional cfg.network.blockKids "OUTPUT ! -o lo -m owner --gid-owner ${little} -j REJECT"
+    ++ lib.optionals cfg.older.enable (
+      lib.concatMap
+        (
+          proto:
+          map (
+            port: "OUTPUT ! -o lo -p ${proto} --dport ${port} -m owner --gid-owner ${older} -j REJECT"
+          ) dnsPorts
+        )
+        [
+          "tcp"
+          "udp"
+        ]
+    );
+
+  remove = lib.concatMapStrings (rule: ''
+    iptables -D ${rule} 2>/dev/null || true
+    ip6tables -D ${rule} 2>/dev/null || true
+  '') rules;
 in
 {
-  config = lib.mkIf (cfg.enable && cfg.network.blockKids) (
+  config = lib.mkIf (cfg.enable && rules != [ ]) (
     lib.mkMerge [
       (lib.mkIf config.networking.nftables.enable {
         networking.nftables.tables.zoomies = {
@@ -16,7 +43,11 @@ in
             chain output {
               type filter hook output priority filter; policy accept;
               oifname "lo" accept
-              meta skgid ${gid} reject
+              ${lib.optionalString cfg.network.blockKids "meta skgid ${little} reject"}
+              ${lib.optionalString cfg.older.enable ''
+                meta skgid ${older} udp dport { ${lib.concatStringsSep ", " dnsPorts} } reject
+                meta skgid ${older} tcp dport { ${lib.concatStringsSep ", " dnsPorts} } reject
+              ''}
             }
           '';
           family = "inet";
@@ -26,28 +57,25 @@ in
         assertions = [
           {
             assertion = config.networking.firewall.enable;
-            message = "zoomies.network.blockKids needs networking.firewall.enable or nftables.";
+            message = "Zoomies network rules need networking.firewall.enable or nftables.";
           }
         ];
         # Deleted first so a firewall reload does not stack duplicates.
         networking.firewall = {
-          extraCommands = ''
-            iptables -D ${rule} 2>/dev/null || true
-            ip6tables -D ${rule} 2>/dev/null || true
-            iptables -I ${rule}
-            ip6tables -I ${rule}
-          '';
-          extraStopCommands = ''
-            iptables -D ${rule} 2>/dev/null || true
-            ip6tables -D ${rule} 2>/dev/null || true
-          '';
+          extraCommands =
+            remove
+            + lib.concatMapStrings (rule: ''
+              iptables -I ${rule}
+              ip6tables -I ${rule}
+            '') rules;
+          extraStopCommands = remove;
         };
       })
     ]
   );
   options.zoomies.network.blockKids = lib.mkOption {
     default = true;
-    description = "Keep kids' programs off the network.";
+    description = "Keep little kids' programs off the network.";
     type = lib.types.bool;
   };
 }
