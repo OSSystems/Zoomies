@@ -140,6 +140,9 @@ whole. Earlier systems stay in folders such as `nixos/3-default/`: to go
 back, put the card in another computer and point `os_prefix` in
 `config.txt` at one of them.
 
+`nix build --accept-flake-config .#checks.x86_64-linux.raspberry-pi` boots
+the image's own boot files in QEMU's Pi 3 emulation and runs an update.
+
 ## Use it in your own NixOS configuration
 
 ```nix
@@ -168,6 +171,7 @@ All Nix code lives under `nix/` and is wired by
 | `nix/packages/raspberry-pi-image.nix` | `packages.raspberry-pi-image` (aarch64-linux) |
 | `nix/packages/zoomies-shell/` | `packages.zoomies-shell` (greeter, launcher, grown-ups panel; Python source in `shell/`) |
 | `nix/checks/installer.nix` | `checks.installer` (BIOS/UEFI install and boot in QEMU) |
+| `nix/checks/raspberry-pi.nix` | `checks.raspberry-pi` (Pi image boot and update in QEMU) |
 | `nix/checks/kiosk.nix` | `checks.kiosk` (logins, PIN, screen time, network block, home reset) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
 | `nix/hosts/zoomies-pi/` | `nixosConfigurations.zoomies-pi` |
