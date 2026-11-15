@@ -21,7 +21,11 @@ if [ ! -e "$xfconf/xfce4-desktop.xml" ]; then
       done
       echo '</property>'
     done
-    echo '</property></property></channel>'
+    echo '</property></property>'
+    # The clouds drift over the whole desktop; icons would sit on top of
+    # them, and the file manager is on the panel.
+    echo '<property name="desktop-icons" type="empty"><property name="style" type="int" value="0"/></property>'
+    echo '</channel>'
   } >"$xfconf/xfce4-desktop.xml"
 fi
 
