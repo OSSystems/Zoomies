@@ -22,6 +22,11 @@ let
     pkgs.writeShellScript "zoomies-${name}-session" ''
       # Old GPUs without usable GL still get a desktop through llvmpipe.
       export WLR_RENDERER_ALLOW_SOFTWARE=1
+      # There, GTK's GL renderer redraws the whole window on the CPU for
+      # every moving cloud; its cairo renderer redraws only what moved.
+      if [ -e /run/zoomies-gpu/software ]; then
+        export GSK_RENDERER=cairo
+      fi
       # Into the journal: any text on the screen wakes the text console,
       # which then flashes between the boot splash and the greeter.
       exec ${lib.getExe' config.systemd.package "systemd-cat"} -t zoomies-${name} \
@@ -147,6 +152,25 @@ in
     systemd.services.plymouth-quit = lib.mkIf config.boot.plymouth.enable {
       after = [ "display-manager.service" ];
       serviceConfig.ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
+    };
+    # Asking Mesa takes half a second, too long for every login, so it is
+    # asked once, early in the boot, while the rest of the system starts.
+    systemd.services.zoomies-gpu = {
+      before = [ "display-manager.service" ];
+      description = "Check whether Zoomies draws without a GPU";
+      script = ''
+        if ${lib.getExe' pkgs.mesa-demos "eglinfo"} -B -p surfaceless 2>/dev/null |
+          ${lib.getExe pkgs.gnugrep} -qE 'renderer: (llvmpipe|softpipe)'; then
+          touch /run/zoomies-gpu/software
+        fi
+      '';
+      serviceConfig = {
+        RemainAfterExit = true;
+        RuntimeDirectory = "zoomies-gpu";
+        RuntimeDirectoryPreserve = true;
+        Type = "oneshot";
+      };
+      wantedBy = [ "display-manager.service" ];
     };
     systemd.tmpfiles.rules = [ "d /var/lib/zoomies/faillock 0700 root root -" ];
     users = lib.mkIf (cfg.parent.user != null) {

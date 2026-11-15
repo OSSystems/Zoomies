@@ -270,6 +270,13 @@ pkgs.testers.runNixOSTest {
     with subtest("the profile picker comes up"):
         wait_for_greeter()
         machine.screenshot("greeter")
+        # The test VM has no GPU: the screens draw with GTK's cheaper
+        # renderer there.
+        machine.succeed("test -e /run/zoomies-gpu/software")
+        machine.succeed(
+            "tr '\\0' '\\n' </proc/$(pgrep -u greeter -n -f zoomies-greeter)/environ"
+            " | grep -qx GSK_RENDERER=cairo"
+        )
         machine.succeed("swapon --show | grep -q zram")
         sample_memory("greeter")
 
