@@ -15,6 +15,7 @@ zoomies-launcher = "zoomies_shell.launcher:main"
 zoomies-parent = "zoomies_shell.parent:main"
 zoomies-profile = "zoomies_shell.admin:main"
 zoomies-reset-home = "zoomies_shell.reset_home:main"
+zoomies-shelf = "zoomies_shell.shelf:main"
 zoomies-time = "zoomies_shell.timekeeper:main"
 
 [tool.setuptools.package-data]

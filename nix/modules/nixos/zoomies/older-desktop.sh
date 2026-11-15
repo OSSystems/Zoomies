@@ -1,10 +1,11 @@
 # Runs inside X, before Xfce starts, and gives a fresh home the Zoomies look.
-# Each file is written only when missing, so a kid's own choices win.
+# The look is written only when missing, so a kid's own choices win; how
+# the session and the windows behave is written every time.
 # $wallpaper is set by the Nix wrapper.
 
 config=${XDG_CONFIG_HOME:-$HOME/.config}
 xfconf=$config/xfce4/xfconf/xfce-perchannel-xml
-mkdir -p "$xfconf" "$config/gtk-3.0"
+mkdir -p "$xfconf"
 
 # xfdesktop keys the wallpaper by connector, which is only known once X runs.
 if [ ! -e "$xfconf/xfce4-desktop.xml" ]; then
@@ -43,25 +44,52 @@ if [ ! -e "$xfconf/xsettings.xml" ]; then
 XML
 fi
 
-# The panel's own settings would also replace its default layout, so its
-# colours come from GTK instead.
-if [ ! -e "$config/gtk-3.0/gtk.css" ]; then
-  cat >"$config/gtk-3.0/gtk.css" <<'CSS'
-.xfce4-panel.background {
-  background-color: #1d3557;
-  background-image: none;
-  color: white;
-}
-.xfce4-panel.background button {
-  color: white;
-  border-radius: 8px;
-}
-.xfce4-panel.background button:hover,
-.xfce4-panel.background button:checked {
-  background-color: alpha(#f6ad34, 0.45);
-  background-image: none;
-}
-CSS
-fi
+# The shelf replaces the panel, which also goes from homes made before it.
+cat >"$xfconf/xfce4-session.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfce4-session" version="1.0">
+  <property name="sessions" type="empty">
+    <property name="Failsafe" type="empty">
+      <property name="IsFailsafe" type="bool" value="true"/>
+      <property name="Count" type="int" value="4"/>
+      <property name="Client0_Command" type="array"><value type="string" value="xfwm4"/></property>
+      <property name="Client0_Priority" type="int" value="15"/>
+      <property name="Client0_PerScreen" type="bool" value="false"/>
+      <property name="Client1_Command" type="array"><value type="string" value="xfsettingsd"/></property>
+      <property name="Client1_Priority" type="int" value="20"/>
+      <property name="Client1_PerScreen" type="bool" value="false"/>
+      <property name="Client2_Command" type="array">
+        <value type="string" value="Thunar"/>
+        <value type="string" value="--daemon"/>
+      </property>
+      <property name="Client2_Priority" type="int" value="30"/>
+      <property name="Client2_PerScreen" type="bool" value="false"/>
+      <property name="Client3_Command" type="array"><value type="string" value="xfdesktop"/></property>
+      <property name="Client3_Priority" type="int" value="35"/>
+      <property name="Client3_PerScreen" type="bool" value="false"/>
+    </property>
+  </property>
+</channel>
+XML
+
+# Apps fill the screen with a title strip holding only a close button;
+# nothing shrinks, moves or hides them. One workspace, so an app cannot
+# vanish to another one.
+cat >"$xfconf/xfwm4.xml" <<'XML'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="xfwm4" version="1.0">
+  <property name="general" type="empty">
+    <property name="borderless_maximize" type="bool" value="true"/>
+    <property name="button_layout" type="string" value="|C"/>
+    <property name="double_click_action" type="string" value="none"/>
+    <property name="restore_on_move" type="bool" value="false"/>
+    <property name="theme" type="string" value="Zoomies"/>
+    <property name="title_alignment" type="string" value="left"/>
+    <property name="title_font" type="string" value="Andika Bold 14"/>
+    <property name="titleless_maximize" type="bool" value="false"/>
+    <property name="workspace_count" type="int" value="1"/>
+  </property>
+</channel>
+XML
 
 exec startxfce4

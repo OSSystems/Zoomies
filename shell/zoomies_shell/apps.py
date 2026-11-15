@@ -6,19 +6,25 @@ import os
 from gi.repository import Gio
 
 
-def entries(packages):
-    """The visible desktop entries the packages ship, by name."""
+def entries(sources):
+    """The visible desktop entries, by name, of packages or of single
+    desktop entry files: a package may ship helpers kids do not need."""
     found = []
     seen = set()
-    for package in packages:
-        applications = os.path.join(package, "share/applications")
-        if not os.path.isdir(applications):
-            continue
-        for name in sorted(os.listdir(applications)):
-            if not name.endswith(".desktop"):
+    for source in sources:
+        # makeDesktopItem packages are named *.desktop too.
+        if os.path.isfile(source):
+            files = [source]
+        else:
+            applications = os.path.join(source, "share/applications")
+            if not os.path.isdir(applications):
+                continue
+            files = [os.path.join(applications, n) for n in sorted(os.listdir(applications))]
+        for path in files:
+            if not path.endswith(".desktop"):
                 continue
             try:
-                info = Gio.DesktopAppInfo.new_from_filename(os.path.join(applications, name))
+                info = Gio.DesktopAppInfo.new_from_filename(path)
             except TypeError:
                 # GIO returns nothing for an entry it cannot start, such as
                 # one whose TryExec is missing.
@@ -30,9 +36,10 @@ def entries(packages):
     return sorted(found, key=lambda info: info.get_name().lower())
 
 
-def icon_dirs(packages):
+def icon_dirs(sources):
     """Where the packages keep icons the system theme does not know."""
-    for package in packages:
+    for source in sources:
+        package = source.split("/share/applications/")[0]
         for sub in ("share/icons", "share/pixmaps"):
             path = os.path.join(package, sub)
             if os.path.isdir(path):

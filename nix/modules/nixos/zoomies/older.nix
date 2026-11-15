@@ -12,6 +12,13 @@
 let
   cfg = config.zoomies;
   inherit (cfg) older;
+  # Title strips with only a close button: apps are always maximized.
+  windowTheme =
+    pkgs.runCommand "zoomies-window-theme"
+      { nativeBuildInputs = [ (pkgs.python3.withPackages (p: [ p.pycairo ])) ]; }
+      ''
+        python3 ${./window-theme.py} $out/share/themes/Zoomies/xfwm4
+      '';
 in
 {
   config = lib.mkIf (cfg.enable && older.enable) (
@@ -28,6 +35,15 @@ in
             OnlyShowIn=XFCE;
             NoDisplay=true
           '';
+          # The shelf takes the place of the Xfce panel.
+          etc."xdg/autostart/zoomies-shelf.desktop".text = ''
+            [Desktop Entry]
+            Type=Application
+            Name=Zoomies shelf
+            Exec=${cfg.package}/bin/zoomies-shelf
+            OnlyShowIn=XFCE;
+            NoDisplay=true
+          '';
           # Settings that would only confuse or let a kid undo the setup.
           etc."xdg/xfce4/kiosk/kioskrc".text = ''
             [xfce4-session]
@@ -38,7 +54,7 @@ in
             [xfce4-panel]
             CustomizePanel=%zoomies-setup
           '';
-          systemPackages = older.apps;
+          systemPackages = older.apps ++ [ windowTheme ];
         };
         # Kids must not install software of their own.
         nix.settings.allowed-users = lib.mkDefault [
@@ -158,6 +174,18 @@ in
       default = true;
       description = "Offer older kid profiles with a desktop and filtered web.";
       type = lib.types.bool;
+    };
+    startable = lib.mkOption {
+      # Thunar's bulk renamer and settings would only clutter the shelf.
+      default = map toString older.apps ++ [
+        "${config.programs.firefox.finalPackage}/share/applications/firefox.desktop"
+        "${pkgs.thunar}/share/applications/thunar.desktop"
+      ];
+      defaultText = lib.literalExpression "apps, Firefox and the file manager";
+      description = "Packages and desktop entries the shelf offers, besides the games.";
+      internal = true;
+      readOnly = true;
+      type = lib.types.listOf lib.types.str;
     };
     wallpaper = lib.mkOption {
       default = ../../../../assets/wallpaper/older.svg;
