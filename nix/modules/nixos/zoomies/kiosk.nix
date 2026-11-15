@@ -11,12 +11,18 @@ let
   cfg = config.zoomies;
   pam = "${config.security.pam.package}/lib/security";
 
+  # Cage clears to black until its window draws, a flash between the boot
+  # splash and the greeter and whenever a game starts; it paints the sky.
+  cage = pkgs.cage.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./cage-sky.patch ];
+  });
+
   kiosk =
     name: program:
     pkgs.writeShellScript "zoomies-${name}-session" ''
       # Old GPUs without usable GL still get a desktop through llvmpipe.
       export WLR_RENDERER_ALLOW_SOFTWARE=1
-      exec ${lib.getExe pkgs.cage} -d -- ${program}
+      exec ${lib.getExe cage} -d -- ${program}
     '';
 in
 {
