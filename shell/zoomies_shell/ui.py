@@ -130,7 +130,7 @@ class Mascot(Gtk.Picture):
         self.frames = self._load(pose)
         self.frame = 0
         self.set_paintable(self.frames[0] if self.frames else None)
-        if len(self.frames) > 1:
+        if len(self.frames) > 1 and not state.calm_screen():
             self.timer = GLib.timeout_add(self.FRAME_MS, self._next)
 
     def _next(self):
@@ -277,6 +277,11 @@ class Sky(Gtk.Widget):
             bounds = Graphene.Rect().init(left, top, texture.get_width(), texture.get_height())
             snapshot.append_texture(texture, bounds)
         snapshot.pop()
+
+
+def sky(slowness, strength=1.0):
+    """A Sky, unless the grown-ups asked for a calm screen."""
+    return None if state.calm_screen() else Sky(slowness, strength)
 
 
 class Overlay(Gtk.Overlay):

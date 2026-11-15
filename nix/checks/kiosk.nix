@@ -446,6 +446,13 @@ pkgs.testers.runNixOSTest {
         session = machine.succeed("pgrep -u max -o xfce4-session").strip()
         machine.fail(f"pkcheck --action-id org.freedesktop.login1.set-self-linger --process {session}")
 
+    with subtest("a calm screen keeps the cape still"):
+        policy = json.loads(machine.succeed("cat /var/lib/zoomies/policy.json"))
+        write_state("policy", {**policy, "calm": True})
+        # Without a calm screen the cape keeps flapping until killed.
+        machine.succeed(in_max_x("timeout 10 zoomies-desktop-zip /dev/null"))
+        write_state("policy", policy)
+
     with subtest("Firefox and LibreOffice run together in 2 GiB"):
         sample_memory("older kids' desktop")
         machine.succeed(in_max_x("setsid firefox ${lib.escapeShellArgs pages} >/dev/null 2>&1 &"))

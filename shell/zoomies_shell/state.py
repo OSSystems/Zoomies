@@ -98,6 +98,18 @@ def save_policy(policy):
     write_json(POLICY, policy, mode=0o664)
 
 
+def calm_screen(policy=None):
+    """Grown-ups can stop everything that moves on its own: the drifting
+    clouds, Zip's loops and the cape on the older kids' desktop."""
+    return bool((policy or load_policy()).get("calm", False))
+
+
+def set_calm_screen(calm):
+    policy = load_policy()
+    policy["calm"] = bool(calm)
+    save_policy(policy)
+
+
 def grant_bonus(user, minutes):
     policy = load_policy()
     bonus = policy.setdefault("bonus", {})

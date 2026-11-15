@@ -114,7 +114,7 @@ class Launcher(Gtk.ApplicationWindow):
         bottom.append(power)
         page.append(bottom)
 
-        self.overlay = ui.Overlay(page, ui.Sky(60, strength=0.6))
+        self.overlay = ui.Overlay(page, ui.sky(60, strength=0.6))
         self.set_child(self.overlay)
         self.gamepad = ui.Gamepad(
             self,
