@@ -40,6 +40,8 @@ let
   ];
 in
 pkgs.testers.runNixOSTest {
+  # Reads the boot menu off the screen.
+  enableOCR = true;
   globalTimeout = 7200;
   # qemu-system-x86_64 under KVM.
   meta.platforms = [ "x86_64-linux" ];
@@ -158,6 +160,31 @@ pkgs.testers.runNixOSTest {
             for firmware in ["bios", "uefi"]:
                 with subtest(f"boot the {installed_in} install under {firmware}"):
                     boot(installed_in, disk, firmware)
+
+        with subtest("the boot menu stays hidden until Windows is on the disk"):
+            overlay = f"{tmp}/windows.qcow2"
+            qemu_img("create", "-q", "-f", "qcow2", "-b", uefi_disk, "-F", "qcow2", overlay)
+            machine = start(start_command("uefi", overlay), "next_to_windows")
+            machine.wait_for_unit("multi-user.target")
+            # Once shown, the menu now waits far longer than a boot takes, so
+            # booting in time proves it stayed hidden; it also gives the slow
+            # screen reading below time to find it.
+            machine.succeed("sed -i 's/set timeout=10/set timeout=600/' /boot/grub/grub.cfg")
+            machine.shutdown()
+            machine.start()
+            machine.wait_for_unit("multi-user.target", timeout=300)
+            # GRUB only looks for the file, so an empty one stands in for Windows.
+            machine.succeed(
+                "mkdir -p /boot/efi/EFI/Microsoft/Boot"
+                " && touch /boot/efi/EFI/Microsoft/Boot/bootmgfw.efi"
+            )
+            machine.shutdown()
+            machine.start()
+            machine.wait_for_text("configurations")
+            machine.screenshot("boot-menu")
+            machine.send_key("ret")
+            machine.wait_for_unit("multi-user.target")
+            machine.shutdown()
     finally:
         for vm in vms:
             vm.crash()
