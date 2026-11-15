@@ -4,7 +4,7 @@
 
 # Zoomies
 
-A playful NixOS desktop for kids, packed with open-source games, with screen
+A playful NixOS desktop for kids: a shelf of open-source games, with screen
 time and parental controls built in.
 
 Meet **Zip**, a penguin chick with a permanent case of the zoomies.
@@ -17,37 +17,45 @@ Boot the reference host in a VM:
 nix run .#nixosConfigurations.zoomies.config.system.build.vm
 ```
 
-It has sample kids (Ana has 20 minutes a day, Lia may only play early in the
-morning) and the grown-ups PIN is `1234`; press and hold 🔒, or press
-Ctrl+Alt+P, to reach the grown-ups panel. To work on the shell, start it with
-`ZOOMIES_SHELL=$PWD/shell` in the environment: the VM then runs the Python
-code from the checkout, and
-`ssh -p 2222 root@localhost systemctl restart greetd` shows each edit.
+It comes with two sample kids: Ana gets 20 minutes a day, and Lia may only
+play early in the morning. To reach the grown-ups panel, press and hold 🔒 or
+press Ctrl+Alt+P, then enter the PIN `1234`.
+
+### Hacking on the shell
+
+Start the VM with `ZOOMIES_SHELL=$PWD/shell` set, and it runs the Python code
+straight from your checkout. After each edit, restart the greeter to see it:
+
+```sh
+ssh -p 2222 root@localhost systemctl restart greetd
+```
 
 ## How it works
 
-Every kid has a profile: an avatar on the "Who's playing?" screen and an
-account of their own, so saves and screen time stay apart.
+Each kid gets a profile: an avatar on the "Who's playing?" screen and an
+account of their own, so saves and screen time stay separate.
 
-- **Little kids** get a fullscreen screen of big game tiles and nothing else.
-  They cannot reach the network, and their home is wiped at every boot except
-  for game saves.
-- **Older kids** get a simple desktop with Firefox, LibreOffice and learning
-  and creative apps, in Zoomies colours with Zip flying across the wallpaper,
-  and their files are kept. The web goes through a family
-  DNS filter (Cloudflare for Families) that keeps adult and malicious sites
-  out of everyday browsing; it is not a lock against a determined kid with a
+- **Little kids** get a fullscreen grid of big game tiles and nothing else.
+  They have no network access, and their home folder is wiped at every boot,
+  except for game saves.
+- **Older kids** get a simple desktop with Firefox, LibreOffice, and learning
+  and creative apps, dressed in Zoomies colours with Zip flying across the
+  wallpaper. Their files are kept. Web traffic goes through a family DNS
+  filter (Cloudflare for Families), which keeps adult and malicious sites out
+  of everyday browsing. It is not a lock against a determined kid with a
   terminal.
 
-Profiles keep kids' saves and time apart, but they do not lock kids out of
-each other's profiles: picking an avatar is the login.
+Profiles are not passwords: picking an avatar is the login, so nothing stops
+one kid from playing as another.
 
-The grown-ups panel, behind the PIN, adds and edits kids, sets minutes per day
-and allowed hours, gives extra time and changes the PIN. Five wrong PINs lock
-the grown-ups account for ten minutes. Rules are enforced by
-the system, not just hidden by the screens: logins are refused once time is
-up, and sessions end when it runs out. The same can be done from a terminal
-with `zoomies-profile` and `zoomies-time`.
+The grown-ups panel, behind the PIN, lets you add and edit kids, set minutes
+per day and allowed hours, grant extra time, and change the PIN. Five wrong
+PINs lock the grown-ups account for ten minutes. You can do the same from a
+terminal with `zoomies-profile` and `zoomies-time`.
+
+The rules are enforced by the system, not just hidden by the screens: logins
+are refused once a kid's time is up, and a running session ends when time
+runs out.
 
 ## Install it on a PC
 
@@ -58,31 +66,41 @@ nix build .#installer-iso
 sudo dd if=result/iso/zoomies-installer.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
 
-Boot the PC from the stick. The installer picks the best internal disk
-(NVMe, then SSD, then the largest hard disk), shows what is on it and only
-erases it after you type `ERASE`. It then asks for the grown-ups PIN; skip it
-and the first start asks instead. It needs no network: the whole system is on
-the stick.
+Boot the PC from the stick. The installer:
 
-The installed disk boots on both legacy BIOS and UEFI firmware, so the same
-image serves every PC, and the disk keeps booting if the firmware mode or the
-PC changes (except that some old BIOSes refuse a disk installed in UEFI mode,
-see below):
+1. picks the best internal disk (NVMe first, then SSD, then the largest hard
+   disk) and shows what is on it;
+2. erases it only after you type `ERASE`;
+3. asks for the grown-ups PIN. Skip this and Zoomies asks on first start
+   instead.
 
-- GPT with a 1 MiB BIOS boot partition, a 1 GiB ESP mounted at `/boot` and an
-  ext4 root.
-- GRUB installed twice from one `grub.cfg`: into the BIOS boot partition, and
-  at the removable UEFI path `EFI/BOOT/BOOTX64.EFI`, which needs no NVRAM
+No network is needed: the whole system is on the stick.
+
+### Requirements
+
+- A 64-bit x86 CPU (32-bit-only UEFI firmware is not supported).
+- 4 GiB of RAM.
+- An internal disk with room for the system, about 15 GiB including the older
+  kids' apps. The installer computes the exact size and lists the disks that
+  fit.
+
+### One disk, BIOS and UEFI
+
+The installed disk boots on both legacy BIOS and UEFI firmware. One image
+serves every PC, and the disk keeps booting if you switch firmware modes or
+move it to another PC:
+
+- GPT with a 1 MiB BIOS boot partition, a 1 GiB ESP mounted at `/boot`, and
+  an ext4 root.
+- GRUB installed twice from a single `grub.cfg`: into the BIOS boot partition,
+  and at the removable UEFI path `EFI/BOOT/BOOTX64.EFI`, which needs no NVRAM
   entry.
-- On machines started in BIOS mode, the protective MBR is marked active,
-  because some old BIOSes refuse to boot GPT disks otherwise.
+- When installed in BIOS mode, the protective MBR is marked active, because
+  some old BIOSes refuse to boot GPT disks otherwise. Those BIOSes may still
+  refuse a disk installed in UEFI mode.
 
-Requirements: a 64-bit x86 CPU, 4 GiB of RAM, and an internal disk large
-enough for the system, about 15 GiB with the older kids' apps (the installer computes the size and lists the disks it
-can use). 32-bit-only UEFI firmware is not supported.
-
-`nix build .#checks.x86_64-linux.installer` installs from the ISO under
-SeaBIOS and under OVMF in QEMU, then boots each installed disk under both.
+`nix build .#checks.x86_64-linux.installer` installs from the ISO under both
+SeaBIOS and OVMF in QEMU, then boots each installed disk under both.
 
 ## Use it in your own NixOS configuration
 
