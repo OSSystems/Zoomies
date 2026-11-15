@@ -79,7 +79,8 @@ No network is needed: the whole system is on the stick.
 ### Requirements
 
 - A 64-bit x86 CPU (32-bit-only UEFI firmware is not supported).
-- 4 GiB of RAM.
+- 2 GiB of RAM. That fits a 3D game, or Firefox with a few tabs next to
+  LibreOffice; heavy sites like video need more.
 - An internal disk with room for the system, about 15 GiB including the older
   kids' apps. The installer computes the exact size and lists the disks that
   fit.
