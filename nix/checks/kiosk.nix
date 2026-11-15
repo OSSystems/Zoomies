@@ -426,15 +426,24 @@ pkgs.testers.runNixOSTest {
             "tr -d '\\n' </home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
             " | grep -q 'monitorVirtual-1.*older.svg'"
         )
-        # The Zoomies look is set up, and the cape flaps over the wallpaper.
+        # The Zoomies look is set up, and the wallpaper comes alive.
         machine.succeed("grep -q Andika /home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
         machine.succeed("grep -q xfce4-panel /home/max/.config/gtk-3.0/gtk.css")
         machine.wait_until_succeeds("pgrep -u max -f zoomies-desktop-zip")
-        # The cape's window lets clicks through to the desktop: a right
+        # The live wallpaper lets clicks through to the desktop: a right
         # click on it opens the desktop's menu.
         cape = machine.wait_until_succeeds(in_max_x('xdotool search --name "^Zip$"')).split()[0]
         geometry = machine.succeed(in_max_x(f"xdotool getwindowgeometry --shell {cape}"))
         box = dict(line.split("=") for line in geometry.split())
+        screen = machine.succeed(in_max_x("xdotool getdisplaygeometry")).split()
+        assert [box["WIDTH"], box["HEIGHT"]] == screen, f"the sky covers {box}, not {screen}"
+        # Old PCs draw without a GPU: only what moves is redrawn.
+        helper = machine.succeed("pgrep -u max -o -f zoomies-desktop-zip").strip()
+        ticks = "awk '{ print $14 + $15 }' /proc/" + helper + "/stat"
+        before = int(machine.succeed(ticks))
+        machine.sleep(10)
+        busy = (int(machine.succeed(ticks)) - before) / int(machine.succeed("getconf CLK_TCK")) / 10
+        assert busy < 0.15, f"the live wallpaper keeps {busy:.0%} of a core busy"
         x = int(box["X"]) + int(box["WIDTH"]) // 2
         y = int(box["Y"]) + int(box["HEIGHT"]) // 2
         visible = in_max_x("xdotool search --onlyvisible --class xfdesktop | wc -l")
