@@ -25,6 +25,13 @@ def run():
     if gs.value("locationRegion") and gs.value("locationZone"):
         zone = f"{gs.value('locationRegion')}/{gs.value('locationZone')}"
 
+    # The language and keyboard become the environment of every session.
+    settings = dict(gs.value("localeConf") or {})
+    if gs.value("keyboardLayout"):
+        settings["XKB_DEFAULT_LAYOUT"] = gs.value("keyboardLayout")
+        if gs.value("keyboardVariant"):
+            settings["XKB_DEFAULT_VARIANT"] = gs.value("keyboardVariant")
+
     command = [
         os.environ["ZOOMIES_INSTALL_TARGET"],
         "--root", root,
@@ -33,6 +40,8 @@ def run():
         "--firmware", gs.value("firmwareType") or "bios",
         "--time-zone", zone,
     ]
+    for name, value in sorted(settings.items()):
+        command += ["--locale-setting", f"{name}={value}"]
     libcalamares.utils.debug("Running " + " ".join(command))
     process = subprocess.Popen(
         command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True

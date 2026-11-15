@@ -4,6 +4,7 @@
 set -eu
 
 root='' root_device='' esp_device='' firmware=bios time_zone=''
+locale_settings=()
 while [ $# -gt 0 ]; do
   case $1 in
     --root) root=$2 ;;
@@ -11,6 +12,7 @@ while [ $# -gt 0 ]; do
     --esp-device) esp_device=$2 ;;
     --firmware) firmware=$2 ;;
     --time-zone) time_zone=$2 ;;
+    --locale-setting) locale_settings+=("$2") ;;
     *) echo "unknown option $1" >&2; exit 2 ;;
   esac
   shift 2
@@ -58,6 +60,11 @@ fi
 if [ -n "$time_zone" ] && [ -e "/etc/zoneinfo/$time_zone" ]; then
   mkdir -p "$root/etc"
   ln -sfn "/etc/zoneinfo/$time_zone" "$root/etc/localtime"
+fi
+
+if [ ${#locale_settings[@]} -gt 0 ]; then
+  mkdir -p "$root/var/lib/zoomies"
+  printf '%s\n' "${locale_settings[@]}" >"$root/var/lib/zoomies/locale.conf"
 fi
 
 echo "progress 0.05"
