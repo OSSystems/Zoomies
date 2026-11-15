@@ -8,26 +8,38 @@ ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
 
 
 def svg_frames(path):
-    """The SVG once per frame of its <animate> loops on path shapes.
+    """The SVG once per frame of its <animate> and translating
+    <animateTransform> loops.
 
     librsvg draws only the first frame of an SVG animation, so the frames
     are rendered one by one and shown in turn.
     """
     tree = ET.parse(path)
     animated = []
-    for element in tree.iter():
-        for animation in element.findall(f"{{{SVG}}}animate"):
-            if animation.get("attributeName") == "d":
-                values = animation.get("values").split(";")
-                # A loop repeats its first frame at the end.
-                if len(values) > 1 and values[-1] == values[0]:
-                    values.pop()
-                animated.append((element, values))
+    for element in list(tree.iter()):
+        for animation in list(element):
+            tag = animation.tag
+            if tag == f"{{{SVG}}}animate":
+                attribute = animation.get("attributeName")
+                frame = str
+            elif (
+                tag == f"{{{SVG}}}animateTransform"
+                and animation.get("type") == "translate"
+            ):
+                attribute = "transform"
+                frame = "translate({})".format
+            else:
+                continue
+            values = animation.get("values").split(";")
+            # A loop repeats its first frame at the end.
+            if len(values) > 1 and values[-1] == values[0]:
+                values.pop()
+            animated.append((element, attribute, [frame(v) for v in values]))
             element.remove(animation)
-    count = min((len(values) for _, values in animated), default=1)
+    count = min((len(values) for *_, values in animated), default=1)
     frames = []
     for frame in range(count):
-        for element, values in animated:
-            element.set("d", values[frame])
+        for element, attribute, values in animated:
+            element.set(attribute, values[frame])
         frames.append(ET.tostring(tree.getroot()))
     return frames
