@@ -12,7 +12,7 @@ import signal
 import subprocess
 import sys
 
-from . import state, ui
+from . import apps, state, ui
 from .ui import Gio, GLib, Gtk, Pango
 
 # Desktop entry field codes; games start without files or URLs.
@@ -20,27 +20,11 @@ FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
 
 
 def games_for(kid):
-    """Read the visible desktop entries the game packages ship."""
-    games = []
-    seen = set()
+    """The games on the kid's home screen, their icons made findable."""
     theme = Gtk.IconTheme.get_for_display(ui.Gdk.Display.get_default())
-    for package in kid["games"]:
-        for sub in ("share/icons", "share/pixmaps"):
-            path = os.path.join(package, sub)
-            if os.path.isdir(path):
-                theme.add_search_path(path)
-        applications = os.path.join(package, "share/applications")
-        if not os.path.isdir(applications):
-            continue
-        for name in sorted(os.listdir(applications)):
-            if not name.endswith(".desktop"):
-                continue
-            info = Gio.DesktopAppInfo.new_from_filename(os.path.join(applications, name))
-            if info is None or not info.should_show() or info.get_name() in seen:
-                continue
-            seen.add(info.get_name())
-            games.append(info)
-    return sorted(games, key=lambda info: info.get_name().lower())
+    for path in apps.icon_dirs(kid["games"]):
+        theme.add_search_path(path)
+    return apps.entries(kid["games"])
 
 
 class Launcher(Gtk.ApplicationWindow):
