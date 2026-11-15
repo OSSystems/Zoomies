@@ -20,6 +20,7 @@ let
   kiosk =
     name: program:
     pkgs.writeShellScript "zoomies-${name}-session" ''
+      ${cfg.loadLocale}
       # Old GPUs without usable GL still get a desktop through llvmpipe.
       export WLR_RENDERER_ALLOW_SOFTWARE=1
       # There, GTK's GL renderer redraws the whole window on the CPU for

@@ -92,4 +92,10 @@ cat >"$xfconf/xfwm4.xml" <<'XML'
 </channel>
 XML
 
+# The little kids' Wayland sessions read the installer's keyboard layout from
+# the environment by themselves; X has to be told.
+if [ -n "${XKB_DEFAULT_LAYOUT:-}" ]; then
+  setxkbmap -layout "$XKB_DEFAULT_LAYOUT" ${XKB_DEFAULT_VARIANT:+-variant "$XKB_DEFAULT_VARIANT"}
+fi
+
 exec startxfce4

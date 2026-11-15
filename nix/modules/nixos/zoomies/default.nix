@@ -158,6 +158,7 @@ in
   imports = [
     ./admin.nix
     ./kiosk.nix
+    ./language.nix
     ./network.nix
     ./older.nix
     ./reset.nix
