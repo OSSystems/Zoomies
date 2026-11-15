@@ -107,6 +107,8 @@ let
   };
 in
 pkgs.testers.runNixOSTest {
+  # qemu-system-x86_64 under KVM.
+  meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk";
   nodes = {
     # A fresh install that skipped the installer's PIN question. It also

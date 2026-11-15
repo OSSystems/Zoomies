@@ -32,5 +32,26 @@ jobs:
           # The VM tests are built below, each with its own status, rather
           # than all at once by the flake check.
           flake-check-args: --no-build
-          build-attrs: .#checks.x86_64-linux.kiosk .#checks.x86_64-linux.installer
+          # The microVMs are x86_64 only; the aarch64 job builds the Pi host.
+          build-hosts: "false"
+          build-attrs: >-
+            .#checks.x86_64-linux.nixos-zoomies
+            .#checks.x86_64-linux.kiosk
+            .#checks.x86_64-linux.installer
+          checks: "true"
+  # GitHub's Arm runners build the Raspberry Pi host natively, with the
+  # kernel from the nixos-raspberrypi cache. The image itself is left out: it
+  # would roughly double the store on a runner with little disk.
+  aarch64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: ossystems/nix-actions@v1
+        with:
+          install-nix: "true"
+          cache-save: ${{ github.ref == 'refs/heads/main' }}
+          # The ci job already evaluates the flake.
+          flake-check: "false"
+          build-hosts: "false"
+          build-packages: "false"
+          build-attrs: .#checks.aarch64-linux.nixos-zoomies-pi
           checks: "true"
