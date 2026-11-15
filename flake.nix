@@ -2,10 +2,6 @@
   description = "Zoomies - a playful NixOS desktop for kids, packed with open-source games";
 
   inputs = {
-    disko = {
-      inputs.nixpkgs.follows = "nixpkgs";
-      url = "github:nix-community/disko";
-    };
     # Not following our nixpkgs keeps its Raspberry Pi kernels hitting its
     # binary cache.
     nixos-raspberrypi.url = "github:nvmd/nixos-raspberrypi/main";

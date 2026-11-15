@@ -18,8 +18,6 @@ let
     modules = [
       instrumentation
       {
-        # Checks the PIN typed during the install against /etc/shadow.
-        environment.systemPackages = [ pkgs.perl ];
         zoomies = {
           games = lib.mkForce [ ];
           older.apps = lib.mkForce [ ];
@@ -91,19 +89,29 @@ pkgs.testers.runNixOSTest {
         disk = f"{tmp}/{name}.qcow2"
         qemu_img("create", "-f", "qcow2", disk, "32G")
         machine = start(start_command(firmware, disk, medium), f"{name}_installer")
-        machine.wait_for_console_text(
-            "zoomies-installer: waiting for confirmation to erase /dev/sda"
-        )
-        machine.send_chars("ERASE\n")
-        machine.wait_for_console_text("zoomies-installer: waiting for the grown-ups PIN")
-        machine.send_chars("2468\n2468\n")
+        # Calamares is driven with its keyboard shortcuts, reading each page
+        # off the screen before moving on.
+        machine.wait_for_text("Welcome to the Zoomies installer")
+        # Next stays disabled until the requirement checks finish.
+        machine.sleep(5)
+        machine.screenshot(f"{name}-welcome")
+        machine.send_key("alt-n")
+        machine.wait_for_text("Region")
+        machine.send_key("alt-n")
+        machine.wait_for_text("Erase disk")
+        machine.screenshot(f"{name}-partitions")
+        machine.send_key("alt-n")
+        machine.wait_for_text("Install Zoomies on")
+        machine.send_key("alt-i")
+        machine.wait_for_text("Install Now")
+        machine.send_key("alt-i")
         machine.wait_for_console_text(
             "zoomies-installer: (Installation complete.|ERROR)", timeout=1800
         )
-        # The installer waits at a prompt after an error; fail right away.
         machine.fail("journalctl -k --grep 'zoomies-installer: ERROR'")
-        machine.send_chars("\n")
-        machine.wait_for_shutdown()
+        machine.wait_for_text("All done")
+        machine.screenshot(f"{name}-done")
+        machine.shutdown()
         return disk
 
 
@@ -119,10 +127,8 @@ pkgs.testers.runNixOSTest {
         else:
             machine.fail("test -d /sys/firmware/efi")
 
-        machine.succeed(
-            "perl -e 'exit(crypt($ARGV[0], $ARGV[1]) eq $ARGV[1] ? 0 : 1)' 2468"
-            " \"$(awk -F: '$1 == \"parent\" { print $2 }' /etc/shadow)\""
-        )
+        # Offline, Calamares keeps its default time zone.
+        machine.succeed('test "$(readlink /etc/localtime)" = /etc/zoneinfo/Europe/London')
 
         machine.succeed("test -s /boot/efi/EFI/BOOT/BOOTX64.EFI")
         # Kernels live on the root filesystem, not on the small ESP.
@@ -130,8 +136,11 @@ pkgs.testers.runNixOSTest {
         machine.fail("find /boot/efi -name '*bzImage*' -o -name '*initrd*' | grep -q .")
         machine.succeed("test -s /boot/grub/i386-pc/core.img")
         machine.succeed(
-            "test \"$(findmnt -no SOURCE /)\""
-            " = \"$(readlink -f /dev/disk/by-partlabel/disk-zoomies-root)\""
+            "test \"$(findmnt -no SOURCE /)\" = \"$(readlink -f /dev/disk/by-label/zoomies)\""
+        )
+        # The ESP is found by the partition UUID the installer recorded.
+        machine.succeed(
+            "test \"$(findmnt -no SOURCE /boot/efi)\" = \"$(readlink -f /dev/disk/zoomies-esp)\""
         )
 
         flag = machine.succeed(
