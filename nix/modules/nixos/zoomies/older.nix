@@ -18,6 +18,16 @@ in
     lib.mkMerge [
       {
         environment = {
+          # The cape on the wallpaper flaps; the helper checks the wallpaper
+          # is still Zoomies' own.
+          etc."xdg/autostart/zoomies-desktop-zip.desktop".text = ''
+            [Desktop Entry]
+            Type=Application
+            Name=Zip on the desktop
+            Exec=${cfg.package}/bin/zoomies-desktop-zip ${older.wallpaper}
+            OnlyShowIn=XFCE;
+            NoDisplay=true
+          '';
           # Settings that would only confuse or let a kid undo the setup.
           etc."xdg/xfce4/kiosk/kioskrc".text = ''
             [xfce4-session]

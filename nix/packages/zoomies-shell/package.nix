@@ -1,20 +1,28 @@
 {
   gobject-introspection,
+  gtk3,
   gtk4,
   libmanette,
   libnotify,
   libxcrypt,
   python3Packages,
   wrapGAppsHook4,
+  xfconf,
 }:
 
 python3Packages.buildPythonApplication {
   build-system = [ python3Packages.setuptools ];
   buildInputs = [
+    # GTK 3 and Xfconf are for the Zip on the older kids' X11 desktop.
+    gtk3
     gtk4
     libmanette
+    xfconf
   ];
-  dependencies = [ python3Packages.pygobject3 ];
+  dependencies = [
+    python3Packages.pycairo
+    python3Packages.pygobject3
+  ];
   # The admin service checks the PIN against /etc/shadow with crypt().
   makeWrapperArgs = [
     "--set-default ZOOMIES_LIBCRYPT ${libxcrypt}/lib/libcrypt.so.2"
