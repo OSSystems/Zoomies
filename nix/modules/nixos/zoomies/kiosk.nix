@@ -22,7 +22,10 @@ let
     pkgs.writeShellScript "zoomies-${name}-session" ''
       # Old GPUs without usable GL still get a desktop through llvmpipe.
       export WLR_RENDERER_ALLOW_SOFTWARE=1
-      exec ${lib.getExe cage} -d -- ${program}
+      # Into the journal: any text on the screen wakes the text console,
+      # which then flashes between the boot splash and the greeter.
+      exec ${lib.getExe' config.systemd.package "systemd-cat"} -t zoomies-${name} \
+        ${lib.getExe cage} -d -- ${program}
     '';
 in
 {
