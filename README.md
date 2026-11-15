@@ -1,6 +1,5 @@
 <p align="center">
-  <img src="assets/mascot/zip.svg" alt="Zip, the Zoomies mascot" width="240"><br>
-  <img src="assets/mascot/zip-flying.svg" alt="Super Zip flying, cape flapping" width="240">
+  <img src="assets/mascot/zip.svg" alt="Zip, the Zoomies mascot" width="240">
 </p>
 
 # Zoomies
