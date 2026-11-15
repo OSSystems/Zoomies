@@ -2,6 +2,11 @@
 # checks the outcome from the system side, so screen time, the PIN,
 # profiles, the network rules and the home reset are enforced by the OS,
 # not just hidden by the UI.
+#
+# The machines have 2 GiB of RAM, the smallest Zoomies supports, and run a
+# real 3D game, Firefox and LibreOffice, so a PC that small stays usable.
+# Memory use lands in memory-report.txt. QEMU has no GPU acceleration, so
+# Mesa renders on the CPU and the numbers are a little pessimistic.
 {
   flake,
   lib,
@@ -49,8 +54,40 @@ let
     sys.exit(0 if reply["type"] == "success" else 1)
   '';
 
+  manual = flake.nixosConfigurations.zoomies.config.system.build.manual.manualHTML;
+
+  # Static manuals are lighter than the sites kids use; these stand in for a
+  # video or document app: a large JS heap and a page that keeps repainting.
+  webApp = pkgs.writeTextDir "app.html" ''
+    <!doctype html>
+    <title>web app</title>
+    <canvas id="c" width="1280" height="720"></canvas>
+    <script>
+      const heap = [];
+      for (let i = 0; i < 40; i++) heap.push(new Float64Array(256 * 1024).fill(i));
+      const ctx = document.getElementById("c").getContext("2d");
+      let t = 0;
+      (function draw() {
+        ctx.fillStyle = `hsl(''${t++ % 360} 60% 50%)`;
+        ctx.fillRect(0, 0, 1280, 720);
+        requestAnimationFrame(draw);
+      })();
+    </script>
+  '';
+
+  pages = [
+    "file://${manual}/share/doc/nixos/index.html"
+    "file://${manual}/share/doc/nixos/release-notes.html"
+    "file://${webApp}/app.html"
+    "file://${webApp}/app.html?2"
+  ];
+
   common = {
-    imports = [ flake.nixosModules.zoomies ];
+    imports = [
+      flake.nixosModules.zoomies
+      # The zram and VM tuning of a real install, not its disk layout.
+      ../modules/nixos/platform/hardware.nix
+    ];
     virtualisation = {
       memorySize = 2048;
       qemu.options = [
@@ -60,9 +97,12 @@ let
     };
     zoomies = {
       enable = true;
-      games = [ game ];
-      # The desktop is what matters here, not the size of the apps.
-      older.apps = [ ];
+      games = [
+        game
+        # The heaviest game in the default set.
+        pkgs.supertuxkart
+      ];
+      older.apps = [ pkgs.libreoffice ];
     };
   };
 in
@@ -140,6 +180,31 @@ pkgs.testers.runNixOSTest {
   };
   testScript = ''
     import json
+    import shlex
+
+    memory_report = []
+
+
+    def sample_memory(label):
+        meminfo = dict(
+            (line.split(":")[0], int(line.split()[1]))
+            for line in machine.succeed("cat /proc/meminfo").splitlines()
+        )
+        pressure = machine.succeed("cat /proc/pressure/memory").strip().replace("\n", " | ")
+        # orig_data_size compr_data_size ...
+        zram = machine.succeed("cat /sys/block/zram0/mm_stat").split()
+        line = (
+            f"{label}: available {meminfo['MemAvailable'] // 1024} MiB,"
+            f" zram {int(zram[0]) // 2**20} MiB in {int(zram[1]) // 2**20} MiB,"
+            f" pressure {pressure}"
+        )
+        machine.log(line)
+        memory_report.append(line)
+
+
+    def nothing_killed():
+        machine.succeed("[ \"$(awk '/^oom_kill / { print $2 }' /proc/vmstat)\" = 0 ]")
+        machine.fail("journalctl -u systemd-oomd | grep -q Killed")
 
 
     def write_state(name, data):
@@ -161,7 +226,8 @@ pkgs.testers.runNixOSTest {
         """A shell command run in Max's X session."""
         return (
             "runuser -u max -- sh -c 'export $(tr \"\\\\0\" \"\\\\n\" "
-            "</proc/$(pgrep -u max -o xfce4-session)/environ | grep -E \"^(DISPLAY|XAUTHORITY)=\"); "
+            "</proc/$(pgrep -u max -o xfce4-session)/environ"
+            " | grep -E \"^(DISPLAY|XAUTHORITY|DBUS_SESSION_BUS_ADDRESS)=\"); "
             + command + "'"
         )
 
@@ -202,6 +268,8 @@ pkgs.testers.runNixOSTest {
     with subtest("the profile picker comes up"):
         wait_for_greeter()
         machine.screenshot("greeter")
+        machine.succeed("swapon --show | grep -q zram")
+        sample_memory("greeter")
 
     with subtest("a wrong PIN keeps grown-ups out"):
         machine.send_key("ctrl-alt-p")
@@ -233,6 +301,19 @@ pkgs.testers.runNixOSTest {
         machine.succeed("pkill -u ana -f zoomies-test-game")
         machine.sleep(2)
         machine.succeed("pgrep -u ana -f zoomies-launcher")
+
+    with subtest("a 3D game runs in 2 GiB"):
+        machine.send_key("right")
+        machine.sleep(1)
+        machine.send_key("ret")
+        machine.wait_until_succeeds("pgrep -u ana -f supertuxkart")
+        machine.sleep(60)
+        machine.screenshot("supertuxkart")
+        machine.succeed("pgrep -u ana -f supertuxkart")
+        sample_memory("SuperTuxKart")
+        nothing_killed()
+        machine.succeed("pkill -u ana -f supertuxkart")
+        machine.wait_until_fails("pgrep -u ana -f supertuxkart")
 
     with subtest("little kids cannot reach the network"):
         machine.succeed("curl -sf --max-time 5 http://server/")
@@ -355,6 +436,29 @@ pkgs.testers.runNixOSTest {
         machine.fail("pgrep -u max xfce4-screensaver")
         session = machine.succeed("pgrep -u max -o xfce4-session").strip()
         machine.fail(f"pkcheck --action-id org.freedesktop.login1.set-self-linger --process {session}")
+
+    with subtest("Firefox and LibreOffice run together in 2 GiB"):
+        sample_memory("older kids' desktop")
+        machine.succeed(in_max_x("setsid firefox ${lib.escapeShellArgs pages} >/dev/null 2>&1 &"))
+        machine.wait_until_succeeds(in_max_x("xdotool search --onlyvisible --class firefox"), timeout=300)
+        machine.sleep(60)
+        sample_memory("Firefox, 4 tabs")
+        machine.succeed(in_max_x("setsid soffice --writer >/dev/null 2>&1 &"))
+        machine.wait_until_succeeds(
+            in_max_x("xdotool search --onlyvisible --name \"LibreOffice Writer\""), timeout=300
+        )
+        machine.sleep(30)
+        machine.screenshot("older-apps")
+        sample_memory("Firefox and Writer")
+        # Switching back makes Firefox touch memory that may be in zram.
+        machine.succeed(in_max_x("xdotool search --onlyvisible --class firefox windowactivate --sync"))
+        machine.sleep(30)
+        sample_memory("back in Firefox")
+        machine.succeed("pgrep -u max -f firefox")
+        machine.succeed("pgrep -u max -f soffice")
+        nothing_killed()
+        machine.succeed(f"printf '%s\\n' {shlex.join(memory_report)} > /tmp/memory-report.txt")
+        machine.copy_from_vm("/tmp/memory-report.txt")
 
     with subtest("older kids are online through the family filter only"):
         machine.succeed("getent hosts blocked.test | grep -q '0.0.0.0'")
