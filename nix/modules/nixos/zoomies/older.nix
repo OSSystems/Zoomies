@@ -67,34 +67,21 @@ in
         };
         zoomies.sessions.older =
           let
-            # xfdesktop keys the wallpaper by connector, which is only known
-            # once X runs, so the default is written here, before xfdesktop
-            # starts. A kid's own pick lives in the same file and wins.
-            desktop = pkgs.writeShellScript "zoomies-older-desktop" ''
-              conf=''${XDG_CONFIG_HOME:-$HOME/.config}/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml
-              if [ ! -e "$conf" ]; then
-                mkdir -p "$(dirname "$conf")"
-                {
-                  echo '<?xml version="1.0" encoding="UTF-8"?>'
-                  echo '<channel name="xfce4-desktop" version="1.0">'
-                  echo '<property name="backdrop" type="empty"><property name="screen0" type="empty">'
-                  for monitor in $(${lib.getExe pkgs.xrandr} --listactivemonitors | ${lib.getExe pkgs.gawk} 'NR > 1 { print $4 }'); do
-                    echo "<property name=\"monitor$monitor\" type=\"empty\">"
-                    for workspace in 0 1 2 3; do
-                      echo "<property name=\"workspace$workspace\" type=\"empty\">"
-                      echo '<property name="last-image" type="string" value="${older.wallpaper}"/>'
-                      echo '</property>'
-                    done
-                    echo '</property>'
-                  done
-                  echo '</property></property></channel>'
-                } >"$conf"
-              fi
-              exec ${pkgs.xfce4-session}/bin/startxfce4
-            '';
+            desktop = pkgs.writeShellApplication {
+              name = "zoomies-older-desktop";
+              runtimeInputs = [
+                pkgs.gawk
+                pkgs.xfce4-session
+                pkgs.xrandr
+              ];
+              text = ''
+                wallpaper=${older.wallpaper}
+                ${builtins.readFile ./older-desktop.sh}
+              '';
+            };
           in
           pkgs.writeShellScript "zoomies-older-session" ''
-            exec ${pkgs.xinit}/bin/startx ${desktop} -- -keeptty vt"$XDG_VTNR"
+            exec ${pkgs.xinit}/bin/startx ${lib.getExe desktop} -- -keeptty vt"$XDG_VTNR"
           '';
       }
       (lib.mkIf older.dnsFilter.enable {

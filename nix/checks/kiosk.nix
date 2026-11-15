@@ -326,6 +326,9 @@ pkgs.testers.runNixOSTest {
             "tr -d '\\n' </home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
             " | grep -q 'monitorVirtual-1.*older.svg'"
         )
+        # The Zoomies look is set up.
+        machine.succeed("grep -q Andika /home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
+        machine.succeed("grep -q xfce4-panel /home/max/.config/gtk-3.0/gtk.css")
         machine.fail("pgrep -u max xfce4-screensaver")
         session = machine.succeed("pgrep -u max -o xfce4-session").strip()
         machine.fail(f"pkcheck --action-id org.freedesktop.login1.set-self-linger --process {session}")
