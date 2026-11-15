@@ -127,8 +127,10 @@ All Nix code lives under `nix/` and is wired by
 | `nix/lib/` | `lib.mkInstallerIso` |
 | `nix/packages/installer-iso.nix` | `packages.installer-iso` |
 | `nix/packages/zoomies-shell/` | `packages.zoomies-shell` (greeter, launcher, grown-ups panel; Python source in `shell/`) |
+| `nix/packages/zoomies-splash/` | `packages.zoomies-splash` (Plymouth boot splash; theme and renderer in `splash/`) |
 | `nix/checks/installer.nix` | `checks.installer` (BIOS/UEFI install and boot in QEMU) |
 | `nix/checks/kiosk.nix` | `checks.kiosk` (logins, PIN, screen time, network block, home reset) |
+| `nix/checks/splash.nix` | `checks.splash` (records the boot; fails if the screen goes dark before the greeter) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
 | `nix/devshell.nix` | `devShells.default` |
 | `nix/formatter.nix` | `formatter` (`nix fmt`) |

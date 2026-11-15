@@ -136,10 +136,18 @@ in
         user = "greeter";
       };
     };
+    # The boot splash hands the screen to cage without quitting, and leaves
+    # once the greeter has drawn: quitting earlier gives the screen back to
+    # the kernel's black console for a moment.
+    services.greetd.greeterManagesPlymouth = config.boot.plymouth.enable;
     # "idle" holds the greeter back up to 5 s for boot messages to settle on
     # a text console; the kiosk draws its own screen, so that is only a
     # black screen at the end of the boot.
     systemd.services.greetd.serviceConfig.Type = lib.mkForce "simple";
+    systemd.services.plymouth-quit = lib.mkIf config.boot.plymouth.enable {
+      after = [ "display-manager.service" ];
+      serviceConfig.ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
+    };
     systemd.tmpfiles.rules = [ "d /var/lib/zoomies/faillock 0700 root root -" ];
     users = lib.mkIf (cfg.parent.user != null) {
       groups.zoomies-parents = { };
