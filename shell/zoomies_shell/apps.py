@@ -17,7 +17,12 @@ def entries(packages):
         for name in sorted(os.listdir(applications)):
             if not name.endswith(".desktop"):
                 continue
-            info = Gio.DesktopAppInfo.new_from_filename(os.path.join(applications, name))
+            try:
+                info = Gio.DesktopAppInfo.new_from_filename(os.path.join(applications, name))
+            except TypeError:
+                # GIO returns nothing for an entry it cannot start, such as
+                # one whose TryExec is missing.
+                continue
             if info is None or not info.should_show() or info.get_name() in seen:
                 continue
             seen.add(info.get_name())
