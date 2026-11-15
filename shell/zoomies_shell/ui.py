@@ -86,7 +86,7 @@ def avatar(kid, size="big"):
     return label
 
 
-# Zip's poses: lift-off for resting screens, flying for when something starts.
+# Zip's poses: waving hello on resting screens, flying for when something starts.
 POSES = {"rest": "zip.svg", "fly": "zip-flying.svg"}
 
 
