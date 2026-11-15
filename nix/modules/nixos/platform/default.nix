@@ -8,5 +8,6 @@
     ./disk-layout.nix
     ./boot.nix
     ./hardware.nix
+    ./splash.nix
   ];
 }
