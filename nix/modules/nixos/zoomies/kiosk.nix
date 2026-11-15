@@ -127,6 +127,10 @@ in
         user = "greeter";
       };
     };
+    # "idle" holds the greeter back up to 5 s for boot messages to settle on
+    # a text console; the kiosk draws its own screen, so that is only a
+    # black screen at the end of the boot.
+    systemd.services.greetd.serviceConfig.Type = lib.mkForce "simple";
     systemd.tmpfiles.rules = [ "d /var/lib/zoomies/faillock 0700 root root -" ];
     users = lib.mkIf (cfg.parent.user != null) {
       groups.zoomies-parents = { };
