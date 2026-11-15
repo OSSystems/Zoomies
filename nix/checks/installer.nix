@@ -41,6 +41,8 @@ let
 in
 pkgs.testers.runNixOSTest {
   globalTimeout = 7200;
+  # qemu-system-x86_64 under KVM.
+  meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-installer";
   nodes = { };
   testScript = ''

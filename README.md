@@ -102,6 +102,44 @@ move it to another PC:
 `nix build .#checks.x86_64-linux.installer` installs from the ISO under both
 SeaBIOS and OVMF in QEMU, then boots each installed disk under both.
 
+## Install it on a Raspberry Pi
+
+One image runs on the Raspberry Pi 3, 4 and 5. Build it and write it to an
+SD card or USB stick (this erases the card):
+
+```sh
+nix build --accept-flake-config .#packages.aarch64-linux.raspberry-pi-image
+zstdcat result/sd-image/zoomies-raspberry-pi.img.zst | sudo dd of=/dev/sdX bs=4M status=progress oflag=sync
+```
+
+`--accept-flake-config` trusts the
+[nixos-raspberrypi](https://github.com/nvmd/nixos-raspberrypi) binary cache,
+so the Raspberry Pi kernel is downloaded instead of built. On an x86 PC the
+build also needs an aarch64 builder, or emulation:
+`boot.binfmt.emulatedSystems = [ "aarch64-linux" ];` in its NixOS
+configuration.
+
+Put the card in the Pi and power it on. On first boot Zoomies grows to fill
+the card, then asks for the grown-ups PIN.
+
+### Requirements
+
+- A Raspberry Pi 3, 4 or 5. With 1 GiB of RAM, a Pi suits only the little
+  kids' games; the older kids' desktop needs 2 GiB. SuperTuxKart needs a
+  Pi 4 or 5: the Pi 3's GPU is too old for it.
+- An SD card or USB stick of 16 GB or more.
+
+### How it boots
+
+Every board runs the Pi 4 kernel, which Raspberry Pi OS also ships for the
+Pi 3 and 5. The Pi's own firmware loads it straight from the FAT partition,
+without U-Boot, along with the device tree for the board.
+
+`config.txt` boots the folder `nixos/default/`, which each update replaces
+whole. Earlier systems stay in folders such as `nixos/3-default/`: to go
+back, put the card in another computer and point `os_prefix` in
+`config.txt` at one of them.
+
 ## Use it in your own NixOS configuration
 
 ```nix
@@ -123,12 +161,15 @@ All Nix code lives under `nix/` and is wired by
 |---|---|
 | `nix/modules/nixos/zoomies/` | `nixosModules.zoomies` (the kiosk desktop) |
 | `nix/modules/nixos/platform/` | `nixosModules.platform` (disk layout, hybrid boot, hardware) |
+| `nix/modules/nixos/raspberry-pi/` | `nixosModules.raspberry-pi` (SD image, firmware boot, Pi hardware) |
 | `nix/modules/nixos/installer/` | `nixosModules.installer` |
 | `nix/lib/` | `lib.mkInstallerIso` |
 | `nix/packages/installer-iso.nix` | `packages.installer-iso` |
+| `nix/packages/raspberry-pi-image.nix` | `packages.raspberry-pi-image` (aarch64-linux) |
 | `nix/packages/zoomies-shell/` | `packages.zoomies-shell` (greeter, launcher, grown-ups panel; Python source in `shell/`) |
 | `nix/checks/installer.nix` | `checks.installer` (BIOS/UEFI install and boot in QEMU) |
 | `nix/checks/kiosk.nix` | `checks.kiosk` (logins, PIN, screen time, network block, home reset) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
+| `nix/hosts/zoomies-pi/` | `nixosConfigurations.zoomies-pi` |
 | `nix/devshell.nix` | `devShells.default` |
 | `nix/formatter.nix` | `formatter` (`nix fmt`) |
