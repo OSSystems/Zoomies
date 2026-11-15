@@ -14,7 +14,11 @@ def svg_frames(path):
     librsvg draws only the first frame of an SVG animation, so the frames
     are rendered one by one and shown in turn.
     """
-    tree = ET.parse(path)
+    return tree_frames(ET.parse(path))
+
+
+def tree_frames(tree):
+    """svg_frames for an SVG already parsed."""
     animated = []
     for element in list(tree.iter()):
         for animation in list(element):
