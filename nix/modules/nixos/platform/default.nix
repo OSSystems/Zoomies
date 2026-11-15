@@ -7,6 +7,7 @@
     inputs.disko.nixosModules.disko
     ./disk-layout.nix
     ./boot.nix
+    ./boot-menu.nix
     ./hardware.nix
     ./splash.nix
   ];
