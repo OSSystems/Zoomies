@@ -430,6 +430,11 @@ pkgs.testers.runNixOSTest {
         machine.succeed("grep -q Andika /home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
         machine.succeed("grep -q xfce4-panel /home/max/.config/gtk-3.0/gtk.css")
         machine.wait_until_succeeds("pgrep -u max -f zoomies-desktop-zip")
+        # Clouds drift over the whole desktop, with no icons on top.
+        machine.succeed(
+            "tr -d '\\n' </home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
+            " | grep -q 'desktop-icons.*name=\"style\" type=\"int\" value=\"0\"'"
+        )
         # The live wallpaper lets clicks through to the desktop: a right
         # click on it opens the desktop's menu.
         cape = machine.wait_until_succeeds(in_max_x('xdotool search --name "^Zip$"')).split()[0]
