@@ -155,7 +155,7 @@ class Greeter(Gtk.ApplicationWindow):
         bottom.append(power)
         page.append(bottom)
 
-        self.overlay = ui.Overlay(page)
+        self.overlay = ui.Overlay(page, ui.sky(40))
         self.set_child(self.overlay)
 
         keys = Gtk.EventControllerKey()

@@ -13,7 +13,7 @@ import sys
 import cairo
 import gi
 
-from . import art
+from . import art, state
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -163,5 +163,7 @@ class Desktop:
 def main():
     if len(sys.argv) != 2:
         sys.exit("usage: zoomies-desktop-zip WALLPAPER")
+    if state.calm_screen():
+        return
     Desktop(sys.argv[1])
     Gtk.main()

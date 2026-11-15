@@ -10,8 +10,9 @@ from . import art, state
 
 gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
+gi.require_version("Graphene", "1.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk, Pango  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Graphene, Gtk, Pango  # noqa: E402
 
 try:
     gi.require_version("Manette", "0.2")
@@ -129,7 +130,7 @@ class Mascot(Gtk.Picture):
         self.frames = self._load(pose)
         self.frame = 0
         self.set_paintable(self.frames[0] if self.frames else None)
-        if len(self.frames) > 1:
+        if len(self.frames) > 1 and not state.calm_screen():
             self.timer = GLib.timeout_add(self.FRAME_MS, self._next)
 
     def _next(self):
@@ -179,12 +180,122 @@ def big_button(text, css=None, emoji=None):
     return button
 
 
+# The boot splash's cloud, so the sky carries on from it unchanged.
+CLOUD = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-62 -32 130 50">'
+    '<g fill="#fff" opacity=".9"><ellipse rx="40" ry="16"/>'
+    '<ellipse cx="-16" cy="-10" rx="20" ry="16"/><ellipse cx="14" cy="-12" rx="24" ry="18"/>'
+    "</g></svg>"
+)
+
+
+class Sky(Gtk.Widget):
+    """Clouds drifting left across the window's sky, behind everything.
+
+    The boot splash's clouds, ``slowness`` times slower. Positions and sizes
+    are in pixels of a 1080-line screen and scale with the window. They
+    follow the frame clock, so the compositor stops them while a game covers
+    the window, and they fade in as the window opens: the boot splash ends
+    on a bare sky.
+
+    Old PCs draw without a GPU, where every redraw is expensive, so all the
+    clouds step together 20 times a second, slow enough that each step is
+    about a pixel, instead of on every frame.
+    """
+
+    # (x, y, size, speed): the splash's layout.
+    CLOUDS = [(i * 345, 108 + (i * 291) % 810, i % 3, 330 + (i % 3) * 270) for i in range(7)]
+    SIZES = (0.55, 0.9, 1.25)
+    FADE_IN = 1.5
+    STEPS_PER_SECOND = 20
+
+    def __init__(self, slowness, strength=1.0):
+        super().__init__(can_target=False, hexpand=True, vexpand=True)
+        self.slowness = slowness
+        self.strength = strength
+        self.textures = {}
+        self.scale = None
+        self.start = None
+        self.now = 0.0
+        self.drawn = None
+        self.timer = None
+        self.connect("map", self._start)
+        self.connect("unmap", self._stop)
+
+    def _textures(self, scale):
+        if scale != self.scale:
+            self.scale = scale
+            self.textures = {}
+            for size, factor in enumerate(self.SIZES):
+                width = max(1, round(390 * factor * scale))
+                stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(CLOUD.encode()))
+                pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, width, -1, True, None)
+                self.textures[size] = Gdk.Texture.new_for_pixbuf(pixbuf)
+        return self.textures
+
+    def _layout(self):
+        """Where each cloud is now, in whole pixels, and how faded in."""
+        width, height = self.get_width(), self.get_height()
+        if not width or not height:
+            return None
+        scale = height / 1080
+        textures = self._textures(scale)
+        clouds = []
+        for x, y, size, speed in self.CLOUDS:
+            w = textures[size].get_width()
+            left = (x * scale - self.now * speed * scale / self.slowness) % (width + w) - w
+            clouds.append((round(left), round(y * scale), size))
+        fade = round(min(1.0, self.now / self.FADE_IN), 2)
+        return fade, tuple(clouds)
+
+    def _start(self, *_):
+        if self.timer is None:
+            self.timer = GLib.timeout_add(1000 // self.STEPS_PER_SECOND, self._step)
+
+    def _stop(self, *_):
+        if self.timer is not None:
+            GLib.source_remove(self.timer)
+            self.timer = None
+
+    def _step(self):
+        now = GLib.get_monotonic_time() / 1e6
+        if self.start is None:
+            self.start = now
+        self.now = now - self.start
+        if self._layout() != self.drawn:
+            self.queue_draw()
+        return GLib.SOURCE_CONTINUE
+
+    def do_snapshot(self, snapshot):
+        self.drawn = self._layout()
+        if self.drawn is None:
+            return
+        fade, clouds = self.drawn
+        snapshot.push_opacity(self.strength * fade)
+        for left, top, size in clouds:
+            texture = self.textures[size]
+            bounds = Graphene.Rect().init(left, top, texture.get_width(), texture.get_height())
+            snapshot.append_texture(texture, bounds)
+        snapshot.pop()
+
+
+def sky(slowness, strength=1.0):
+    """A Sky, unless the grown-ups asked for a calm screen."""
+    return None if state.calm_screen() else Sky(slowness, strength)
+
+
 class Overlay(Gtk.Overlay):
     """A full-window layer for dialogs; cage shows one window, so popups
     would otherwise take over the whole screen."""
 
-    def __init__(self, content):
+    def __init__(self, content, sky=None):
         super().__init__()
+        if sky is not None:
+            # The sky sits under the page; the page decides the size.
+            layers = Gtk.Overlay(child=sky)
+            layers.add_overlay(content)
+            layers.set_measure_overlay(content, True)
+            content = layers
         self.set_child(content)
         self._layer = None
         self._previous_focus = None

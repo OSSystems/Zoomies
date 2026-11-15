@@ -51,7 +51,9 @@ one kid from playing as another.
 The grown-ups panel, behind the PIN, lets you add and edit kids, set minutes
 per day and allowed hours, grant extra time, and change the PIN. Five wrong
 PINs lock the grown-ups account for ten minutes. You can do the same from a
-terminal with `zoomies-profile` and `zoomies-time`.
+terminal with `zoomies-profile` and `zoomies-time`. Its Calm screen switch
+stops everything that moves on its own, the drifting clouds and Zip's loops,
+for kids who find motion distracting.
 
 The rules are enforced by the system, not just hidden by the screens: logins
 are refused once a kid's time is up, and a running session ends when time

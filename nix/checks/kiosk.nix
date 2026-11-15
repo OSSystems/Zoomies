@@ -270,6 +270,13 @@ pkgs.testers.runNixOSTest {
     with subtest("the profile picker comes up"):
         wait_for_greeter()
         machine.screenshot("greeter")
+        # The test VM has no GPU: the screens draw with GTK's cheaper
+        # renderer there.
+        machine.succeed("test -e /run/zoomies-gpu/software")
+        machine.succeed(
+            "tr '\\0' '\\n' </proc/$(pgrep -u greeter -n -f zoomies-greeter)/environ"
+            " | grep -qx GSK_RENDERER=cairo"
+        )
         machine.succeed("swapon --show | grep -q zram")
         sample_memory("greeter")
 
@@ -438,6 +445,13 @@ pkgs.testers.runNixOSTest {
         machine.fail("pgrep -u max xfce4-screensaver")
         session = machine.succeed("pgrep -u max -o xfce4-session").strip()
         machine.fail(f"pkcheck --action-id org.freedesktop.login1.set-self-linger --process {session}")
+
+    with subtest("a calm screen keeps the cape still"):
+        policy = json.loads(machine.succeed("cat /var/lib/zoomies/policy.json"))
+        write_state("policy", {**policy, "calm": True})
+        # Without a calm screen the cape keeps flapping until killed.
+        machine.succeed(in_max_x("timeout 10 zoomies-desktop-zip /dev/null"))
+        write_state("policy", policy)
 
     with subtest("Firefox and LibreOffice run together in 2 GiB"):
         sample_memory("older kids' desktop")

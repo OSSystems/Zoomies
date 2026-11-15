@@ -191,6 +191,12 @@ class Parent(Gtk.ApplicationWindow):
         terminal.connect("clicked", lambda *_: subprocess.Popen(["foot"]))
         bottom.append(terminal)
         bottom.append(Gtk.Box(hexpand=True))
+        # Moving clouds and capes can distract some kids, and cost old PCs
+        # without a GPU a lot of work.
+        calm = Gtk.Switch(active=state.calm_screen(), valign=Gtk.Align.CENTER)
+        calm.connect("notify::active", lambda switch, _: state.set_calm_screen(switch.get_active()))
+        bottom.append(calm)
+        bottom.append(Gtk.Label(label="Calm screen"))
         restart = ui.big_button("Restart", "subtle", "🔄")
         restart.connect(
             "clicked",
