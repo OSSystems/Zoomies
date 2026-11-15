@@ -56,6 +56,13 @@ let
           --replace-fail 'os.environ["ZOOMIES_INSTALL_TARGET"]' '"${lib.getExe installTarget}"'
       '';
 
+  grubTheme = pkgs.callPackage ../platform/grub-theme { };
+
+  # The BIOS menu of the disc is syslinux, which shows a 640x480 picture.
+  syslinuxSplash = pkgs.runCommand "zoomies-syslinux-splash.png" {
+    nativeBuildInputs = [ pkgs.imagemagick ];
+  } "magick ${grubTheme}/background.png -resize 640x480^ -gravity center -extent 640x480 PNG24:$out";
+
   # Calamares partitions and copies, so it needs root; cage runs it for the
   # live user, whose sudo needs no password.
   launcher = pkgs.writeShellScript "zoomies-installer" ''
@@ -71,6 +78,9 @@ in
         "console=ttyS0,115200n8"
         "console=tty0"
       ];
+      # The disc's menu offers safe graphics and other fallbacks, so it
+      # waits a little longer than an installed Zoomies.
+      loader.timeout = lib.mkForce 3;
       # Zoomies installs to ext4; ZFS only slows the ISO build down.
       supportedFilesystems.zfs = lib.mkForce false;
     };
@@ -86,9 +96,12 @@ in
     hardware.graphics.enable = true;
     image.baseName = lib.mkForce "zoomies-installer";
     isoImage = {
+      inherit grubTheme;
       appendToMenuLabel = " Installer";
+      efiSplashImage = "${grubTheme}/background.png";
       makeEfiBootable = true;
       makeUsbBootable = true;
+      splashImage = syslinuxSplash;
       squashfsCompression = "zstd -Xcompression-level 6";
       volumeID = "ZOOMIES";
     };
@@ -117,9 +130,18 @@ in
         Zoomies installer. The graphical installer runs on the first screen.
       '';
     };
-    system.stateVersion = "26.05";
+    system = {
+      nixos.distroName = "Zoomies";
+      stateVersion = "26.05";
+    };
+    # The splash's last frame stays up until Calamares draws.
+    systemd.services.zoomies-splash-takeoff.before = [ "cage-tty1.service" ];
   };
-  imports = [ "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
+  imports = [
+    "${modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+    # The installer starts as quietly as Zoomies itself, behind Zip.
+    ../platform/splash.nix
+  ];
   options.zoomies.installer.system = lib.mkOption {
     description = ''
       The NixOS system the installer copies to disk, as returned by

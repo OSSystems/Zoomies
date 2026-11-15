@@ -68,8 +68,8 @@ nix build .#installer-iso
 sudo dd if=result/iso/zoomies-installer.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
 
-Boot the PC from the stick. It starts a graphical installer (Calamares) that
-asks for:
+Boot the PC from the stick. It starts quietly behind Zip, into a graphical
+installer (Calamares) that asks for:
 
 1. the language of the installer;
 2. the time zone, guessed from the network when one is connected and
