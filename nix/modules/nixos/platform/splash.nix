@@ -22,21 +22,41 @@ let
       ${plymouth} deactivate
     fi
   '';
+
+  # NixOS writes DeviceTimeout=8 before any extra settings, and Plymouth
+  # keeps the first value it reads, so the whole file is replaced.
+  daemonConfig = pkgs.writeText "plymouthd.conf" ''
+    [Daemon]
+    ShowDelay=0
+    DeviceTimeout=5
+    Theme=${config.boot.plymouth.theme}
+  '';
 in
 {
   boot = {
     # Tests raise this to read kernel logs.
     consoleLogLevel = lib.mkDefault 3;
-    initrd.verbose = false;
+    initrd = {
+      # Intel and AMD drive most PCs, so their drivers start the splash in
+      # the panel's own mode and nothing switches later in the boot. The
+      # splash waits up to DeviceTimeout for them, then falls back to the
+      # firmware's framebuffer, as on NVIDIA, whose firmware alone would
+      # make the initrd larger than /boot.
+      availableKernelModules = [
+        "amdgpu"
+        "i915"
+        "radeon"
+        "xe"
+      ];
+      systemd.contents."/etc/plymouth/plymouthd.conf".source = lib.mkForce daemonConfig;
+      verbose = false;
+    };
     kernelParams = [
       "quiet"
       "splash"
       "rd.udev.log_level=3"
       "udev.log_level=3"
       "systemd.show_status=auto"
-      # GPU drivers load only after the initrd, so without the firmware's
-      # framebuffer the screen stays black for most of the boot.
-      "plymouth.use-simpledrm"
       # The splash belongs on the screen; the serial console keeps the logs.
       "plymouth.ignore-serial-consoles"
     ];
@@ -56,6 +76,7 @@ in
       themePackages = [ (pkgs.callPackage ../../../packages/zoomies-splash/package.nix { }) ];
     };
   };
+  environment.etc."plymouth/plymouthd.conf".source = lib.mkForce daemonConfig;
   systemd.services = {
     # Without --retain-splash the console flashes between the splash and
     # the greeter.

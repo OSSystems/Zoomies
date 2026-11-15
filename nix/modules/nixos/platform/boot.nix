@@ -6,7 +6,9 @@
 
 {
   boot.loader.grub = {
-    configurationLimit = 10;
+    # Each generation copies its kernel and initrd, about 95 MB with the GPU
+    # drivers the splash needs, into the 1 GB /boot.
+    configurationLimit = 5;
     efiInstallAsRemovable = true;
     efiSupport = true;
     extraPrepareConfig = ''
