@@ -14,6 +14,7 @@ import sys
 import time
 
 from . import admin, state, ui
+from .i18n import _
 from .ui import GLib, Gtk
 
 PIN_ATTEMPTS = 3
@@ -86,14 +87,14 @@ class Greetd:
 
 def describe(status):
     if not status:
-        return "Let's play!"
+        return _("Let's play!")
     if not status["allowed"]:
         if status["reason"] == "hours":
-            return f"Back at {status['opensAt']}"
-        return "All done for today"
+            return _("Back at {time}").format(time=status["opensAt"])
+        return _("All done for today")
     if status["remaining"] is None:
-        return "Let's play!"
-    return f"{state.format_duration(status['remaining'])} to play"
+        return _("Let's play!")
+    return _("{time} to play").format(time=state.format_duration(status["remaining"]))
 
 
 class Greeter(Gtk.ApplicationWindow):
@@ -110,7 +111,7 @@ class Greeter(Gtk.ApplicationWindow):
 
         top = Gtk.CenterBox()
         top.set_start_widget(ui.mascot(config, 120))
-        title = Gtk.Label(label="Who's playing?")
+        title = Gtk.Label(label=_("Who's playing?"))
         title.add_css_class("title")
         top.set_center_widget(title)
         top.set_end_widget(ui.clock())
@@ -134,13 +135,13 @@ class Greeter(Gtk.ApplicationWindow):
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
-        parent = ui.big_button("Grown-ups", "subtle", "🔒")
+        parent = ui.big_button(_("Grown-ups"), "subtle", "🔒")
         hold = Gtk.GestureLongPress(delay_factor=3.0)
         hold.connect("pressed", lambda *_args: self.ask_pin())
         parent.add_controller(hold)
         # A tap does nothing on purpose, so tell grown-ups what to do;
         # tooltips never show on touch screens.
-        parent.connect("clicked", lambda *_args: self.hint("Keep holding 🔒 to open"))
+        parent.connect("clicked", lambda *_args: self.hint(_("Keep holding 🔒 to open")))
         bottom.append(parent)
         self.hint_label = Gtk.Label(hexpand=True, xalign=0)
         self.hint_label.add_css_class("kid-note")
@@ -149,7 +150,7 @@ class Greeter(Gtk.ApplicationWindow):
         power.connect(
             "clicked",
             lambda *_args: self.overlay.confirm(
-                "Turn the computer off?", "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
+                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
             ),
         )
         bottom.append(power)
@@ -178,7 +179,7 @@ class Greeter(Gtk.ApplicationWindow):
         for index, kid in enumerate(kids):
             self.kids.attach(self._kid_tile(kid), index % columns, index // columns, 1, 1)
         if not self.tiles:
-            empty = Gtk.Label(label="No kids yet.\nGrown-ups can add them with the 🔒 button.")
+            empty = Gtk.Label(label=_("No kids yet.\nGrown-ups can add them with the 🔒 button."))
             empty.set_justify(Gtk.Justification.CENTER)
             empty.add_css_class("dialog-title")
             self.kids.attach(empty, 0, 0, 1, 1)
@@ -294,7 +295,7 @@ class Greeter(Gtk.ApplicationWindow):
         label = Gtk.Label(label=f"{emoji}\n{text}", justify=Gtk.Justification.CENTER)
         label.add_css_class("dialog-title")
         box.append(label)
-        ok = ui.big_button("OK", "yes", "👍")
+        ok = ui.big_button(_("OK"), "yes", "👍")
         ok.set_halign(Gtk.Align.CENTER)
         ok.connect("clicked", lambda *_args: self.overlay.close())
         box.append(ok)
@@ -309,11 +310,11 @@ class Greeter(Gtk.ApplicationWindow):
             Setup(self).start()
             return
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        title = Gtk.Label(label="🔒\nGrown-ups only")
+        title = Gtk.Label(label=_("🔒\nGrown-ups only"))
         title.set_justify(Gtk.Justification.CENTER)
         title.add_css_class("dialog-title")
         box.append(title)
-        entry = ui.pin_entry("PIN")
+        entry = ui.pin_entry(_("PIN"))
         box.append(entry)
         message = ui.message_label()
         box.append(message)
@@ -331,7 +332,7 @@ class Greeter(Gtk.ApplicationWindow):
                 button.connect("clicked", lambda _b, k=key: entry.set_text(entry.get_text() + k))
             pad.attach(button, index % 3, index // 3, 1, 1)
         box.append(pad)
-        cancel = ui.big_button("Cancel", "no", "✖")
+        cancel = ui.big_button(_("Cancel"), "no", "✖")
         cancel.set_halign(Gtk.Align.CENTER)
         cancel.connect("clicked", lambda *_args: self.overlay.close())
         box.append(cancel)
@@ -340,7 +341,7 @@ class Greeter(Gtk.ApplicationWindow):
             if not entry.get_text():
                 return
             if time.monotonic() < self.locked_until:
-                message.set_label("Too many tries. Wait a little.")
+                message.set_label(_("Too many tries. Wait a little."))
                 return
             error = self.greetd.login(
                 parent["user"], self.config["parentSession"], secret=entry.get_text()
@@ -353,9 +354,9 @@ class Greeter(Gtk.ApplicationWindow):
             if self.failures >= PIN_ATTEMPTS:
                 self.failures = 0
                 self.locked_until = time.monotonic() + PIN_LOCKOUT
-                message.set_label("Too many tries. Wait a little.")
+                message.set_label(_("Too many tries. Wait a little."))
             else:
-                message.set_label("That is not the PIN.")
+                message.set_label(_("That is not the PIN."))
 
         entry.connect("activate", lambda *_args: submit())
         self.overlay.show(box)
@@ -378,26 +379,26 @@ class Setup:
     def start(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         title = Gtk.Label(
-            label="👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN.",
+            label=_("👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN."),
             justify=Gtk.Justification.CENTER,
         )
         title.add_css_class("dialog-title")
         box.append(title)
-        hint = Gtk.Label(label="4 to 12 digits. Kids should not see it!")
+        hint = Gtk.Label(label=_("4 to 12 digits. Kids should not see it!"))
         box.append(hint)
-        first = ui.pin_entry("New PIN")
-        again = ui.pin_entry("Same PIN again")
+        first = ui.pin_entry(_("New PIN"))
+        again = ui.pin_entry(_("Same PIN again"))
         box.append(first)
         box.append(again)
         message = ui.message_label()
         box.append(message)
-        save = ui.big_button("Save the PIN", "yes", "🔒")
+        save = ui.big_button(_("Save the PIN"), "yes", "🔒")
         save.set_halign(Gtk.Align.CENTER)
         box.append(save)
 
         def submit(*_):
             if first.get_text() != again.get_text():
-                message.set_label("The two PINs are different. Try again.")
+                message.set_label(_("The two PINs are different. Try again."))
                 again.set_text("")
                 again.grab_focus()
                 return
@@ -407,7 +408,7 @@ class Setup:
                 # The PIN may have been saved even though the answer got
                 # lost; asking again would then need the "old" PIN.
                 if self.greeter.pin_set() is not True:
-                    message.set_label(str(error).capitalize() + ".")
+                    message.set_label(_(str(error)).capitalize() + ".")
                     return
             self.pin = first.get_text()
             self.kids()
@@ -422,12 +423,12 @@ class Setup:
     def kids(self):
         config = state.load_config()
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        title = Gtk.Label(label="Who will play?", justify=Gtk.Justification.CENTER)
+        title = Gtk.Label(label=_("Who will play?"), justify=Gtk.Justification.CENTER)
         title.add_css_class("dialog-title")
         box.append(title)
         added = Gtk.Label(
             label="  ".join(f"{k['avatar']} {k['name']}" for k in config["kids"])
-            or "Type a name, pick a face, then press Add.",
+            or _("Type a name, pick a face, then press Add."),
             wrap=True,
         )
         added.add_css_class("kid-note")
@@ -440,8 +441,8 @@ class Setup:
         message = ui.message_label()
         box.append(message)
         row = Gtk.Box(spacing=16, halign=Gtk.Align.CENTER)
-        add = ui.big_button("Add", "yes", "➕")
-        done = ui.big_button("Done", "subtle", "✔")
+        add = ui.big_button(_("Add"), "yes", "➕")
+        done = ui.big_button(_("Done"), "subtle", "✔")
         row.append(add)
         row.append(done)
         box.append(row)
@@ -452,12 +453,12 @@ class Setup:
                 if config["kids"]:
                     finish()
                 else:
-                    message.set_label("Type the kid's name first.")
+                    message.set_label(_("Type the kid's name first."))
                 return
             try:
                 admin.request("add-kid", pin=self.pin, **values)
             except admin.Refused as error:
-                message.set_label(str(error).capitalize() + ".")
+                message.set_label(_(str(error)).capitalize() + ".")
                 return
             self.kids()
 

@@ -4,6 +4,7 @@ import subprocess
 import sys
 
 from . import admin, state, ui
+from .i18n import _
 from .ui import GLib, Gtk
 
 
@@ -56,17 +57,17 @@ class KidRow(Gtk.Box):
         self.played = Gtk.Label(xalign=0)
         names.append(self.played)
         header.append(names)
-        extra = ui.big_button("+15 min", "yes", "⏳")
+        extra = ui.big_button(_("+15 min"), "yes", "⏳")
         extra.connect("clicked", lambda *_args: self.grant(15))
         header.append(extra)
         # Kids from the system configuration are changed there, not here.
         if not kid.get("declared"):
             edit = ui.big_button(None, "subtle", "✏️")
-            edit.set_tooltip_text("Edit")
+            edit.set_tooltip_text(_("Edit"))
             edit.connect("clicked", lambda *_args: panel.edit_kid(kid))
             header.append(edit)
             remove = ui.big_button(None, "subtle", "🗑️")
-            remove.set_tooltip_text("Remove")
+            remove.set_tooltip_text(_("Remove"))
             remove.connect("clicked", lambda *_args: panel.remove_kid(kid))
             header.append(remove)
         self.append(header)
@@ -79,13 +80,13 @@ class KidRow(Gtk.Box):
         # 0 mean "no play today", and touch screens never show tooltips.
         self.limit_minutes = Gtk.Switch(active=minutes is not None, valign=Gtk.Align.CENTER)
         rules.append(self.limit_minutes)
-        rules.append(Gtk.Label(label="Minutes a day"))
+        rules.append(Gtk.Label(label=_("Minutes a day")))
         self.minutes = spin(0, 24 * 60, 60 if minutes is None else minutes, 15)
         rules.append(self.minutes)
         rules.append(Gtk.Box(hexpand=True))
         self.limit_hours = Gtk.Switch(active=hours is not None, valign=Gtk.Align.CENTER)
         rules.append(self.limit_hours)
-        rules.append(Gtk.Label(label="Only from"))
+        rules.append(Gtk.Label(label=_("Only from")))
         hours = hours or {"start": "08:00", "end": "20:00"}
         # Half-hour steps, shown as clock times; the end can be 24:00.
         self.start = time_spin(0, 47, state.minutes_of_day(hours["start"]) // 30)
@@ -125,7 +126,7 @@ class KidRow(Gtk.Box):
             return
         start, end = int(self.start.get_value()) * 30, int(self.end.get_value()) * 30
         if start == end:
-            self.message.set_label("Pick different start and end times.")
+            self.message.set_label(_("Pick different start and end times."))
             self.message.set_visible(True)
             return
         self._save(
@@ -137,42 +138,42 @@ class KidRow(Gtk.Box):
         try:
             state.grant_bonus(self.kid["user"], minutes)
         except OSError as error:
-            self.message.set_label(f"Could not save: {error.strerror}.")
+            self.message.set_label(_("Could not save: {reason}.").format(reason=error.strerror))
             self.message.set_visible(True)
             return
         # The timekeeper picks it up within seconds; say so right away.
-        self.played.set_label(f"+{minutes} min added for today")
+        self.played.set_label(_("+{minutes} min added for today").format(minutes=minutes))
 
     def refresh(self):
         status = state.read_status().get(self.kid["user"], {})
         used = status.get("used", 0) // 60
         remaining = status.get("remaining")
-        text = f"Played {used} min today"
+        text = _("Played {minutes} min today").format(minutes=used)
         if remaining is not None:
-            text += f", {state.format_duration(remaining)} left"
+            text += _(", {time} left").format(time=state.format_duration(remaining))
         elif status:
-            text += ", no limit"
+            text += _(", no limit")
         if status and not status["allowed"]:
-            text += " (resting)"
+            text += _(" (resting)")
         self.played.set_label(text)
         return GLib.SOURCE_CONTINUE
 
 
 class Parent(Gtk.ApplicationWindow):
     def __init__(self, app, config):
-        super().__init__(application=app, title="Zoomies grown-ups")
+        super().__init__(application=app, title=_("Zoomies grown-ups"))
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         page.add_css_class("page")
 
         top = Gtk.Box(spacing=20)
         top.append(ui.mascot(config, 72))
-        title = Gtk.Label(label="Grown-ups", xalign=0, hexpand=True)
+        title = Gtk.Label(label=_("Grown-ups"), xalign=0, hexpand=True)
         title.add_css_class("title")
         top.append(title)
-        add = ui.big_button("Add a kid", "yes", "➕")
+        add = ui.big_button(_("Add a kid"), "yes", "➕")
         add.connect("clicked", lambda *_args: self.edit_kid(None))
         top.append(add)
-        pin = ui.big_button("Change PIN", "subtle", "🔑")
+        pin = ui.big_button(_("Change PIN"), "subtle", "🔑")
         pin.connect("clicked", lambda *_args: self.change_pin())
         top.append(pin)
         top.append(ui.clock())
@@ -184,10 +185,10 @@ class Parent(Gtk.ApplicationWindow):
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
-        back = ui.big_button("Back to the kids", "yes", "🐧")
+        back = ui.big_button(_("Back to the kids"), "yes", "🐧")
         back.connect("clicked", lambda *_args: app.quit())
         bottom.append(back)
-        terminal = ui.big_button("Terminal", "subtle", "⌨")
+        terminal = ui.big_button(_("Terminal"), "subtle", "⌨")
         terminal.connect("clicked", lambda *_args: subprocess.Popen(["foot"]))
         bottom.append(terminal)
         bottom.append(Gtk.Box(hexpand=True))
@@ -196,20 +197,20 @@ class Parent(Gtk.ApplicationWindow):
         calm = Gtk.Switch(active=state.calm_screen(), valign=Gtk.Align.CENTER)
         calm.connect("notify::active", lambda switch, _pspec: state.set_calm_screen(switch.get_active()))
         bottom.append(calm)
-        bottom.append(Gtk.Label(label="Calm screen"))
-        restart = ui.big_button("Restart", "subtle", "🔄")
+        bottom.append(Gtk.Label(label=_("Calm screen")))
+        restart = ui.big_button(_("Restart"), "subtle", "🔄")
         restart.connect(
             "clicked",
             lambda *_args: self.overlay.confirm(
-                "Restart the computer?", "🔄", lambda: subprocess.Popen(["systemctl", "reboot"])
+                _("Restart the computer?"), "🔄", lambda: subprocess.Popen(["systemctl", "reboot"])
             ),
         )
         bottom.append(restart)
-        power = ui.big_button("Power off", "subtle", "⏻")
+        power = ui.big_button(_("Power off"), "subtle", "⏻")
         power.connect(
             "clicked",
             lambda *_args: self.overlay.confirm(
-                "Turn the computer off?", "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
+                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
             ),
         )
         bottom.append(power)
@@ -228,7 +229,7 @@ class Parent(Gtk.ApplicationWindow):
         for row in self.rows:
             self.list.append(row)
         if not self.rows:
-            empty = Gtk.Label(label="No kids yet. Press ➕ Add a kid.")
+            empty = Gtk.Label(label=_("No kids yet. Press ➕ Add a kid."))
             empty.add_css_class("dialog-title")
             self.list.append(empty)
 
@@ -241,7 +242,7 @@ class Parent(Gtk.ApplicationWindow):
         message = ui.message_label()
         box.append(message)
         row = Gtk.Box(spacing=16, halign=Gtk.Align.CENTER)
-        cancel = ui.big_button("Cancel", "no", "✖")
+        cancel = ui.big_button(_("Cancel"), "no", "✖")
         cancel.connect("clicked", lambda *_args: self.overlay.close())
         accept = ui.big_button(action, "yes", "✔")
 
@@ -249,7 +250,7 @@ class Parent(Gtk.ApplicationWindow):
             try:
                 on_accept()
             except admin.Refused as error:
-                message.set_label(str(error).capitalize() + ".")
+                message.set_label(_(str(error)).capitalize() + ".")
                 return
             self.overlay.close()
             self.populate()
@@ -269,13 +270,13 @@ class Parent(Gtk.ApplicationWindow):
         )
         if kid is None:
             run = self.dialog(
-                "Add a kid", form, "Add", lambda: admin.request("add-kid", **form.values())
+                _("Add a kid"), form, _("Add"), lambda: admin.request("add-kid", **form.values())
             )
         else:
             run = self.dialog(
-                f"Edit {kid['name']}",
+                _("Edit {name}").format(name=kid["name"]),
                 form,
-                "Save",
+                _("Save"),
                 lambda: admin.request("edit-kid", user=kid["user"], **form.values()),
             )
         form.name.connect("activate", run)
@@ -283,30 +284,32 @@ class Parent(Gtk.ApplicationWindow):
 
     def remove_kid(self, kid):
         warning = Gtk.Label(
-            label=f"{kid['avatar']} {kid['name']}'s saved games and files will be deleted.",
+            label=_("{avatar} {name}'s saved games and files will be deleted.").format(
+                avatar=kid["avatar"], name=kid["name"]
+            ),
             wrap=True,
         )
         self.dialog(
-            f"Remove {kid['name']}?",
+            _("Remove {name}?").format(name=kid["name"]),
             warning,
-            "Remove",
+            _("Remove"),
             lambda: admin.request("remove-kid", user=kid["user"]),
         )
 
     def change_pin(self):
         fields = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
-        old = ui.pin_entry("Current PIN")
-        new = ui.pin_entry("New PIN")
-        again = ui.pin_entry("New PIN again")
+        old = ui.pin_entry(_("Current PIN"))
+        new = ui.pin_entry(_("New PIN"))
+        again = ui.pin_entry(_("New PIN again"))
         for entry in (old, new, again):
             fields.append(entry)
 
         def accept():
             if new.get_text() != again.get_text():
-                raise admin.Refused("the new PINs are different")
+                raise admin.Refused(_("the new PINs are different"))
             admin.request("set-pin", old=old.get_text(), new=new.get_text())
 
-        run = self.dialog("🔑 Change the PIN", fields, "Save", accept)
+        run = self.dialog(_("🔑 Change the PIN"), fields, _("Save"), accept)
         old.connect("activate", lambda *_args: new.grab_focus())
         new.connect("activate", lambda *_args: again.grab_focus())
         again.connect("activate", run)

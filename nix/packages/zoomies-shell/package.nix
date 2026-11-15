@@ -1,4 +1,5 @@
 {
+  gettext,
   gobject-introspection,
   gtk3,
   gtk4,
@@ -37,6 +38,7 @@ python3Packages.buildPythonApplication {
     mainProgram = "zoomies-launcher";
   };
   nativeBuildInputs = [
+    gettext
     gobject-introspection
     wrapGAppsHook4
   ];
@@ -46,6 +48,13 @@ python3Packages.buildPythonApplication {
     mkdir -p $out/share/zoomies
     for art in ${../../../assets/mascot}/*.svg; do
       sed 's|<rect [^>]*fill="#e9faf4"/>||' "$art" > $out/share/zoomies/$(basename "$art")
+    done
+  '';
+  preBuild = ''
+    for po in po/*.po; do
+      lang=$(basename "$po" .po)
+      mkdir -p zoomies_shell/locale/$lang/LC_MESSAGES
+      msgfmt --check -o zoomies_shell/locale/$lang/LC_MESSAGES/zoomies.mo "$po"
     done
   '';
   pyproject = true;

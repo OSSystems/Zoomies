@@ -22,6 +22,7 @@ import time
 import unicodedata
 
 from . import state
+from .i18n import N_
 
 SOCKET = os.environ.get("ZOOMIES_ADMIN_SOCKET", "/run/zoomies-admin.sock")
 GROUPS = {"little": "zoomies-kids", "older": "zoomies-older"}
@@ -56,7 +57,7 @@ def request(action, **fields):
     # An empty or broken reply means the service died mid-request; never
     # take that for success.
     if not isinstance(reply, dict):
-        raise Refused("no answer from the admin service")
+        raise Refused(N_("no answer from the admin service"))
     if "error" in reply:
         raise Refused(reply["error"])
     return reply
@@ -77,7 +78,7 @@ class Admin:
     def parent(self):
         parent = state.load_config().get("parent")
         if not parent:
-            raise Refused("this system has no grown-up account")
+            raise Refused(N_("this system has no grown-up account"))
         return parent["user"]
 
     def shadow_hash(self):
@@ -94,7 +95,7 @@ class Admin:
 
     def check_pin(self, pin):
         if time.monotonic() < self.locked_until:
-            raise Refused("too many wrong PINs, wait a minute")
+            raise Refused(N_("too many wrong PINs, wait a minute"))
         stored = self.shadow_hash()
         if pin and self.pin_set():
             result = self.crypt(str(pin).encode(), stored.encode())
@@ -105,7 +106,7 @@ class Admin:
         if self.failures >= MAX_FAILURES:
             self.failures = 0
             self.locked_until = time.monotonic() + LOCKOUT
-        raise Refused("wrong PIN")
+        raise Refused(N_("wrong PIN"))
 
     def authorize(self, uid, message):
         if uid in (0, pwd.getpwnam(self.parent).pw_uid):
@@ -120,7 +121,7 @@ class Admin:
             return self.set_pin(uid, message)
         if action in ("add-kid", "edit-kid", "remove-kid"):
             if not self.pin_set():
-                raise Refused("set the grown-ups PIN first")
+                raise Refused(N_("set the grown-ups PIN first"))
             self.authorize(uid, message)
             return getattr(self, action.replace("-", "_"))(message)
         raise Refused(f"unknown action {action!r}")
@@ -128,7 +129,7 @@ class Admin:
     def set_pin(self, uid, message):
         new = str(message.get("new", ""))
         if not PIN.fullmatch(new):
-            raise Refused("the PIN must be 4 to 12 digits")
+            raise Refused(N_("the PIN must be 4 to 12 digits"))
         # Before the first PIN exists there is nothing to protect; after
         # that, even the parent's own session must know the old PIN, so a
         # kid finding the panel open cannot lock the grown-ups out.
@@ -143,13 +144,13 @@ class Admin:
     def validate(message):
         name = str(message.get("name", "")).strip()
         if not 1 <= len(name) <= 32:
-            raise Refused("the name must have 1 to 32 characters")
+            raise Refused(N_("the name must have 1 to 32 characters"))
         # The name ends up in /etc/passwd, where these split fields.
         if any(c in ":," or unicodedata.category(c).startswith("C") for c in name):
-            raise Refused("the name cannot have commas, colons or control characters")
+            raise Refused(N_("the name cannot have commas, colons or control characters"))
         avatar = str(message.get("avatar") or state.AVATARS[0])
         if len(avatar) > 8:
-            raise Refused("the avatar must be a single emoji")
+            raise Refused(N_("the avatar must be a single emoji"))
         color = message.get("color") or "sky"
         if color not in state.COLORS:
             raise Refused(f"unknown colour {color!r}")
@@ -157,7 +158,7 @@ class Admin:
         if kind not in state.KINDS:
             raise Refused(f"unknown kind {kind!r}")
         if kind == "older" and not state.load_config().get("olderEnabled"):
-            raise Refused("older kid profiles are disabled on this system")
+            raise Refused(N_("older kid profiles are disabled on this system"))
         return {"avatar": avatar, "color": color, "kind": kind, "name": name}
 
     @staticmethod
@@ -178,7 +179,7 @@ class Admin:
             if kid["user"] == user:
                 return profiles, kid
         if user in state.kids_by_user():
-            raise Refused("this kid is set in the system configuration")
+            raise Refused(N_("this kid is set in the system configuration"))
         raise Refused(f"no kid called {user!r}")
 
     def add_kid(self, message):

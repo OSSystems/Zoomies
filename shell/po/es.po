@@ -1,0 +1,278 @@
+# Spanish translation of Zoomies.
+msgid ""
+msgstr ""
+"Project-Id-Version: zoomies\n"
+"Report-Msgid-Bugs-To: https://github.com/OSSystems/zoomies/issues\n"
+"PO-Revision-Date: 2026-11-15 00:00-0300\n"
+"Last-Translator: Zoomies\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+msgid "no answer from the admin service"
+msgstr "el servicio de administración no respondió"
+
+msgid "this system has no grown-up account"
+msgstr "este sistema no tiene cuenta de adulto"
+
+msgid "too many wrong PINs, wait a minute"
+msgstr "demasiados PIN incorrectos, espera un minuto"
+
+msgid "wrong PIN"
+msgstr "PIN incorrecto"
+
+msgid "set the grown-ups PIN first"
+msgstr "primero define el PIN de los adultos"
+
+msgid "the PIN must be 4 to 12 digits"
+msgstr "el PIN debe tener de 4 a 12 dígitos"
+
+msgid "the name must have 1 to 32 characters"
+msgstr "el nombre debe tener de 1 a 32 caracteres"
+
+msgid "the name cannot have commas, colons or control characters"
+msgstr "el nombre no puede tener comas, dos puntos ni caracteres de control"
+
+msgid "the avatar must be a single emoji"
+msgstr "el avatar debe ser un solo emoji"
+
+msgid "older kid profiles are disabled on this system"
+msgstr "los perfiles de niños mayores están desactivados en este sistema"
+
+msgid "this kid is set in the system configuration"
+msgstr "este niño está definido en la configuración del sistema"
+
+msgid "Let's play!"
+msgstr "¡A jugar!"
+
+#, python-brace-format
+msgid "Back at {time}"
+msgstr "Vuelve a las {time}"
+
+msgid "All done for today"
+msgstr "Se acabó por hoy"
+
+#, python-brace-format
+msgid "{time} to play"
+msgstr "{time} para jugar"
+
+msgid "Who's playing?"
+msgstr "¿Quién va a jugar?"
+
+msgid "Grown-ups"
+msgstr "Adultos"
+
+msgid "Keep holding 🔒 to open"
+msgstr "Mantén pulsado 🔒 para abrir"
+
+msgid "Turn the computer off?"
+msgstr "¿Apagar el ordenador?"
+
+msgid "No kids yet.\nGrown-ups can add them with the 🔒 button."
+msgstr "Todavía no hay niños.\nLos adultos pueden añadirlos con el botón 🔒."
+
+msgid "OK"
+msgstr "Aceptar"
+
+msgid "🔒\nGrown-ups only"
+msgstr "🔒\nSolo para adultos"
+
+msgid "PIN"
+msgstr "PIN"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Too many tries. Wait a little."
+msgstr "Demasiados intentos. Espera un poco."
+
+msgid "That is not the PIN."
+msgstr "Ese no es el PIN."
+
+msgid "👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN."
+msgstr "👋 ¡Te damos la bienvenida a Zoomies!\nPrimero, un adulto elige un PIN secreto."
+
+msgid "4 to 12 digits. Kids should not see it!"
+msgstr "De 4 a 12 dígitos. ¡Que no lo vean los niños!"
+
+msgid "New PIN"
+msgstr "PIN nuevo"
+
+msgid "Same PIN again"
+msgstr "El mismo PIN otra vez"
+
+msgid "Save the PIN"
+msgstr "Guardar el PIN"
+
+msgid "The two PINs are different. Try again."
+msgstr "Los dos PIN son distintos. Inténtalo de nuevo."
+
+msgid "Who will play?"
+msgstr "¿Quién va a jugar?"
+
+msgid "Type a name, pick a face, then press Add."
+msgstr "Escribe un nombre, elige una carita y pulsa Añadir."
+
+msgid "Add"
+msgstr "Añadir"
+
+msgid "Done"
+msgstr "Listo"
+
+msgid "Type the kid's name first."
+msgstr "Escribe primero el nombre del niño."
+
+#, python-brace-format
+msgid "Hi, {name}!"
+msgstr "¡Hola, {name}!"
+
+msgid "Pick a game!"
+msgstr "¡Elige un juego!"
+
+msgid "Switch player"
+msgstr "Cambiar de jugador"
+
+msgid "Stop playing and switch player?"
+msgstr "¿Dejar de jugar y cambiar de jugador?"
+
+#, python-brace-format
+msgid "{game} would not start. Pick another one!"
+msgstr "{game} no se abrió. ¡Elige otro!"
+
+#, python-brace-format
+msgid "Starting {game}…"
+msgstr "Abriendo {game}…"
+
+msgid "Almost time to stop. Pick something quick!"
+msgstr "Ya casi hay que parar. ¡Elige algo rápido!"
+
+msgid "+15 min"
+msgstr "+15 min"
+
+msgid "Edit"
+msgstr "Editar"
+
+msgid "Remove"
+msgstr "Quitar"
+
+msgid "Minutes a day"
+msgstr "Minutos al día"
+
+msgid "Only from"
+msgstr "Solo de"
+
+msgid "Pick different start and end times."
+msgstr "Elige horas de inicio y fin distintas."
+
+#, python-brace-format
+msgid "Could not save: {reason}."
+msgstr "No se pudo guardar: {reason}."
+
+#, python-brace-format
+msgid "+{minutes} min added for today"
+msgstr "+{minutes} min más hoy"
+
+#, python-brace-format
+msgid "Played {minutes} min today"
+msgstr "Jugó {minutes} min hoy"
+
+#, python-brace-format
+msgid ", {time} left"
+msgstr ", quedan {time}"
+
+msgid ", no limit"
+msgstr ", sin límite"
+
+msgid " (resting)"
+msgstr " (descansando)"
+
+msgid "Zoomies grown-ups"
+msgstr "Zoomies para adultos"
+
+msgid "Add a kid"
+msgstr "Añadir un niño"
+
+msgid "Change PIN"
+msgstr "Cambiar PIN"
+
+msgid "Back to the kids"
+msgstr "Volver a los niños"
+
+msgid "Terminal"
+msgstr "Terminal"
+
+msgid "Calm screen"
+msgstr "Pantalla tranquila"
+
+msgid "Restart"
+msgstr "Reiniciar"
+
+msgid "Restart the computer?"
+msgstr "¿Reiniciar el ordenador?"
+
+msgid "Power off"
+msgstr "Apagar"
+
+msgid "No kids yet. Press ➕ Add a kid."
+msgstr "Todavía no hay niños. Pulsa ➕ Añadir un niño."
+
+#, python-brace-format
+msgid "Edit {name}"
+msgstr "Editar a {name}"
+
+msgid "Save"
+msgstr "Guardar"
+
+#, python-brace-format
+msgid "{avatar} {name}'s saved games and files will be deleted."
+msgstr "Se borrarán las partidas guardadas y los archivos de {avatar} {name}."
+
+#, python-brace-format
+msgid "Remove {name}?"
+msgstr "¿Quitar a {name}?"
+
+msgid "Current PIN"
+msgstr "PIN actual"
+
+msgid "New PIN again"
+msgstr "PIN nuevo otra vez"
+
+msgid "the new PINs are different"
+msgstr "los PIN nuevos son distintos"
+
+msgid "🔑 Change the PIN"
+msgstr "🔑 Cambiar el PIN"
+
+#, python-brace-format
+msgid "{minutes} minute left"
+msgid_plural "{minutes} minutes left"
+msgstr[0] "Queda {minutes} minuto"
+msgstr[1] "Quedan {minutes} minutos"
+
+msgid "Save your work, time is almost up for today."
+msgstr "Guarda lo que estés haciendo, el tiempo de hoy casi se acaba."
+
+msgid "No"
+msgstr "No"
+
+msgid "Yes"
+msgstr "Sí"
+
+msgid "Little kid"
+msgstr "Niño pequeño"
+
+msgid "Just the games"
+msgstr "Solo los juegos"
+
+msgid "Older kid"
+msgstr "Niño mayor"
+
+msgid "A desktop for study and play"
+msgstr "Un escritorio para estudiar y jugar"
+
+msgid "Name"
+msgstr "Nombre"

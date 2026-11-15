@@ -1,0 +1,289 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-11-15 03:53-0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+msgid "no answer from the admin service"
+msgstr ""
+
+msgid "this system has no grown-up account"
+msgstr ""
+
+msgid "too many wrong PINs, wait a minute"
+msgstr ""
+
+msgid "wrong PIN"
+msgstr ""
+
+msgid "set the grown-ups PIN first"
+msgstr ""
+
+msgid "the PIN must be 4 to 12 digits"
+msgstr ""
+
+msgid "the name must have 1 to 32 characters"
+msgstr ""
+
+msgid "the name cannot have commas, colons or control characters"
+msgstr ""
+
+msgid "the avatar must be a single emoji"
+msgstr ""
+
+msgid "older kid profiles are disabled on this system"
+msgstr ""
+
+msgid "this kid is set in the system configuration"
+msgstr ""
+
+msgid "Let's play!"
+msgstr ""
+
+#, python-brace-format
+msgid "Back at {time}"
+msgstr ""
+
+msgid "All done for today"
+msgstr ""
+
+#, python-brace-format
+msgid "{time} to play"
+msgstr ""
+
+msgid "Who's playing?"
+msgstr ""
+
+msgid "Grown-ups"
+msgstr ""
+
+msgid "Keep holding 🔒 to open"
+msgstr ""
+
+msgid "Turn the computer off?"
+msgstr ""
+
+msgid ""
+"No kids yet.\n"
+"Grown-ups can add them with the 🔒 button."
+msgstr ""
+
+msgid "OK"
+msgstr ""
+
+msgid ""
+"🔒\n"
+"Grown-ups only"
+msgstr ""
+
+msgid "PIN"
+msgstr ""
+
+msgid "Cancel"
+msgstr ""
+
+msgid "Too many tries. Wait a little."
+msgstr ""
+
+msgid "That is not the PIN."
+msgstr ""
+
+msgid ""
+"👋 Welcome to Zoomies!\n"
+"First, a grown-up picks a secret PIN."
+msgstr ""
+
+msgid "4 to 12 digits. Kids should not see it!"
+msgstr ""
+
+msgid "New PIN"
+msgstr ""
+
+msgid "Same PIN again"
+msgstr ""
+
+msgid "Save the PIN"
+msgstr ""
+
+msgid "The two PINs are different. Try again."
+msgstr ""
+
+msgid "Who will play?"
+msgstr ""
+
+msgid "Type a name, pick a face, then press Add."
+msgstr ""
+
+msgid "Add"
+msgstr ""
+
+msgid "Done"
+msgstr ""
+
+msgid "Type the kid's name first."
+msgstr ""
+
+#, python-brace-format
+msgid "Hi, {name}!"
+msgstr ""
+
+msgid "Pick a game!"
+msgstr ""
+
+msgid "Switch player"
+msgstr ""
+
+msgid "Stop playing and switch player?"
+msgstr ""
+
+#, python-brace-format
+msgid "{game} would not start. Pick another one!"
+msgstr ""
+
+#, python-brace-format
+msgid "Starting {game}…"
+msgstr ""
+
+msgid "Almost time to stop. Pick something quick!"
+msgstr ""
+
+msgid "+15 min"
+msgstr ""
+
+msgid "Edit"
+msgstr ""
+
+msgid "Remove"
+msgstr ""
+
+msgid "Minutes a day"
+msgstr ""
+
+msgid "Only from"
+msgstr ""
+
+msgid "Pick different start and end times."
+msgstr ""
+
+#, python-brace-format
+msgid "Could not save: {reason}."
+msgstr ""
+
+#, python-brace-format
+msgid "+{minutes} min added for today"
+msgstr ""
+
+#, python-brace-format
+msgid "Played {minutes} min today"
+msgstr ""
+
+#, python-brace-format
+msgid ", {time} left"
+msgstr ""
+
+msgid ", no limit"
+msgstr ""
+
+msgid " (resting)"
+msgstr ""
+
+msgid "Zoomies grown-ups"
+msgstr ""
+
+msgid "Add a kid"
+msgstr ""
+
+msgid "Change PIN"
+msgstr ""
+
+msgid "Back to the kids"
+msgstr ""
+
+msgid "Terminal"
+msgstr ""
+
+msgid "Calm screen"
+msgstr ""
+
+msgid "Restart"
+msgstr ""
+
+msgid "Restart the computer?"
+msgstr ""
+
+msgid "Power off"
+msgstr ""
+
+msgid "No kids yet. Press ➕ Add a kid."
+msgstr ""
+
+#, python-brace-format
+msgid "Edit {name}"
+msgstr ""
+
+msgid "Save"
+msgstr ""
+
+#, python-brace-format
+msgid "{avatar} {name}'s saved games and files will be deleted."
+msgstr ""
+
+#, python-brace-format
+msgid "Remove {name}?"
+msgstr ""
+
+msgid "Current PIN"
+msgstr ""
+
+msgid "New PIN again"
+msgstr ""
+
+msgid "the new PINs are different"
+msgstr ""
+
+msgid "🔑 Change the PIN"
+msgstr ""
+
+#, python-brace-format
+msgid "{minutes} minute left"
+msgid_plural "{minutes} minutes left"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Save your work, time is almost up for today."
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Yes"
+msgstr ""
+
+msgid "Little kid"
+msgstr ""
+
+msgid "Just the games"
+msgstr ""
+
+msgid "Older kid"
+msgstr ""
+
+msgid "A desktop for study and play"
+msgstr ""
+
+msgid "Name"
+msgstr ""

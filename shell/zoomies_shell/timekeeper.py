@@ -14,6 +14,7 @@ import sys
 import time
 
 from . import state
+from .i18n import _, ngettext
 
 TICK = 5
 # Warn at these remaining-seconds marks.
@@ -60,8 +61,8 @@ def warn(user, remaining, sound):
         "notify-send",
         "--urgency=critical",
         "--app-name=Zoomies",
-        f"{minutes} minute{'s' if minutes > 1 else ''} left",
-        "Save your work, time is almost up for today.",
+        ngettext("{minutes} minute left", "{minutes} minutes left", minutes).format(minutes=minutes),
+        _("Save your work, time is almost up for today."),
     )
 
 

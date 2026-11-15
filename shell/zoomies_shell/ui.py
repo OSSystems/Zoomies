@@ -7,6 +7,7 @@ import subprocess
 import gi
 
 from . import art, state
+from .i18n import _
 
 gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -342,8 +343,8 @@ class Overlay(Gtk.Overlay):
         title.add_css_class("dialog-title")
         box.append(title)
         row = Gtk.Box(spacing=24, halign=Gtk.Align.CENTER, homogeneous=True)
-        no = big_button("No", "no", "✖")
-        yes = big_button("Yes", "yes", "✔")
+        no = big_button(_("No"), "no", "✖")
+        yes = big_button(_("Yes"), "yes", "✔")
         no.connect("clicked", lambda *_args: self.close())
 
         def accept(*_):
@@ -439,8 +440,8 @@ class KidForm(Gtk.Box):
     """Name, avatar, colour and kind of a kid, for adding or editing."""
 
     KIND_LABELS = {
-        "little": ("🧸", "Little kid", "Just the games"),
-        "older": ("🎒", "Older kid", "A desktop for study and play"),
+        "little": ("🧸", _("Little kid"), _("Just the games")),
+        "older": ("🎒", _("Older kid"), _("A desktop for study and play")),
     }
 
     def __init__(self, kid=None, older=True, used_avatars=()):
@@ -451,7 +452,7 @@ class KidForm(Gtk.Box):
         self.color = kid.get("color") or state.COLORS[len(used_avatars) % len(state.COLORS)]
         self.kind = kid.get("kind") or "little"
 
-        self.name = Gtk.Entry(text=kid.get("name", ""), placeholder_text="Name")
+        self.name = Gtk.Entry(text=kid.get("name", ""), placeholder_text=_("Name"))
         self.name.add_css_class("name-entry")
         self.append(self.name)
 

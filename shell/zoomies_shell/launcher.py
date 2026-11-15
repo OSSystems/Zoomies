@@ -13,6 +13,7 @@ import subprocess
 import sys
 
 from . import apps, state, ui
+from .i18n import _
 from .ui import Gio, GLib, Gtk, Pango
 
 # Desktop entry field codes; games start without files or URLs.
@@ -40,7 +41,7 @@ class Launcher(Gtk.ApplicationWindow):
 
         top = Gtk.Box(spacing=20)
         top.append(ui.avatar(kid, "small"))
-        hello = Gtk.Label(label=f"Hi, {kid['name']}!", xalign=0, hexpand=True)
+        hello = Gtk.Label(label=_("Hi, {name}!").format(name=kid["name"]), xalign=0, hexpand=True)
         hello.set_ellipsize(Pango.EllipsizeMode.END)
         hello.add_css_class("title")
         top.append(hello)
@@ -78,21 +79,21 @@ class Launcher(Gtk.ApplicationWindow):
         self.zip = ui.mascot(config, 88)
         bottom.append(self.zip)
         self.bubble = Gtk.Label(
-            label="Pick a game!", xalign=0, hexpand=True, valign=Gtk.Align.CENTER, wrap=True
+            label=_("Pick a game!"), xalign=0, hexpand=True, valign=Gtk.Align.CENTER, wrap=True
         )
         self.bubble.add_css_class("bubble")
         bottom.append(self.bubble)
-        switch = ui.big_button("Switch player", "subtle", "👋")
+        switch = ui.big_button(_("Switch player"), "subtle", "👋")
         switch.connect(
             "clicked",
-            lambda *_args: self.overlay.confirm("Stop playing and switch player?", "👋", self.leave),
+            lambda *_args: self.overlay.confirm(_("Stop playing and switch player?"), "👋", self.leave),
         )
         bottom.append(switch)
         power = ui.big_button(None, "subtle", "⏻")
         power.connect(
             "clicked",
             lambda *_args: self.overlay.confirm(
-                "Turn the computer off?", "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
+                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
             ),
         )
         bottom.append(power)
@@ -159,10 +160,10 @@ class Launcher(Gtk.ApplicationWindow):
             )
         except (OSError, ValueError) as error:
             print(f"cannot start {info.get_name()}: {error}", file=sys.stderr)
-            self.bubble.set_label(f"{info.get_name()} would not start. Pick another one!")
+            self.bubble.set_label(_("{game} would not start. Pick another one!").format(game=info.get_name()))
             return
         ui.play("complete")
-        self.bubble.set_label(f"Starting {info.get_name()}…")
+        self.bubble.set_label(_("Starting {game}…").format(game=info.get_name()))
         self.zip.set_pose("fly")
         # The game soon covers the launcher; no point animating behind it.
         GLib.timeout_add_seconds(6, lambda: self.zip.set_pose("rest") or GLib.SOURCE_REMOVE)
@@ -187,7 +188,7 @@ class Launcher(Gtk.ApplicationWindow):
             return GLib.SOURCE_CONTINUE
         self.game = None
         self.zip.set_pose("rest")
-        self.bubble.set_label("Pick a game!")
+        self.bubble.set_label(_("Pick a game!"))
         return GLib.SOURCE_REMOVE
 
     def stop_game(self):
@@ -228,7 +229,7 @@ class Launcher(Gtk.ApplicationWindow):
                 self.time_left.remove_css_class("low")
             if low and not self.warned and self.game is None:
                 self.warned = True
-                self.bubble.set_label("Almost time to stop. Pick something quick!")
+                self.bubble.set_label(_("Almost time to stop. Pick something quick!"))
         return GLib.SOURCE_CONTINUE
 
 
