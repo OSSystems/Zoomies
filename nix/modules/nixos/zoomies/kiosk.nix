@@ -11,12 +11,21 @@ let
   cfg = config.zoomies;
   pam = "${config.security.pam.package}/lib/security";
 
+  # Cage clears to black until its window draws, a flash between the boot
+  # splash and the greeter and whenever a game starts; it paints the sky.
+  cage = pkgs.cage.overrideAttrs (old: {
+    patches = (old.patches or [ ]) ++ [ ./cage-sky.patch ];
+  });
+
   kiosk =
     name: program:
     pkgs.writeShellScript "zoomies-${name}-session" ''
       # Old GPUs without usable GL still get a desktop through llvmpipe.
       export WLR_RENDERER_ALLOW_SOFTWARE=1
-      exec ${lib.getExe pkgs.cage} -d -- ${program}
+      # Into the journal: any text on the screen wakes the text console,
+      # which then flashes between the boot splash and the greeter.
+      exec ${lib.getExe' config.systemd.package "systemd-cat"} -t zoomies-${name} \
+        ${lib.getExe cage} -d -- ${program}
     '';
 in
 {
@@ -126,6 +135,18 @@ in
         command = kiosk "greeter" "${cfg.package}/bin/zoomies-greeter";
         user = "greeter";
       };
+    };
+    # The boot splash hands the screen to cage without quitting, and leaves
+    # once the greeter has drawn: quitting earlier gives the screen back to
+    # the kernel's black console for a moment.
+    services.greetd.greeterManagesPlymouth = config.boot.plymouth.enable;
+    # "idle" holds the greeter back up to 5 s for boot messages to settle on
+    # a text console; the kiosk draws its own screen, so that is only a
+    # black screen at the end of the boot.
+    systemd.services.greetd.serviceConfig.Type = lib.mkForce "simple";
+    systemd.services.plymouth-quit = lib.mkIf config.boot.plymouth.enable {
+      after = [ "display-manager.service" ];
+      serviceConfig.ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
     };
     systemd.tmpfiles.rules = [ "d /var/lib/zoomies/faillock 0700 root root -" ];
     users = lib.mkIf (cfg.parent.user != null) {

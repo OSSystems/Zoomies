@@ -1,0 +1,81 @@
+--- a/output.c
++++ b/output.c
+@@ -31,6 +31,7 @@
+ #include <wlr/types/wlr_output_swapchain_manager.h>
+ #include <wlr/types/wlr_scene.h>
+ #include <wlr/types/wlr_xdg_shell.h>
++#include <wlr/util/box.h>
+ #include <wlr/util/log.h>
+ #include <wlr/util/region.h>
+ 
+@@ -174,11 +175,70 @@
+ 	}
+ }
+ 
++/* Zoomies: the kids' sky behind every window, the same gradient as the boot
++ * splash and the greeter, so the screen never flashes black while a window
++ * starts. Banded, as scene rects are flat; 128 bands hide the steps. */
++static struct wlr_scene_tree *sky;
++
++static void
++sky_color(double t, float rgba[4])
++{
++	static const struct {
++		double at;
++		float rgb[3];
++	} stops[] = {
++		{0.0, {0x7f / 255.f, 0xd3 / 255.f, 0xff / 255.f}},
++		{0.55, {0xb8 / 255.f, 0xec / 255.f, 0xff / 255.f}},
++		{1.0, {0xc8 / 255.f, 0xf5 / 255.f, 0xc0 / 255.f}},
++	};
++	int i = t < stops[1].at ? 0 : 1;
++	double k = (t - stops[i].at) / (stops[i + 1].at - stops[i].at);
++	for (int j = 0; j < 3; j++) {
++		rgba[j] = stops[i].rgb[j] + (stops[i + 1].rgb[j] - stops[i].rgb[j]) * k;
++	}
++	rgba[3] = 1.f;
++}
++
++static void
++paint_sky(struct cg_server *server)
++{
++	const int bands = 128;
++
++	if (sky) {
++		wlr_scene_node_destroy(&sky->node);
++	}
++	sky = wlr_scene_tree_create(&server->scene->tree);
++	if (!sky) {
++		return;
++	}
++	wlr_scene_node_lower_to_bottom(&sky->node);
++
++	struct cg_output *output;
++	wl_list_for_each (output, &server->outputs, link) {
++		struct wlr_box box;
++		wlr_output_layout_get_box(server->output_layout, output->wlr_output, &box);
++		if (wlr_box_empty(&box)) {
++			continue;
++		}
++		for (int i = 0; i < bands; i++) {
++			int top = box.height * i / bands;
++			int bottom = box.height * (i + 1) / bands;
++			float rgba[4];
++			sky_color((i + 0.5) / bands, rgba);
++			struct wlr_scene_rect *band = wlr_scene_rect_create(sky, box.width, bottom - top, rgba);
++			if (band) {
++				wlr_scene_node_set_position(&band->node, box.x, box.y + top);
++			}
++		}
++	}
++}
++
+ void
+ handle_output_layout_change(struct wl_listener *listener, void *data)
+ {
+ 	struct cg_server *server = wl_container_of(listener, server, output_layout_change);
+ 
++	paint_sky(server);
+ 	view_position_all(server);
+ 	update_output_manager_config(server);
+ }
