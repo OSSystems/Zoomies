@@ -1,20 +1,28 @@
 {
   gobject-introspection,
+  gtk3,
   gtk4,
   libmanette,
   libnotify,
   libxcrypt,
   python3Packages,
   wrapGAppsHook4,
+  xfconf,
 }:
 
 python3Packages.buildPythonApplication {
   build-system = [ python3Packages.setuptools ];
   buildInputs = [
+    # GTK 3 and Xfconf are for the Zip on the older kids' X11 desktop.
+    gtk3
     gtk4
     libmanette
+    xfconf
   ];
-  dependencies = [ python3Packages.pygobject3 ];
+  dependencies = [
+    python3Packages.pycairo
+    python3Packages.pygobject3
+  ];
   # The admin service checks the PIN against /etc/shadow with crypt().
   makeWrapperArgs = [
     "--set-default ZOOMIES_LIBCRYPT ${libxcrypt}/lib/libcrypt.so.2"
@@ -32,8 +40,9 @@ python3Packages.buildPythonApplication {
   postInstall = ''
     # The README art sits on a card; the shell draws Zip straight on the sky.
     mkdir -p $out/share/zoomies
-    sed 's|<rect width="600" height="640" rx="48" fill="#e9faf4"/>||' \
-      ${../../../assets/mascot/zip.svg} > $out/share/zoomies/zip.svg
+    for art in ${../../../assets/mascot}/*.svg; do
+      sed 's|<rect [^>]*fill="#e9faf4"/>||' "$art" > $out/share/zoomies/$(basename "$art")
+    done
   '';
   pyproject = true;
   src = ../../../shell;

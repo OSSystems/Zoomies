@@ -90,6 +90,7 @@ pkgs.testers.runNixOSTest {
           pkgs.dig
           pkgs.e2fsprogs
           pkgs.pam
+          pkgs.xdotool
         ];
         imports = [ common ];
         zoomies = {
@@ -153,6 +154,15 @@ pkgs.testers.runNixOSTest {
         # when they take input.
         node.wait_until_succeeds(
             f"kill -0 \"$(cat /run/user/$(id -u {user})/{screen}-ready)\"", timeout=120
+        )
+
+
+    def in_max_x(command):
+        """A shell command run in Max's X session."""
+        return (
+            "runuser -u max -- sh -c 'export $(tr \"\\\\0\" \"\\\\n\" "
+            "</proc/$(pgrep -u max -o xfce4-session)/environ | grep -E \"^(DISPLAY|XAUTHORITY)=\"); "
+            + command + "'"
         )
 
 
@@ -240,6 +250,10 @@ pkgs.testers.runNixOSTest {
         machine.wait_until_fails("pgrep -u ana cage", timeout=120)
         wait_for_greeter()
         machine.screenshot("time-up")
+        machine.send_key("ret")
+        machine.sleep(2)
+        machine.screenshot("time-up-zip")
+        machine.send_key("esc")
 
     with subtest("PAM refuses a kid whose time is up"):
         machine.fail("greetd-try ana")
@@ -318,6 +332,26 @@ pkgs.testers.runNixOSTest {
         machine.wait_until_succeeds("pgrep -u max xfce4-session", timeout=60)
         machine.sleep(10)
         machine.screenshot("older-desktop")
+        machine.succeed(
+            "tr -d '\\n' </home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
+            " | grep -q 'monitorVirtual-1.*older.svg'"
+        )
+        # The Zoomies look is set up, and the cape flaps over the wallpaper.
+        machine.succeed("grep -q Andika /home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
+        machine.succeed("grep -q xfce4-panel /home/max/.config/gtk-3.0/gtk.css")
+        machine.wait_until_succeeds("pgrep -u max -f zoomies-desktop-zip")
+        # The cape's window lets clicks through to the desktop: a right
+        # click on it opens the desktop's menu.
+        cape = machine.wait_until_succeeds(in_max_x('xdotool search --name "^Zip$"')).split()[0]
+        geometry = machine.succeed(in_max_x(f"xdotool getwindowgeometry --shell {cape}"))
+        box = dict(line.split("=") for line in geometry.split())
+        x = int(box["X"]) + int(box["WIDTH"]) // 2
+        y = int(box["Y"]) + int(box["HEIGHT"]) // 2
+        visible = in_max_x("xdotool search --onlyvisible --class xfdesktop | wc -l")
+        windows = int(machine.succeed(visible))
+        machine.succeed(in_max_x(f"xdotool mousemove {x} {y} click 3"))
+        machine.wait_until_succeeds(f'[ "$({visible})" -gt {windows} ]')
+        machine.succeed(in_max_x("xdotool key Escape"))
         machine.fail("pgrep -u max xfce4-screensaver")
         session = machine.succeed("pgrep -u max -o xfce4-session").strip()
         machine.fail(f"pkcheck --action-id org.freedesktop.login1.set-self-linger --process {session}")

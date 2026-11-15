@@ -18,6 +18,16 @@ in
     lib.mkMerge [
       {
         environment = {
+          # The cape on the wallpaper flaps; the helper checks the wallpaper
+          # is still Zoomies' own.
+          etc."xdg/autostart/zoomies-desktop-zip.desktop".text = ''
+            [Desktop Entry]
+            Type=Application
+            Name=Zip on the desktop
+            Exec=${cfg.package}/bin/zoomies-desktop-zip ${older.wallpaper}
+            OnlyShowIn=XFCE;
+            NoDisplay=true
+          '';
           # Settings that would only confuse or let a kid undo the setup.
           etc."xdg/xfce4/kiosk/kioskrc".text = ''
             [xfce4-session]
@@ -65,10 +75,24 @@ in
           displayManager.startx.enable = true;
           enable = true;
         };
-        zoomies.sessions.older = pkgs.writeShellScript "zoomies-older-session" ''
-          exec ${pkgs.xinit}/bin/startx ${pkgs.xfce4-session}/bin/startxfce4 \
-            -- -keeptty vt"$XDG_VTNR"
-        '';
+        zoomies.sessions.older =
+          let
+            desktop = pkgs.writeShellApplication {
+              name = "zoomies-older-desktop";
+              runtimeInputs = [
+                pkgs.gawk
+                pkgs.xfce4-session
+                pkgs.xrandr
+              ];
+              text = ''
+                wallpaper=${older.wallpaper}
+                ${builtins.readFile ./older-desktop.sh}
+              '';
+            };
+          in
+          pkgs.writeShellScript "zoomies-older-session" ''
+            exec ${pkgs.xinit}/bin/startx ${lib.getExe desktop} -- -keeptty vt"$XDG_VTNR"
+          '';
       }
       (lib.mkIf older.dnsFilter.enable {
         assertions = [
@@ -134,6 +158,12 @@ in
       default = true;
       description = "Offer older kid profiles with a desktop and filtered web.";
       type = lib.types.bool;
+    };
+    wallpaper = lib.mkOption {
+      default = ../../../../assets/wallpaper/older.svg;
+      defaultText = lib.literalMD "Zip flying over the clouds";
+      description = "Default wallpaper of the older kids' desktop; kids may pick another.";
+      type = lib.types.path;
     };
   };
 }

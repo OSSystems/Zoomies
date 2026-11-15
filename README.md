@@ -1,5 +1,6 @@
 <p align="center">
-  <img src="assets/mascot/zip.svg" alt="Zip, the Zoomies mascot" width="240">
+  <img src="assets/mascot/zip.svg" alt="Zip, the Zoomies mascot" width="240"><br>
+  <img src="assets/mascot/zip-flying.svg" alt="Super Zip flying, cape flapping" width="240">
 </p>
 
 # Zoomies
@@ -33,7 +34,8 @@ account of their own, so saves and screen time stay apart.
   They cannot reach the network, and their home is wiped at every boot except
   for game saves.
 - **Older kids** get a simple desktop with Firefox, LibreOffice and learning
-  and creative apps, and their files are kept. The web goes through a family
+  and creative apps, in Zoomies colours with Zip flying across the wallpaper,
+  and their files are kept. The web goes through a family
   DNS filter (Cloudflare for Families) that keeps adult and malicious sites
   out of everyday browsing; it is not a lock against a determined kid with a
   terminal.

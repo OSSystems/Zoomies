@@ -91,7 +91,8 @@ class Launcher(Gtk.ApplicationWindow):
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
-        bottom.append(ui.mascot(config, 88))
+        self.zip = ui.mascot(config, 88)
+        bottom.append(self.zip)
         self.bubble = Gtk.Label(
             label="Pick a game!", xalign=0, hexpand=True, valign=Gtk.Align.CENTER, wrap=True
         )
@@ -178,6 +179,9 @@ class Launcher(Gtk.ApplicationWindow):
             return
         ui.play("complete")
         self.bubble.set_label(f"Starting {info.get_name()}…")
+        self.zip.set_pose("fly")
+        # The game soon covers the launcher; no point animating behind it.
+        GLib.timeout_add_seconds(6, lambda: self.zip.set_pose("rest") or GLib.SOURCE_REMOVE)
         GLib.timeout_add(500, self._watch_game)
 
     def running(self):
@@ -198,6 +202,7 @@ class Launcher(Gtk.ApplicationWindow):
         if self.running():
             return GLib.SOURCE_CONTINUE
         self.game = None
+        self.zip.set_pose("rest")
         self.bubble.set_label("Pick a game!")
         return GLib.SOURCE_REMOVE
 
