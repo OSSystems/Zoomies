@@ -112,7 +112,7 @@ class Mascot(Gtk.Picture):
         self.frames = []
         self.frame = 0
         self.timer = None
-        self.connect("unrealize", lambda *_: self._stop())
+        self.connect("unrealize", lambda *_args: self._stop())
         self.set_pose(pose)
 
     def _load(self, pose):
@@ -344,7 +344,7 @@ class Overlay(Gtk.Overlay):
         row = Gtk.Box(spacing=24, halign=Gtk.Align.CENTER, homogeneous=True)
         no = big_button("No", "no", "✖")
         yes = big_button("Yes", "yes", "✔")
-        no.connect("clicked", lambda *_: self.close())
+        no.connect("clicked", lambda *_args: self.close())
 
         def accept(*_):
             self.close()

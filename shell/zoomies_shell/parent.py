@@ -57,17 +57,17 @@ class KidRow(Gtk.Box):
         names.append(self.played)
         header.append(names)
         extra = ui.big_button("+15 min", "yes", "⏳")
-        extra.connect("clicked", lambda *_: self.grant(15))
+        extra.connect("clicked", lambda *_args: self.grant(15))
         header.append(extra)
         # Kids from the system configuration are changed there, not here.
         if not kid.get("declared"):
             edit = ui.big_button(None, "subtle", "✏️")
             edit.set_tooltip_text("Edit")
-            edit.connect("clicked", lambda *_: panel.edit_kid(kid))
+            edit.connect("clicked", lambda *_args: panel.edit_kid(kid))
             header.append(edit)
             remove = ui.big_button(None, "subtle", "🗑️")
             remove.set_tooltip_text("Remove")
-            remove.connect("clicked", lambda *_: panel.remove_kid(kid))
+            remove.connect("clicked", lambda *_args: panel.remove_kid(kid))
             header.append(remove)
         self.append(header)
 
@@ -99,11 +99,11 @@ class KidRow(Gtk.Box):
         self.append(self.message)
 
         self.minutes.set_sensitive(self.limit_minutes.get_active())
-        self.limit_minutes.connect("notify::active", lambda *_: self.save_minutes())
-        self.minutes.connect("value-changed", lambda *_: self.save_minutes())
+        self.limit_minutes.connect("notify::active", lambda *_args: self.save_minutes())
+        self.minutes.connect("value-changed", lambda *_args: self.save_minutes())
         for widget in (self.start, self.end):
-            widget.connect("value-changed", lambda *_: self.save_hours())
-        self.limit_hours.connect("notify::active", lambda *_: self.save_hours())
+            widget.connect("value-changed", lambda *_args: self.save_hours())
+        self.limit_hours.connect("notify::active", lambda *_args: self.save_hours())
         self.refresh()
 
     def _save(self, key, value):
@@ -170,10 +170,10 @@ class Parent(Gtk.ApplicationWindow):
         title.add_css_class("title")
         top.append(title)
         add = ui.big_button("Add a kid", "yes", "➕")
-        add.connect("clicked", lambda *_: self.edit_kid(None))
+        add.connect("clicked", lambda *_args: self.edit_kid(None))
         top.append(add)
         pin = ui.big_button("Change PIN", "subtle", "🔑")
-        pin.connect("clicked", lambda *_: self.change_pin())
+        pin.connect("clicked", lambda *_args: self.change_pin())
         top.append(pin)
         top.append(ui.clock())
         page.append(top)
@@ -185,22 +185,22 @@ class Parent(Gtk.ApplicationWindow):
 
         bottom = Gtk.Box(spacing=16)
         back = ui.big_button("Back to the kids", "yes", "🐧")
-        back.connect("clicked", lambda *_: app.quit())
+        back.connect("clicked", lambda *_args: app.quit())
         bottom.append(back)
         terminal = ui.big_button("Terminal", "subtle", "⌨")
-        terminal.connect("clicked", lambda *_: subprocess.Popen(["foot"]))
+        terminal.connect("clicked", lambda *_args: subprocess.Popen(["foot"]))
         bottom.append(terminal)
         bottom.append(Gtk.Box(hexpand=True))
         # Moving clouds and capes can distract some kids, and cost old PCs
         # without a GPU a lot of work.
         calm = Gtk.Switch(active=state.calm_screen(), valign=Gtk.Align.CENTER)
-        calm.connect("notify::active", lambda switch, _: state.set_calm_screen(switch.get_active()))
+        calm.connect("notify::active", lambda switch, _pspec: state.set_calm_screen(switch.get_active()))
         bottom.append(calm)
         bottom.append(Gtk.Label(label="Calm screen"))
         restart = ui.big_button("Restart", "subtle", "🔄")
         restart.connect(
             "clicked",
-            lambda *_: self.overlay.confirm(
+            lambda *_args: self.overlay.confirm(
                 "Restart the computer?", "🔄", lambda: subprocess.Popen(["systemctl", "reboot"])
             ),
         )
@@ -208,7 +208,7 @@ class Parent(Gtk.ApplicationWindow):
         power = ui.big_button("Power off", "subtle", "⏻")
         power.connect(
             "clicked",
-            lambda *_: self.overlay.confirm(
+            lambda *_args: self.overlay.confirm(
                 "Turn the computer off?", "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
             ),
         )
@@ -242,7 +242,7 @@ class Parent(Gtk.ApplicationWindow):
         box.append(message)
         row = Gtk.Box(spacing=16, halign=Gtk.Align.CENTER)
         cancel = ui.big_button("Cancel", "no", "✖")
-        cancel.connect("clicked", lambda *_: self.overlay.close())
+        cancel.connect("clicked", lambda *_args: self.overlay.close())
         accept = ui.big_button(action, "yes", "✔")
 
         def run(*_):
@@ -307,8 +307,8 @@ class Parent(Gtk.ApplicationWindow):
             admin.request("set-pin", old=old.get_text(), new=new.get_text())
 
         run = self.dialog("🔑 Change the PIN", fields, "Save", accept)
-        old.connect("activate", lambda *_: new.grab_focus())
-        new.connect("activate", lambda *_: again.grab_focus())
+        old.connect("activate", lambda *_args: new.grab_focus())
+        new.connect("activate", lambda *_args: again.grab_focus())
         again.connect("activate", run)
         old.grab_focus()
 

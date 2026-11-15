@@ -136,11 +136,11 @@ class Greeter(Gtk.ApplicationWindow):
         bottom = Gtk.Box(spacing=16)
         parent = ui.big_button("Grown-ups", "subtle", "🔒")
         hold = Gtk.GestureLongPress(delay_factor=3.0)
-        hold.connect("pressed", lambda *_: self.ask_pin())
+        hold.connect("pressed", lambda *_args: self.ask_pin())
         parent.add_controller(hold)
         # A tap does nothing on purpose, so tell grown-ups what to do;
         # tooltips never show on touch screens.
-        parent.connect("clicked", lambda *_: self.hint("Keep holding 🔒 to open"))
+        parent.connect("clicked", lambda *_args: self.hint("Keep holding 🔒 to open"))
         bottom.append(parent)
         self.hint_label = Gtk.Label(hexpand=True, xalign=0)
         self.hint_label.add_css_class("kid-note")
@@ -148,7 +148,7 @@ class Greeter(Gtk.ApplicationWindow):
         power = ui.big_button(None, "subtle", "⏻")
         power.connect(
             "clicked",
-            lambda *_: self.overlay.confirm(
+            lambda *_args: self.overlay.confirm(
                 "Turn the computer off?", "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
             ),
         )
@@ -231,7 +231,7 @@ class Greeter(Gtk.ApplicationWindow):
         box.append(note)
         button.set_child(box)
         button.note = note
-        button.connect("clicked", lambda *_: self.play(kid))
+        button.connect("clicked", lambda *_args: self.play(kid))
         self.tiles[kid["user"]] = button
         return button
 
@@ -296,7 +296,7 @@ class Greeter(Gtk.ApplicationWindow):
         box.append(label)
         ok = ui.big_button("OK", "yes", "👍")
         ok.set_halign(Gtk.Align.CENTER)
-        ok.connect("clicked", lambda *_: self.overlay.close())
+        ok.connect("clicked", lambda *_args: self.overlay.close())
         box.append(ok)
         self.overlay.show(box)
         ok.grab_focus()
@@ -323,17 +323,17 @@ class Greeter(Gtk.ApplicationWindow):
             button = Gtk.Button(label=key)
             button.add_css_class("pin-key")
             if key == "⌫":
-                button.connect("clicked", lambda *_: entry.set_text(entry.get_text()[:-1]))
+                button.connect("clicked", lambda *_args: entry.set_text(entry.get_text()[:-1]))
             elif key == "✔":
                 button.add_css_class("yes")
-                button.connect("clicked", lambda *_: submit())
+                button.connect("clicked", lambda *_args: submit())
             else:
                 button.connect("clicked", lambda _b, k=key: entry.set_text(entry.get_text() + k))
             pad.attach(button, index % 3, index // 3, 1, 1)
         box.append(pad)
         cancel = ui.big_button("Cancel", "no", "✖")
         cancel.set_halign(Gtk.Align.CENTER)
-        cancel.connect("clicked", lambda *_: self.overlay.close())
+        cancel.connect("clicked", lambda *_args: self.overlay.close())
         box.append(cancel)
 
         def submit():
@@ -357,7 +357,7 @@ class Greeter(Gtk.ApplicationWindow):
             else:
                 message.set_label("That is not the PIN.")
 
-        entry.connect("activate", lambda *_: submit())
+        entry.connect("activate", lambda *_args: submit())
         self.overlay.show(box)
         entry.grab_focus()
 
@@ -412,7 +412,7 @@ class Setup:
             self.pin = first.get_text()
             self.kids()
 
-        first.connect("activate", lambda *_: again.grab_focus())
+        first.connect("activate", lambda *_args: again.grab_focus())
         again.connect("activate", submit)
         save.connect("clicked", submit)
         # Nobody can log in before this is done, so it cannot be skipped.

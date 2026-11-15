@@ -85,13 +85,13 @@ class Launcher(Gtk.ApplicationWindow):
         switch = ui.big_button("Switch player", "subtle", "👋")
         switch.connect(
             "clicked",
-            lambda *_: self.overlay.confirm("Stop playing and switch player?", "👋", self.leave),
+            lambda *_args: self.overlay.confirm("Stop playing and switch player?", "👋", self.leave),
         )
         bottom.append(switch)
         power = ui.big_button(None, "subtle", "⏻")
         power.connect(
             "clicked",
-            lambda *_: self.overlay.confirm(
+            lambda *_args: self.overlay.confirm(
                 "Turn the computer off?", "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
             ),
         )
@@ -135,7 +135,7 @@ class Launcher(Gtk.ApplicationWindow):
         name.add_css_class("game-name")
         box.append(name)
         button.set_child(box)
-        button.connect("clicked", lambda *_: self.start_game(info))
+        button.connect("clicked", lambda *_args: self.start_game(info))
         return button
 
     def _key(self, _controller, keyval, _code, _modifiers):
