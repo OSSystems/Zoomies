@@ -122,7 +122,10 @@ pkgs.testers.runNixOSTest {
             " \"$(awk -F: '$1 == \"parent\" { print $2 }' /etc/shadow)\""
         )
 
-        machine.succeed("test -s /boot/EFI/BOOT/BOOTX64.EFI")
+        machine.succeed("test -s /boot/efi/EFI/BOOT/BOOTX64.EFI")
+        # Kernels live on the root filesystem, not on the small ESP.
+        machine.fail("mountpoint -q /boot")
+        machine.fail("find /boot/efi -name '*bzImage*' -o -name '*initrd*' | grep -q .")
         machine.succeed("test -s /boot/grub/i386-pc/core.img")
         machine.succeed(
             "test \"$(findmnt -no SOURCE /)\""

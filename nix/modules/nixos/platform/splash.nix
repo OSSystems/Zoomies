@@ -40,8 +40,8 @@ in
       # Intel and AMD drive most PCs, so their drivers start the splash in
       # the panel's own mode and nothing switches later in the boot. The
       # splash waits up to DeviceTimeout for them, then falls back to the
-      # firmware's framebuffer, as on NVIDIA, whose firmware alone would
-      # make the initrd larger than /boot.
+      # firmware's framebuffer, as on NVIDIA, whose firmware alone is
+      # hundreds of megabytes and would slow every boot.
       availableKernelModules = [
         "amdgpu"
         "i915"

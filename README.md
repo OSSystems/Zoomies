@@ -93,8 +93,9 @@ The installed disk boots on both legacy BIOS and UEFI firmware. One image
 serves every PC, and the disk keeps booting if you switch firmware modes or
 move it to another PC:
 
-- GPT with a 1 MiB BIOS boot partition, a 1 GiB ESP mounted at `/boot`, and
-  an ext4 root.
+- GPT with a 1 MiB BIOS boot partition, a 512 MiB ESP mounted at
+  `/boot/efi`, and an ext4 root that also holds `/boot`, so the kernels stay
+  off the ESP.
 - GRUB installed twice from a single `grub.cfg`: into the BIOS boot partition,
   and at the removable UEFI path `EFI/BOOT/BOOTX64.EFI`, which needs no NVRAM
   entry.
