@@ -1,0 +1,30 @@
+---
+componentName: zoomies
+welcomeStyleCalamares: false
+welcomeExpandingLogo: true
+windowExpanding: fullscreen
+windowSize: 1024px,640px
+windowPlacement: center
+sidebar: widget
+navigation: widget
+strings:
+  productName: Zoomies
+  shortProductName: Zoomies
+  version: "@version@"
+  shortVersion: "@version@"
+  versionedName: Zoomies
+  shortVersionedName: Zoomies
+  bootloaderEntryName: Zoomies
+  productUrl: https://github.com/OSSystems/zoomies
+  supportUrl: https://github.com/OSSystems/zoomies/issues
+images:
+  productIcon: "zip.png"
+  productLogo: "zip.png"
+  productWelcome: "zip.png"
+style:
+  SidebarBackground: "#7fd3ff"
+  SidebarText: "#1d3557"
+  SidebarTextCurrent: "#ffffff"
+  SidebarBackgroundCurrent: "#1d3557"
+slideshow: "show.qml"
+slideshowAPI: 2

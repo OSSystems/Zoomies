@@ -1,42 +1,33 @@
-# The installer points /dev/disk/zoomies-boot at the chosen disk and runs the
-# prebuilt disko script, so this must not depend on the machine.
-#
-# /boot stays on the root filesystem, which GRUB reads under either
-# firmware: the ESP then holds only GRUB, so the same system also fits next
-# to Windows, whose ESP is often 100 MiB.
+# The installer lets grown-ups pick or share the disk, so the system cannot
+# name its partitions when it is built. The root filesystem carries a label
+# the installer sets. The ESP may be another OS's, which we must not
+# relabel, so the installer records its partition UUID instead and udev
+# links whichever partition matches.
+{ pkgs, ... }:
+
+let
+  isEsp = pkgs.writeShellScript "zoomies-is-esp" ''
+    [ -n "$1" ] && [ "$1" = "$(${pkgs.coreutils}/bin/cat /var/lib/zoomies/esp-partuuid 2>/dev/null)" ]
+  '';
+in
 {
-  disko.devices.disk.zoomies = {
-    content = {
-      partitions = {
-        ESP = {
-          content = {
-            format = "vfat";
-            mountOptions = [ "umask=0077" ];
-            mountpoint = "/boot/efi";
-            type = "filesystem";
-          };
-          priority = 1;
-          # FAT32 needs 256 MiB on disks with 4 KiB sectors.
-          size = "512M";
-          type = "EF00";
-        };
-        bios = {
-          priority = 0;
-          size = "1M";
-          type = "EF02";
-        };
-        root = {
-          content = {
-            format = "ext4";
-            mountpoint = "/";
-            type = "filesystem";
-          };
-          size = "100%";
-        };
-      };
-      type = "gpt";
+  fileSystems = {
+    "/" = {
+      device = "/dev/disk/by-label/zoomies";
+      fsType = "ext4";
     };
-    device = "/dev/disk/zoomies-boot";
-    type = "disk";
+    "/boot/efi" = {
+      device = "/dev/disk/zoomies-esp";
+      fsType = "vfat";
+      # Only updates need the ESP; a missing one must not stop the kids.
+      options = [
+        "nofail"
+        "umask=0077"
+        "x-systemd.device-timeout=10s"
+      ];
+    };
   };
+  services.udev.extraRules = ''
+    SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", PROGRAM="${isEsp} $env{ID_PART_ENTRY_UUID}", SYMLINK+="disk/zoomies-esp"
+  '';
 }

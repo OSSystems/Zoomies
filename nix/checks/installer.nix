@@ -18,8 +18,6 @@ let
     modules = [
       instrumentation
       {
-        # Checks the PIN typed during the install against /etc/shadow.
-        environment.systemPackages = [ pkgs.perl ];
         zoomies = {
           games = lib.mkForce [ ];
           older.apps = lib.mkForce [ ];
@@ -40,6 +38,8 @@ let
   ];
 in
 pkgs.testers.runNixOSTest {
+  # Reads the boot menu off the screen.
+  enableOCR = true;
   globalTimeout = 7200;
   # qemu-system-x86_64 under KVM.
   meta.platforms = [ "x86_64-linux" ];
@@ -89,19 +89,29 @@ pkgs.testers.runNixOSTest {
         disk = f"{tmp}/{name}.qcow2"
         qemu_img("create", "-f", "qcow2", disk, "32G")
         machine = start(start_command(firmware, disk, medium), f"{name}_installer")
-        machine.wait_for_console_text(
-            "zoomies-installer: waiting for confirmation to erase /dev/sda"
-        )
-        machine.send_chars("ERASE\n")
-        machine.wait_for_console_text("zoomies-installer: waiting for the grown-ups PIN")
-        machine.send_chars("2468\n2468\n")
+        # Calamares is driven with its keyboard shortcuts, reading each page
+        # off the screen before moving on.
+        machine.wait_for_text("Welcome to the Zoomies installer")
+        # Next stays disabled until the requirement checks finish.
+        machine.sleep(5)
+        machine.screenshot(f"{name}-welcome")
+        machine.send_key("alt-n")
+        machine.wait_for_text("Region")
+        machine.send_key("alt-n")
+        machine.wait_for_text("Erase disk")
+        machine.screenshot(f"{name}-partitions")
+        machine.send_key("alt-n")
+        machine.wait_for_text("Install Zoomies on")
+        machine.send_key("alt-i")
+        machine.wait_for_text("Install Now")
+        machine.send_key("alt-i")
         machine.wait_for_console_text(
             "zoomies-installer: (Installation complete.|ERROR)", timeout=1800
         )
-        # The installer waits at a prompt after an error; fail right away.
         machine.fail("journalctl -k --grep 'zoomies-installer: ERROR'")
-        machine.send_chars("\n")
-        machine.wait_for_shutdown()
+        machine.wait_for_text("All done")
+        machine.screenshot(f"{name}-done")
+        machine.shutdown()
         return disk
 
 
@@ -117,10 +127,8 @@ pkgs.testers.runNixOSTest {
         else:
             machine.fail("test -d /sys/firmware/efi")
 
-        machine.succeed(
-            "perl -e 'exit(crypt($ARGV[0], $ARGV[1]) eq $ARGV[1] ? 0 : 1)' 2468"
-            " \"$(awk -F: '$1 == \"parent\" { print $2 }' /etc/shadow)\""
-        )
+        # Offline, Calamares keeps its default time zone.
+        machine.succeed('test "$(readlink /etc/localtime)" = /etc/zoneinfo/Europe/London')
 
         machine.succeed("test -s /boot/efi/EFI/BOOT/BOOTX64.EFI")
         # Kernels live on the root filesystem, not on the small ESP.
@@ -128,8 +136,11 @@ pkgs.testers.runNixOSTest {
         machine.fail("find /boot/efi -name '*bzImage*' -o -name '*initrd*' | grep -q .")
         machine.succeed("test -s /boot/grub/i386-pc/core.img")
         machine.succeed(
-            "test \"$(findmnt -no SOURCE /)\""
-            " = \"$(readlink -f /dev/disk/by-partlabel/disk-zoomies-root)\""
+            "test \"$(findmnt -no SOURCE /)\" = \"$(readlink -f /dev/disk/by-label/zoomies)\""
+        )
+        # The ESP is found by the partition UUID the installer recorded.
+        machine.succeed(
+            "test \"$(findmnt -no SOURCE /boot/efi)\" = \"$(readlink -f /dev/disk/zoomies-esp)\""
         )
 
         flag = machine.succeed(
@@ -158,6 +169,31 @@ pkgs.testers.runNixOSTest {
             for firmware in ["bios", "uefi"]:
                 with subtest(f"boot the {installed_in} install under {firmware}"):
                     boot(installed_in, disk, firmware)
+
+        with subtest("the boot menu stays hidden until Windows is on the disk"):
+            overlay = f"{tmp}/windows.qcow2"
+            qemu_img("create", "-q", "-f", "qcow2", "-b", uefi_disk, "-F", "qcow2", overlay)
+            machine = start(start_command("uefi", overlay), "next_to_windows")
+            machine.wait_for_unit("multi-user.target")
+            # Once shown, the menu now waits far longer than a boot takes, so
+            # booting in time proves it stayed hidden; it also gives the slow
+            # screen reading below time to find it.
+            machine.succeed("sed -i 's/set timeout=10/set timeout=600/' /boot/grub/grub.cfg")
+            machine.shutdown()
+            machine.start()
+            machine.wait_for_unit("multi-user.target", timeout=300)
+            # GRUB only looks for the file, so an empty one stands in for Windows.
+            machine.succeed(
+                "mkdir -p /boot/efi/EFI/Microsoft/Boot"
+                " && touch /boot/efi/EFI/Microsoft/Boot/bootmgfw.efi"
+            )
+            machine.shutdown()
+            machine.start()
+            machine.wait_for_text("configurations")
+            machine.screenshot("boot-menu")
+            machine.send_key("ret")
+            machine.wait_for_unit("multi-user.target")
+            machine.shutdown()
     finally:
         for vm in vms:
             vm.crash()

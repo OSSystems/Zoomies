@@ -68,15 +68,16 @@ nix build .#installer-iso
 sudo dd if=result/iso/zoomies-installer.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
 
-Boot the PC from the stick. The installer:
+Boot the PC from the stick. It starts quietly behind Zip, into a graphical
+installer (Calamares) that asks for:
 
-1. picks the best internal disk (NVMe first, then SSD, then the largest hard
-   disk) and shows what is on it;
-2. erases it only after you type `ERASE`;
-3. asks for the grown-ups PIN. Skip this and Zoomies asks on first start
-   instead.
+1. the language of the installer;
+2. the time zone, guessed from the network when one is connected and
+   confirmed on a map;
+3. the disk: erase a whole disk, or partition it by hand.
 
-No network is needed: the whole system is on the stick.
+Zoomies asks for the grown-ups PIN on first start. No network is needed: the
+whole system is on the stick.
 
 ### Requirements
 
@@ -84,8 +85,7 @@ No network is needed: the whole system is on the stick.
 - 2 GiB of RAM. That fits a 3D game, or Firefox with a few tabs next to
   LibreOffice; heavy sites like video need more.
 - An internal disk with room for the system, about 15 GiB including the older
-  kids' apps. The installer computes the exact size and lists the disks that
-  fit.
+  kids' apps. The installer knows the exact size and refuses smaller disks.
 
 ### One disk, BIOS and UEFI
 
@@ -93,9 +93,10 @@ The installed disk boots on both legacy BIOS and UEFI firmware. One image
 serves every PC, and the disk keeps booting if you switch firmware modes or
 move it to another PC:
 
-- GPT with a 1 MiB BIOS boot partition, a 512 MiB ESP mounted at
-  `/boot/efi`, and an ext4 root that also holds `/boot`, so the kernels stay
-  off the ESP.
+- GPT with a BIOS boot partition, a 512 MiB ESP mounted at `/boot/efi`, and
+  an ext4 root labelled `zoomies` that also holds `/boot`, so the kernels stay
+  off the ESP. The installer records the ESP's partition UUID instead of
+  relabelling it, so an ESP shared with another OS keeps its name.
 - GRUB installed twice from a single `grub.cfg`: into the BIOS boot partition,
   and at the removable UEFI path `EFI/BOOT/BOOTX64.EFI`, which needs no NVRAM
   entry.

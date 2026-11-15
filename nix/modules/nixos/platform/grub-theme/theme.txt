@@ -1,0 +1,50 @@
+title-text: ""
+desktop-image: "background.png"
+desktop-image-scale-method: "crop"
+desktop-color: "#6ec1ec"
+message-font: "Andika Regular 24"
+message-color: "#1d3557"
+
++ label {
+  top = 8%
+  left = 0
+  width = 100%
+  height = 64
+  align = "center"
+  text = "Zoomies"
+  font = "Andika Bold 48"
+  color = "#1d3557"
+}
+
++ boot_menu {
+  left = 25%
+  top = 64%
+  width = 50%
+  height = 20%
+  item_font = "Andika Regular 24"
+  item_color = "#1d3557"
+  selected_item_font = "Andika Bold 24"
+  selected_item_color = "#ffffff"
+  item_height = 38
+  item_padding = 16
+  # The highlight's corners are drawn outside the item, so leave room.
+  item_spacing = 24
+  icon_width = 0
+  icon_height = 0
+  item_icon_space = 0
+  menu_pixmap_style = "menu_*.png"
+  selected_item_pixmap_style = "select_*.png"
+  scrollbar = false
+}
+
++ label {
+  id = "__timeout__"
+  top = 18%
+  left = 0
+  width = 100%
+  height = 32
+  align = "center"
+  text = "Starting in %d s · ↑ ↓ to choose, Enter to start"
+  font = "Andika Regular 24"
+  color = "#1d3557"
+}

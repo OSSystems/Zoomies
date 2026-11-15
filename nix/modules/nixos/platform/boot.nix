@@ -12,6 +12,7 @@
       # GRUB reads kernels from the store on the root filesystem, so older
       # generations no longer fill a small /boot.
       configurationLimit = 10;
+      device = "/dev/disk/zoomies-boot";
       efiInstallAsRemovable = true;
       efiSupport = true;
       extraPrepareConfig = ''
