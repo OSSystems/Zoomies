@@ -397,7 +397,9 @@ class Shelf(Gtk.Window):
         zip_art = os.path.join(config.get("assets", ""), "zip.svg")
         if os.path.exists(zip_art):
             size = int(ICON * 1.15)
-            zip_image = Gtk.Image.new_from_pixbuf(art.pixbuf(art.svg_frames(zip_art)[0], size, size))
+            zip_image = Gtk.Image.new_from_pixbuf(art.pixbuf(art.svg_frames(zip_art)[0], height=size))
+            # Zip is taller than wide; the square keeps the label in place.
+            zip_image.set_size_request(size, size)
             inside.pack_start(zip_image, False, False, 0)
         inside.pack_start(label(_("Apps"), "apps-label"), False, False, 0)
         self.apps_button.add(inside)
