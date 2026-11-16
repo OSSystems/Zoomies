@@ -30,7 +30,11 @@ let
 
   test =
     pkgs.writers.writePython3 "zoomies-raspberry-pi-test"
-      { libraries = [ pkgs.python3Packages.pexpect ]; }
+      {
+        # The image's store path alone runs past 79 columns.
+        flakeIgnore = [ "E501" ];
+        libraries = [ pkgs.python3Packages.pexpect ];
+      }
       ''
         import json
         import os
