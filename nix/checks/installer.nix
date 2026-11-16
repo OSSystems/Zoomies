@@ -107,10 +107,15 @@ pkgs.testers.runNixOSTest {
         machine.send_key("alt-i")
         machine.wait_for_text("Install Now")
         machine.send_key("alt-i")
-        machine.wait_for_console_text(
-            "zoomies-installer: (Installation complete.|ERROR)", timeout=1800
+        # Not wait_for_console_text: given a timeout, it reads one queued
+        # serial line per second, so it trails the boot's 1000-odd lines and
+        # saw the end of a 2-minute install 17 minutes late. Not journalctl
+        # --grep either: the journal files "zoomies-installer:" away as the
+        # sender, so the full line never matches.
+        machine.wait_until_succeeds(
+            "dmesg | grep -E 'zoomies-installer: (Installation complete|ERROR)'", timeout=600
         )
-        machine.fail("journalctl -k --grep 'zoomies-installer: ERROR'")
+        machine.fail("dmesg | grep 'zoomies-installer: ERROR'")
         machine.wait_for_text("All done")
         machine.screenshot(f"{name}-done")
         machine.shutdown()
