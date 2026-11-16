@@ -1,8 +1,8 @@
-# With Zoomies alone there is nothing to pick, so the menu stays hidden (see
-# splash.nix) and Esc or Shift opens it for an older version. Next to another
-# OS, GRUB finds that OS's boot loader and shows the menu. It looks for
-# Windows at boot rather than at install time, so the menu also appears when
-# Windows is installed later.
+# With Zoomies alone there is nothing to pick, so the menu stays hidden. GRUB
+# still waits a second, so that grown-ups can press Esc or hold Shift to boot
+# an older version. Next to another OS, GRUB finds that OS's boot loader and
+# shows the menu. It looks for Windows at boot rather than at install time,
+# so the menu also appears when Windows is installed later.
 { pkgs, ... }:
 
 let
@@ -30,7 +30,9 @@ in
       '';
       # Shown while the chosen entry loads; the default is the NixOS logo.
       splashImage = "${theme}/background.png";
+      timeoutStyle = "hidden";
     };
+    timeout = 1;
   };
   system.nixos.distroName = "Zoomies";
 }

@@ -1,6 +1,4 @@
 # Kids should see Zip, not kernel logs, between power on and the greeter.
-# Holding Shift or pressing Esc during the second GRUB waits still shows the
-# menu, so grown-ups can boot an older generation.
 {
   config,
   lib,
@@ -60,15 +58,11 @@ in
       # The splash belongs on the screen; the serial console keeps the logs.
       "plymouth.ignore-serial-consoles"
     ];
-    loader = {
-      grub = {
-        # Hand Linux the firmware's graphics mode on BIOS too, so the splash
-        # starts early there and no mode switch flashes the screen.
-        gfxmodeBios = lib.mkDefault "auto";
-        gfxpayloadBios = "keep";
-        timeoutStyle = "hidden";
-      };
-      timeout = 1;
+    loader.grub = {
+      # Hand Linux the firmware's graphics mode on BIOS too, so the splash
+      # starts early there and no mode switch flashes the screen.
+      gfxmodeBios = lib.mkDefault "auto";
+      gfxpayloadBios = "keep";
     };
     plymouth = {
       enable = true;
