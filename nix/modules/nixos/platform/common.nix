@@ -11,7 +11,6 @@
   hardware = {
     # Only redistributable firmware, so the images can be shared freely.
     enableRedistributableFirmware = true;
-    graphics.enable = true;
   };
   # The languages Zoomies' screens are translated to; the installer offers
   # only these.
