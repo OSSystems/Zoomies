@@ -41,8 +41,8 @@ for other in $(blkid -t LABEL=zoomies -o device); do
 done
 e2label "$root_device" zoomies
 
+mkdir -p "$root/var/lib/zoomies"
 if [ -n "$esp_device" ]; then
-  mkdir -p "$root/var/lib/zoomies"
   blkid -s PARTUUID -o value "$esp_device" >"$root/var/lib/zoomies/esp-partuuid"
 fi
 
@@ -63,7 +63,6 @@ if [ -n "$time_zone" ] && [ -e "/etc/zoneinfo/$time_zone" ]; then
 fi
 
 if [ ${#locale_settings[@]} -gt 0 ]; then
-  mkdir -p "$root/var/lib/zoomies"
   printf '%s\n' "${locale_settings[@]}" >"$root/var/lib/zoomies/locale.conf"
 fi
 
