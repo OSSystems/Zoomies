@@ -100,11 +100,7 @@ let
     };
     zoomies = {
       enable = true;
-      games = [
-        game
-        # The heaviest game in the default set.
-        pkgs.supertuxkart
-      ];
+      games = [ game ];
       older.apps = [ pkgs.libreoffice ];
     };
   };

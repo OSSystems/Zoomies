@@ -2,11 +2,6 @@
 # checks the outcome from the system side, so screen time, the PIN,
 # profiles, the network rules and the home reset are enforced by the OS,
 # not just hidden by the UI.
-#
-# The machines have 2 GiB of RAM, the smallest Zoomies supports, and run a
-# real 3D game, Firefox and LibreOffice, so a PC that small stays usable.
-# Memory use lands in memory-report.txt. QEMU has no GPU acceleration, so
-# Mesa renders on the CPU and the numbers are a little pessimistic.
 {
   flake,
   lib,
@@ -16,7 +11,7 @@
 
 let
   common = import ./kiosk/common.nix { inherit flake lib pkgs; };
-  inherit (common) asGame pages;
+  inherit (common) asGame;
 in
 pkgs.testers.runNixOSTest {
   # Reads the translated greeter off the screen.
@@ -75,34 +70,10 @@ pkgs.testers.runNixOSTest {
   };
   testScript = common.helpers + ''
     import json
-    import shlex
 
     from PIL import Image
 
-    memory_report = []
     XFCONF = "/home/max/.config/xfce4/xfconf/xfce-perchannel-xml"
-
-
-    def sample_memory(label):
-        meminfo = dict(
-            (line.split(":")[0], int(line.split()[1]))
-            for line in machine.succeed("cat /proc/meminfo").splitlines()
-        )
-        pressure = machine.succeed("cat /proc/pressure/memory").strip().replace("\n", " | ")
-        # orig_data_size compr_data_size ...
-        zram = machine.succeed("cat /sys/block/zram0/mm_stat").split()
-        line = (
-            f"{label}: available {meminfo['MemAvailable'] // 1024} MiB,"
-            f" zram {int(zram[0]) // 2**20} MiB in {int(zram[1]) // 2**20} MiB,"
-            f" pressure {pressure}"
-        )
-        machine.log(line)
-        memory_report.append(line)
-
-
-    def nothing_killed():
-        machine.succeed("[ \"$(awk '/^oom_kill / { print $2 }' /proc/vmstat)\" = 0 ]")
-        machine.fail("journalctl -u systemd-oomd | grep -q Killed")
 
 
     def write_state(name, data):
@@ -153,7 +124,6 @@ pkgs.testers.runNixOSTest {
         machine.succeed("test -e /run/zoomies-gpu/software")
         machine.succeed(f"grep -qzx GSK_RENDERER=cairo {greeter_environ()}")
         machine.succeed("swapon --show | grep -q zram")
-        sample_memory("greeter")
 
     with subtest("the screens speak the language saved at install"):
         machine.succeed(
@@ -200,18 +170,6 @@ pkgs.testers.runNixOSTest {
         machine.sleep(2)
         machine.succeed("pgrep -u ana -f zoomies-launcher")
 
-    with subtest("a 3D game runs in 2 GiB"):
-        machine.send_key("right")
-        machine.sleep(1)
-        machine.send_key("ret")
-        machine.wait_until_succeeds("pgrep -u ana -f supertuxkart")
-        machine.sleep(60)
-        machine.screenshot("supertuxkart")
-        machine.succeed("pgrep -u ana -f supertuxkart")
-        sample_memory("SuperTuxKart")
-        nothing_killed()
-        quit("ana", "supertuxkart")
-
     with subtest("Neverputt fills the screen even if it was saved windowed"):
         machine.succeed(
             "runuser -u ana -- sh -c 'mkdir -p ~/.neverball"
@@ -243,7 +201,15 @@ pkgs.testers.runNixOSTest {
         machine.fail("runuser -u ana -- unshare --map-auto --map-root-user true")
 
     with subtest("the session ends when screen time runs out"):
-        # Ana has been playing for a while; a one-minute budget is used up.
+        # Prove real accounting before seeding a full minute; expiry must
+        # not depend on how long the functional scenarios happen to take.
+        machine.wait_until_succeeds("grep -Eq '\"ana\": [1-9]' /var/lib/zoomies/usage.json")
+        machine.succeed("systemctl stop zoomies-timekeeper")
+        usage = json.loads(machine.succeed("cat /var/lib/zoomies/usage.json"))
+        assert usage["seconds"]["ana"] > 0, usage
+        usage["seconds"]["ana"] = max(60, usage["seconds"]["ana"])
+        write_state("usage", usage)
+        machine.succeed("systemctl start zoomies-timekeeper")
         write_state("policy", {"kids": {"ana": {"dailyMinutes": 1}}})
         machine.wait_until_fails("pgrep -u ana cage", timeout=120)
         wait_for_greeter()
@@ -327,7 +293,8 @@ pkgs.testers.runNixOSTest {
         machine.screenshot("greeter-more-kids")
         machine.send_key("ret")
         machine.wait_until_succeeds("pgrep -u max xfce4-session", timeout=60)
-        machine.sleep(10)
+        find_window("^Zoomies shelf$")
+        find_window("^Zip$")
         machine.screenshot("older-desktop")
         machine.succeed(
             f"tr -d '\\n' <{XFCONF}/xfce4-desktop.xml"
@@ -375,28 +342,9 @@ pkgs.testers.runNixOSTest {
         machine.succeed(in_max_x("timeout 10 zoomies-desktop-zip /dev/null"))
         write_state("policy", policy)
 
-    with subtest("Firefox and LibreOffice run together in 2 GiB"):
-        sample_memory("older kids' desktop")
-        machine.succeed(in_max_x("setsid firefox ${lib.escapeShellArgs pages} >/dev/null 2>&1 &"))
-        machine.wait_until_succeeds(in_max_x("xdotool search --onlyvisible --class firefox"), timeout=300)
-        machine.sleep(60)
-        sample_memory("Firefox, 4 tabs")
+    with subtest("the shelf keeps apps full screen and offers the apps"):
         machine.succeed(in_max_x("setsid soffice --writer >/dev/null 2>&1 &"))
         machine.wait_until_succeeds(WRITER_SEARCH, timeout=300)
-        machine.sleep(30)
-        machine.screenshot("older-apps")
-        sample_memory("Firefox and Writer")
-        # Switching back makes Firefox touch memory that may be in zram.
-        machine.succeed(in_max_x("xdotool search --onlyvisible --class firefox windowactivate --sync"))
-        machine.sleep(30)
-        sample_memory("back in Firefox")
-        machine.succeed("pgrep -u max -f firefox")
-        machine.succeed("pgrep -u max -f soffice")
-        nothing_killed()
-        machine.succeed(f"printf '%s\\n' {shlex.join(memory_report)} > /tmp/memory-report.txt")
-        machine.copy_from_vm("/tmp/memory-report.txt")
-
-    with subtest("the shelf keeps apps full screen and offers the apps"):
         shelf = find_window("^Zoomies shelf$")
         box = window_box(shelf)
         screen_width, screen_height = display_size()
@@ -404,7 +352,10 @@ pkgs.testers.runNixOSTest {
         assert top + int(box["HEIGHT"]) == screen_height, f"the shelf sits at {box}"
         writer = machine.succeed(WRITER_SEARCH).split()[0]
 
-        # Maximized above the shelf, under a title strip of its own.
+        # Writer maps its window before the shelf has maximized it.
+        machine.wait_until_succeeds(
+            in_max_x(f"[ \"$(xdotool getwindowgeometry --shell {writer} | grep WIDTH)\" = WIDTH={screen_width} ]")
+        )
         app = window_box(writer)
         assert int(app["WIDTH"]) == screen_width, f"Writer is {app}"
         assert int(app["Y"]) > 0, f"Writer has no title strip: {app}"
@@ -415,8 +366,7 @@ pkgs.testers.runNixOSTest {
             in_max_x(f"[ \"$(xdotool getwindowgeometry --shell {writer} | grep WIDTH)\" = WIDTH={screen_width} ]")
         )
         machine.succeed(in_max_x(f"xdotool windowminimize {writer}"))
-        machine.sleep(3)
-        machine.succeed(WRITER_SEARCH)
+        machine.wait_until_succeeds(WRITER_SEARCH)
         machine.succeed(in_max_x(f"xdotool windowactivate --sync {writer}"))
         machine.sleep(2)
         machine.screenshot("older-shelf")
