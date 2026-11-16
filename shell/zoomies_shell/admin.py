@@ -45,12 +45,8 @@ def request(action, **fields):
             sock.settimeout(60)
             sock.connect(SOCKET)
             sock.sendall(json.dumps({"action": action, **fields}).encode() + b"\n")
-            data = b""
-            while not data.endswith(b"\n"):
-                chunk = sock.recv(4096)
-                if not chunk:
-                    break
-                data += chunk
+            with sock.makefile("rb") as stream:
+                data = stream.readline()
         reply = json.loads(data) if data else None
     except (OSError, ValueError) as error:
         raise Refused(f"the admin service is not reachable ({error})") from error
@@ -263,13 +259,8 @@ def serve():
             try:
                 creds = conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
                 _pid, uid, _gid = struct.unpack("3i", creds)
-                data = b""
-                while not data.endswith(b"\n") and len(data) < 65536:
-                    chunk = conn.recv(4096)
-                    if not chunk:
-                        break
-                    data += chunk
-                message = json.loads(data)
+                with conn.makefile("rb") as stream:
+                    message = json.loads(stream.readline(65536))
                 reply = admin.handle(uid, message)
                 print(f"uid {uid}: {message.get('action')} ok", flush=True)
             except Refused as error:
@@ -286,10 +277,6 @@ def serve():
 
 
 # Command line, for grown-ups in a terminal or over SSH.
-
-
-def ask_pin(prompt):
-    return getpass.getpass(prompt)
 
 
 def main():
@@ -328,7 +315,7 @@ def main():
                 if k in ("name", "avatar", "color", "kind", "user") and v is not None
             }
             reply = request(f"{args.command}-kid", **fields)
-            print(reply.get("user", args.__dict__.get("user")))
+            print(reply.get("user", getattr(args, "user", None)))
         elif args.command == "remove":
             request("remove-kid", user=args.user)
         elif args.command == "set-pin":
@@ -336,9 +323,9 @@ def main():
                 # First line the current PIN (empty when none), then the new one.
                 old, new = (sys.stdin.read().splitlines() + ["", ""])[:2]
             else:
-                old = ask_pin("Current PIN (empty if none): ")
-                new = ask_pin("New PIN: ")
-                if ask_pin("New PIN again: ") != new:
+                old = getpass.getpass("Current PIN (empty if none): ")
+                new = getpass.getpass("New PIN: ")
+                if getpass.getpass("New PIN again: ") != new:
                     sys.exit("The PINs do not match.")
             request("set-pin", old=old, new=new)
     except Refused as error:
