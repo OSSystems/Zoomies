@@ -39,6 +39,21 @@ GROUPS = (
     (N_("Write and study"), {"Office", "Education", "Science", "Math", "Languages", "Geography"}),
     (N_("Create"), {"Graphics", "AudioVideo", "Audio", "Video"}),
 )
+# What the default apps are for, in a kid's words: their own generic names
+# ("Word Processor", "Spreadsheet") are written for grown-ups. Apps a parent
+# adds fall back to theirs. Keyed by desktop entry file name.
+WHAT = {
+    "calc.desktop": N_("Make tables"),
+    "firefox.desktop": N_("Visit websites"),
+    "impress.desktop": N_("Make slideshows"),
+    "org.audacityteam.Audacity.desktop": N_("Record sounds"),
+    "org.kde.kgeography.desktop": N_("Learn about countries"),
+    "org.kde.krita.desktop": N_("Paint pictures"),
+    "org.kde.ktouch.desktop": N_("Learn to type"),
+    "org.stellarium.Stellarium.desktop": N_("Explore the sky"),
+    "thunar.desktop": N_("Find your files"),
+    "writer.desktop": N_("Write stories"),
+}
 
 
 def css():
@@ -88,9 +103,13 @@ def tile(info, size, name=None, what=None, fallback="application-x-executable"):
     text.set_max_width_chars(12)
     box.pack_start(text, False, False, 0)
     if what is None and info is not None:
-        what = info.get_generic_name() or ""
+        what = WHAT.get(os.path.basename(info.get_filename() or ""))
+        what = _(what) if what else info.get_generic_name() or ""
     if what:
-        note = label(what, "tile-what", ellipsize=Pango.EllipsizeMode.END)
+        # Two lines fit the longer translations without cutting them.
+        note = label(what, "tile-what", ellipsize=Pango.EllipsizeMode.END, justify=Gtk.Justification.CENTER)
+        note.set_line_wrap(True)
+        note.set_lines(2)
         note.set_max_width_chars(14)
         box.pack_start(note, False, False, 0)
     button.add(box)

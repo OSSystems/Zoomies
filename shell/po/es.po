@@ -265,6 +265,36 @@ msgstr "Escribir y estudiar"
 msgid "Create"
 msgstr "Crear"
 
+msgid "Make tables"
+msgstr "Hacer tablas"
+
+msgid "Visit websites"
+msgstr "Visitar sitios web"
+
+msgid "Make slideshows"
+msgstr "Hacer presentaciones"
+
+msgid "Record sounds"
+msgstr "Grabar sonidos"
+
+msgid "Learn about countries"
+msgstr "Conocer países"
+
+msgid "Paint pictures"
+msgstr "Pintar dibujos"
+
+msgid "Learn to type"
+msgstr "Aprender a teclear"
+
+msgid "Explore the sky"
+msgstr "Explorar el cielo"
+
+msgid "Find your files"
+msgstr "Encontrar tus archivos"
+
+msgid "Write stories"
+msgstr "Escribir historias"
+
 msgid "Apps"
 msgstr "Apps"
 

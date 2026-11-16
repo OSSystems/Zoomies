@@ -558,6 +558,8 @@ pkgs.testers.runNixOSTest {
         machine.succeed(in_max_x(f"xdotool mousemove 60 {top + int(box['HEIGHT']) // 2} click 1"))
         machine.wait_until_succeeds(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))
         machine.sleep(2)
+        # Tiles say what an app is for in a kid's words, not "Word Processor".
+        machine.wait_for_text("Write stories")
         machine.screenshot("older-apps-card")
         machine.succeed(in_max_x("xdotool key Escape"))
         machine.wait_until_fails(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))

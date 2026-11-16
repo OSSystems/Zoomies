@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-15 22:34-0300\n"
+"POT-Creation-Date: 2026-11-15 22:35-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -262,6 +262,36 @@ msgid "Write and study"
 msgstr ""
 
 msgid "Create"
+msgstr ""
+
+msgid "Make tables"
+msgstr ""
+
+msgid "Visit websites"
+msgstr ""
+
+msgid "Make slideshows"
+msgstr ""
+
+msgid "Record sounds"
+msgstr ""
+
+msgid "Learn about countries"
+msgstr ""
+
+msgid "Paint pictures"
+msgstr ""
+
+msgid "Learn to type"
+msgstr ""
+
+msgid "Explore the sky"
+msgstr ""
+
+msgid "Find your files"
+msgstr ""
+
+msgid "Write stories"
 msgstr ""
 
 msgid "Apps"
