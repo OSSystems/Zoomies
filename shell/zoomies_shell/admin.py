@@ -83,6 +83,21 @@ class Admin:
         stored = self.shadow_hash()
         return bool(stored) and not stored.startswith(("!", "*"))
 
+    def pin_locked(self):
+        # pam_faillock answers with the limits the logins use; a PAM service
+        # that only reads its count never counts as a try itself.
+        result = subprocess.run(
+            ["pamtester", "zoomies-pin-lock", self.parent, "authenticate"],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "LC_ALL": "C"},
+        )
+        if result.returncode == 0:
+            return False
+        if "Authentication failure" in result.stderr:
+            return True
+        raise Refused(f"pamtester failed: {result.stderr.strip()}")
+
     def check_pin(self, pin):
         if time.monotonic() < self.locked_until:
             raise Refused(N_("too many wrong PINs, wait a minute"))
@@ -107,6 +122,8 @@ class Admin:
         action = message.get("action")
         if action == "status":
             return {"pinSet": self.pin_set()}
+        if action == "pin-locked":
+            return {"locked": self.pin_locked()}
         if action == "set-pin":
             return self.set_pin(uid, message)
         if action in ("add-kid", "edit-kid", "remove-kid"):

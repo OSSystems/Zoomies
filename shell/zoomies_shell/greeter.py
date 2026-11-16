@@ -10,14 +10,10 @@ import os
 import socket
 import struct
 import sys
-import time
 
 from . import admin, state, ui
 from .i18n import _
 from .ui import GLib, Gtk
-
-PIN_ATTEMPTS = 3
-PIN_LOCKOUT = 30
 
 
 class Greetd:
@@ -102,8 +98,6 @@ class Greeter(Gtk.ApplicationWindow):
         self.config = config
         self.greetd = Greetd()
         self.tiles = {}
-        self.failures = 0
-        self.locked_until = 0
 
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
         page.add_css_class("page")
@@ -196,6 +190,14 @@ class Greeter(Gtk.ApplicationWindow):
         except admin.Refused as error:
             print(f"setup check failed: {error}", file=sys.stderr)
             return None
+
+    def pin_locked(self):
+        """Whether PAM locked the grown-ups out after too many wrong PINs."""
+        try:
+            return bool(admin.request("pin-locked").get("locked"))
+        except admin.Refused as error:
+            print(f"lock check failed: {error}", file=sys.stderr)
+            return False
 
     def maybe_set_up(self, tries=10):
         if not self.config.get("parent"):
@@ -335,9 +337,6 @@ class Greeter(Gtk.ApplicationWindow):
         def submit():
             if not entry.get_text():
                 return
-            if time.monotonic() < self.locked_until:
-                message.set_label(_("Too many tries. Wait a little."))
-                return
             error = self.greetd.login(
                 parent["user"], self.config["parentSession"], secret=entry.get_text()
             )
@@ -345,11 +344,11 @@ class Greeter(Gtk.ApplicationWindow):
             if error is None:
                 self.get_application().quit()
                 return
-            self.failures += 1
-            if self.failures >= PIN_ATTEMPTS:
-                self.failures = 0
-                self.locked_until = time.monotonic() + PIN_LOCKOUT
-                message.set_label(_("Too many tries. Wait a little."))
+            # greetd answers a locked account like a wrong PIN.
+            if self.pin_locked():
+                message.set_label(
+                    _("Too many tries. Ask a grown-up, or wait a little and try again.")
+                )
             else:
                 message.set_label(_("That is not the PIN."))
 

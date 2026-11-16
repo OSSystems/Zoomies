@@ -132,6 +132,15 @@ in
           login.rules = lockout;
           # Kids could otherwise guess the PIN with su; grown-ups use sudo.
           su.requireWheel = true;
+          # greetd fails a locked account just like a wrong PIN, apart from
+          # a note in the system's language, so the admin service asks this
+          # for the greeter. It reads the count without adding to it, and
+          # only root may ask: it ends in pam_permit.
+          zoomies-pin-lock.text = ''
+            auth requisite ${pam}/pam_rootok.so
+            auth required ${faillock} preauth nodelay ${lib.concatStringsSep " " options}
+            auth required ${pam}/pam_permit.so
+          '';
         };
       polkit.enable = true;
     };

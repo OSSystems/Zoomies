@@ -110,8 +110,8 @@ msgstr "PIN"
 msgid "Cancel"
 msgstr "Cancelar"
 
-msgid "Too many tries. Wait a little."
-msgstr "Tentativas demais. Espere um pouco."
+msgid "Too many tries. Ask a grown-up, or wait a little and try again."
+msgstr "Tentativas demais. Peça ajuda a um adulto ou espere um pouco e tente de novo."
 
 msgid "That is not the PIN."
 msgstr "Esse não é o PIN."

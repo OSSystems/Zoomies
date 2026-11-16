@@ -30,6 +30,7 @@ in
         description = "Zoomies profiles and PIN";
         path = [
           config.systemd.package
+          pkgs.pamtester
           pkgs.procps
           pkgs.shadow
         ];

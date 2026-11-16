@@ -91,6 +91,13 @@ pkgs.testers.runNixOSTest {
         machine.send_chars(f"{pin}\n")
 
 
+    def wait_for_pin_failures(count):
+        machine.wait_until_succeeds(
+            "[ \"$(faillock --dir /var/lib/zoomies/faillock --user parent | grep -c ' V$')\""
+            f" = {count} ]"
+        )
+
+
     def set_pin(old, new):
         return f"printf '{old}\\n{new}\\n' | " + as_parent("zoomies-profile set-pin --stdin")
 
@@ -146,15 +153,22 @@ pkgs.testers.runNixOSTest {
         restart_greeter()
         machine.fail(f"grep -qz LANG=pt_BR {environ}")
 
-    with subtest("a wrong PIN keeps grown-ups out"):
+    with subtest("wrong PINs keep grown-ups out"):
         enter_pin("9999")
-        machine.sleep(5)
+        wait_for_pin_failures(1)
+        for tries in (2, 3):
+            # The greeter takes no keys while PAM delays its answer.
+            machine.sleep(3)
+            machine.send_chars("9999\n")
+            wait_for_pin_failures(tries)
+        machine.sleep(3)
         machine.fail("pgrep -u parent zoomies-parent")
-        machine.send_key("esc")
 
     with subtest("the PIN set in the configuration opens the grown-ups panel"):
         machine.succeed("zoomies-profile status | grep -q '\"pinSet\": true'")
-        enter_pin("1234")
+        # Right after three wrong ones: only PAM counts them, and it
+        # allows five.
+        machine.send_chars("1234\n")
         machine.wait_until_succeeds("pgrep -u parent -f zoomies-parent")
         machine.sleep(3)
         machine.screenshot("parent")
@@ -278,11 +292,31 @@ pkgs.testers.runNixOSTest {
         machine.succeed("greetd-try parent 5678")
 
     with subtest("guessing the PIN locks the grown-ups account"):
-        for _ in range(5):
-            machine.fail("greetd-try parent 0000")
+        enter_pin("0000")
+        wait_for_pin_failures(1)
+        for tries in range(2, 6):
+            machine.sleep(3)
+            machine.send_chars("0000\n")
+            wait_for_pin_failures(tries)
+        # Told on the very try that locked it, not "wrong PIN".
+        machine.wait_for_text("Too many tries", timeout=60)
+        machine.screenshot("pin-locked")
+        machine.sleep(3)
+        machine.send_chars("5678\n")
+        machine.sleep(5)
+        machine.fail("pgrep -u parent zoomies-parent")
         machine.fail("greetd-try parent 5678")
+        # Asking whether it is locked neither adds a try nor lifts the lock.
+        for _ in range(3):
+            machine.fail("${lib.getExe pkgs.pamtester} zoomies-pin-lock parent authenticate")
+        wait_for_pin_failures(5)
+        machine.send_key("esc")
         machine.succeed("faillock --dir /var/lib/zoomies/faillock --user parent --reset")
         machine.succeed("greetd-try parent 5678")
+        # The question ends in pam_permit, so it must not be a way in for
+        # anyone but root.
+        machine.succeed("${lib.getExe pkgs.pamtester} zoomies-pin-lock parent authenticate")
+        machine.fail("runuser -u ana -- ${lib.getExe pkgs.pamtester} zoomies-pin-lock parent authenticate")
         # Kids cannot try it through su or polkit either.
         machine.succeed("grep -q pam_wheel.so /etc/pam.d/su")
         machine.fail("echo 5678 | timeout 10 runuser -u max -- su -c true parent")
