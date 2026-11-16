@@ -47,8 +47,6 @@ if [ -n "$esp_device" ]; then
 fi
 
 disk=/dev/$(lsblk -no PKNAME "$root_device")
-# GRUB installs to the disk this link points at.
-ln -sfn "$disk" /dev/disk/zoomies-boot
 
 # Old BIOSes only boot a GPT disk whose protective MBR is marked active. The
 # UEFI specification forbids that mark and some UEFI firmware rejects the
