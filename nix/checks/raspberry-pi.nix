@@ -18,6 +18,9 @@ let
         boot.kernelParams = [ "console=ttyAMA0,115200n8" ];
         sdImage.compressImage = false;
         services.getty.autologinUser = "root";
+        # The check runs its own update; one from GitHub would only slow the
+        # emulated boot down.
+        system.autoUpgrade.enable = lib.mkForce false;
         # Games and apps do not affect the boot path.
         zoomies = {
           games = lib.mkForce [ ];

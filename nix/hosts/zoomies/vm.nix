@@ -6,7 +6,7 @@
 # Python code and CSS load from the checkout, so after an edit
 #   ssh -p 2222 root@localhost systemctl restart greetd
 # shows it without rebuilding.
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   dev = "/mnt/zoomies-shell";
@@ -23,6 +23,8 @@ in
       PermitRootLogin = "yes";
     };
   };
+  # The VM runs the checkout, not the published system.
+  system.autoUpgrade.enable = lib.mkForce false;
   systemd.services.zoomies-timekeeper.environment.PYTHONPATH = dev;
   # Root already has an empty password in NixOS VMs.
   users.users.parent.initialPassword = "1234";

@@ -152,6 +152,8 @@ pkgs.testers.runNixOSTest {
         ).strip()
         assert flag == ("80" if installed_in == "bios" else "00"), flag
 
+        machine.succeed("systemctl is-active nixos-upgrade.timer")
+
         # Updates reinstall GRUB without the installer's help.
         machine.fail("test -e /dev/disk/zoomies-boot")
         machine.succeed(
