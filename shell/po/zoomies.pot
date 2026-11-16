@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-16 08:31-0300\n"
+"POT-Creation-Date: 2026-11-16 08:43-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -79,6 +79,17 @@ msgid ""
 "Grown-ups can add them with the 🔒 button."
 msgstr ""
 
+msgid ""
+"Oops, that did not work.\n"
+"Ask a grown-up for help."
+msgstr ""
+
+#, python-brace-format
+msgid ""
+"{status}, {name}!\n"
+"Zip says: go run around outside!"
+msgstr ""
+
 msgid "OK"
 msgstr ""
 
@@ -138,6 +149,11 @@ msgstr ""
 msgid "Hi, {name}!"
 msgstr ""
 
+msgid ""
+"No games here yet.\n"
+"Ask a grown-up to add some!"
+msgstr ""
+
 msgid "Pick a game!"
 msgstr ""
 
@@ -171,6 +187,10 @@ msgid "Minutes a day"
 msgstr ""
 
 msgid "Only from"
+msgstr ""
+
+#. Translators: between the start and the end of the hours a kid may play.
+msgid "to"
 msgstr ""
 
 msgid "Pick different start and end times."

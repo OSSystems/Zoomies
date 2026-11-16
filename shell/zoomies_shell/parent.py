@@ -87,7 +87,8 @@ class KidRow(Gtk.Box):
         self.start = time_spin(0, 47, state.minutes_of_day(hours["start"]) // 30)
         self.end = time_spin(1, 48, state.minutes_of_day(hours["end"]) // 30)
         rules.append(self.start)
-        rules.append(Gtk.Label(label="to"))
+        # Translators: between the start and the end of the hours a kid may play.
+        rules.append(Gtk.Label(label=_("to")))
         rules.append(self.end)
         self.append(rules)
         self.message = ui.message_label()

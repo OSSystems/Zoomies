@@ -79,6 +79,21 @@ msgstr ""
 "Ainda não há crianças.\n"
 "Os adultos podem adicioná-las com o botão 🔒."
 
+msgid ""
+"Oops, that did not work.\n"
+"Ask a grown-up for help."
+msgstr ""
+"Ops, isso não funcionou.\n"
+"Peça ajuda a um adulto."
+
+#, python-brace-format
+msgid ""
+"{status}, {name}!\n"
+"Zip says: go run around outside!"
+msgstr ""
+"{status}, {name}!\n"
+"Zip diz: vá correr lá fora!"
+
 msgid "OK"
 msgstr "OK"
 
@@ -142,6 +157,13 @@ msgstr "Digite primeiro o nome da criança."
 msgid "Hi, {name}!"
 msgstr "Oi, {name}!"
 
+msgid ""
+"No games here yet.\n"
+"Ask a grown-up to add some!"
+msgstr ""
+"Ainda não há jogos aqui.\n"
+"Peça a um adulto para colocar alguns!"
+
 msgid "Pick a game!"
 msgstr "Escolha um jogo!"
 
@@ -176,6 +198,10 @@ msgstr "Minutos por dia"
 
 msgid "Only from"
 msgstr "Somente das"
+
+#. Translators: between the start and the end of the hours a kid may play.
+msgid "to"
+msgstr "às"
 
 msgid "Pick different start and end times."
 msgstr "Escolha horários de início e fim diferentes."

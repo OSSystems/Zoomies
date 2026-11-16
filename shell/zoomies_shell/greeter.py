@@ -264,10 +264,12 @@ class Greeter(Gtk.ApplicationWindow):
             self.send_outside(kid, status)
             self.refresh()
         else:
-            self.say("🙈", "Oops, that did not work.\nAsk a grown-up for help.")
+            self.say("🙈", _("Oops, that did not work.\nAsk a grown-up for help."))
 
     def send_outside(self, kid, status):
-        text = f"{describe(status)}, {kid['name']}!\nZip says: go run around outside!"
+        text = _("{status}, {name}!\nZip says: go run around outside!").format(
+            status=describe(status), name=kid["name"]
+        )
         self.say(kid["avatar"], text, flying=True)
 
     def say(self, emoji, text, flying=False):

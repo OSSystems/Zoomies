@@ -71,7 +71,7 @@ class Launcher(Gtk.ApplicationWindow):
         columns = 4 if len(games) > 6 else 3 if len(games) > 4 else max(1, len(games))
         if not games:
             empty = Gtk.Label(
-                label="No games here yet.\nAsk a grown-up to add some!",
+                label=_("No games here yet.\nAsk a grown-up to add some!"),
                 justify=Gtk.Justification.CENTER,
                 css_classes=["dialog-title"],
             )
