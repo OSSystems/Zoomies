@@ -35,9 +35,6 @@ class Refused(Exception):
     pass
 
 
-# Client side.
-
-
 def request(action, **fields):
     """Send one request; raise Refused with a readable reason on failure."""
     try:
@@ -57,9 +54,6 @@ def request(action, **fields):
     if "error" in reply:
         raise Refused(reply["error"])
     return reply
-
-
-# Service side.
 
 
 class Admin:
@@ -276,9 +270,7 @@ def serve():
                 pass
 
 
-# Command line, for grown-ups in a terminal or over SSH.
-
-
+# For grown-ups in a terminal or over SSH.
 def main():
     parser = argparse.ArgumentParser(prog="zoomies-profile")
     commands = parser.add_subparsers(dest="command", required=True)
