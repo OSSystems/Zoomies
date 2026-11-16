@@ -54,6 +54,15 @@ let
     sys.exit(0 if reply["type"] == "success" else 1)
   '';
 
+  # Runs a command as a kid, in the environment the launcher gives games.
+  asGame = pkgs.writeShellScript "as-game" ''
+    user=$1
+    shift
+    # The newest match: cage and its logger name the launcher too.
+    mapfile -d "" vars < "/proc/$(pgrep -u "$user" -n -f zoomies-launcher)/environ"
+    exec runuser -u "$user" -- env -i "''${vars[@]}" "$@"
+  '';
+
   manual = flake.nixosConfigurations.zoomies.config.system.build.manual.manualHTML;
 
   # Static manuals are lighter than the sites kids use; these stand in for a
@@ -109,6 +118,7 @@ in
 pkgs.testers.runNixOSTest {
   # Reads the translated greeter off the screen.
   enableOCR = true;
+  extraPythonPackages = p: [ p.pillow ];
   # qemu-system-x86_64 under KVM.
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk";
@@ -135,6 +145,9 @@ pkgs.testers.runNixOSTest {
           pkgs.e2fsprogs
           pkgs.pam
           pkgs.xdotool
+          # Started by hand, not from the launcher, which would shift the
+          # tiles the other subtests pick by position.
+          (import ../modules/nixos/zoomies/games.nix { inherit lib pkgs; } pkgs.neverball)
         ];
         imports = [ common ];
         zoomies = {
@@ -185,6 +198,8 @@ pkgs.testers.runNixOSTest {
   testScript = ''
     import json
     import shlex
+
+    from PIL import Image
 
     memory_report = []
 
@@ -346,6 +361,28 @@ pkgs.testers.runNixOSTest {
         nothing_killed()
         machine.succeed("pkill -u ana -f supertuxkart")
         machine.wait_until_fails("pgrep -u ana -f supertuxkart")
+
+    with subtest("Neverputt fills the screen even if it was saved windowed"):
+        machine.succeed(
+            "runuser -u ana -- sh -c 'mkdir -p ~/.neverball"
+            " && printf \"fullscreen 0\\nwidth 800\\nheight 600\\n\" > ~/.neverball/neverballrc'"
+        )
+        machine.screenshot("neverputt-before")
+        machine.succeed("${asGame} ana neverputt >/dev/null 2>&1 &")
+        machine.wait_until_succeeds("grep -q 'Created a window' ~ana/.neverball/neverputt.log")
+        machine.sleep(10)
+        machine.screenshot("neverputt")
+        # Drawn in a corner, the game leaves the rest of its window black,
+        # or the launcher showing around a window that kept its first size.
+        def corners(name):
+            with Image.open(f"{machine.out_dir}/{name}.png") as shot:
+                rgb = shot.convert("RGB")
+                return [rgb.getpixel((rgb.width - 20, y)) for y in (20, rgb.height - 20)]
+
+        for before, after in zip(corners("neverputt-before"), corners("neverputt")):
+            assert after not in ((0, 0, 0), before), f"Neverputt leaves a corner uncovered: {after}"
+        machine.succeed("pkill -u ana -f neverputt")
+        machine.wait_until_fails("pgrep -u ana -f neverputt")
 
     with subtest("little kids cannot reach the network"):
         machine.succeed("curl -sf --max-time 5 http://server/")
