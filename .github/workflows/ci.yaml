@@ -82,10 +82,18 @@ jobs:
   aarch64:
     runs-on: ubuntu-24.04-arm
     steps:
+      # The cache key below hashes the sources, which the action would only
+      # check out after its inputs are read.
+      - uses: actions/checkout@v6
       - uses: ossystems/nix-actions@v1
         with:
+          checkout: "false"
           install-nix: "true"
           cache-save: ${{ github.ref == 'refs/heads/main' }}
+          # The action keys the cache on flake.* alone, and a cache is never
+          # overwritten, so without the sources main would keep restoring the
+          # first store saved for a lock and rebuild everything since.
+          cache-key-suffix: -${{ runner.arch }}-${{ hashFiles('nix/**', 'shell/**', 'splash/**', 'assets/**') }}
           # The flake-check job already evaluates the flake.
           flake-check: "false"
           build-hosts: "false"
