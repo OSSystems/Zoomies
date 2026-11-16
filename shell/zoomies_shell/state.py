@@ -10,6 +10,8 @@ remaining time but never change it.
 import datetime
 import json
 import os
+import pwd
+import sys
 import tempfile
 
 CONFIG = os.environ.get("ZOOMIES_CONFIG", "/etc/zoomies/config.json")
@@ -82,6 +84,15 @@ def load_config():
 def kids_by_user(config=None):
     config = config or load_config()
     return {kid["user"]: kid for kid in config["kids"]}
+
+
+def current_kid(config):
+    """The kid this session belongs to; anyone else has no place here."""
+    user = pwd.getpwuid(os.getuid()).pw_name
+    kid = kids_by_user(config).get(user)
+    if kid is None:
+        sys.exit(f"{user} has no Zoomies profile")
+    return kid
 
 
 def today():

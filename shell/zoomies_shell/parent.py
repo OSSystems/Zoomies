@@ -1,7 +1,6 @@
 """Grown-ups' panel: kids, screen time rules, extra time, the PIN, and the way out."""
 
 import subprocess
-import sys
 
 from . import admin, state, ui
 from .i18n import _
@@ -250,7 +249,7 @@ class Parent(Gtk.ApplicationWindow):
             try:
                 on_accept()
             except admin.Refused as error:
-                message.set_label(_(str(error)).capitalize() + ".")
+                message.set_label(ui.reason(error))
                 return
             self.overlay.close()
             self.populate()
@@ -323,13 +322,4 @@ class Parent(Gtk.ApplicationWindow):
 
 def main():
     config = state.load_config()
-    app = Gtk.Application(application_id="org.zoomies.Parent")
-
-    def activate(app):
-        ui.load_css()
-        window = Parent(app, config)
-        window.fullscreen()
-        window.present()
-
-    app.connect("activate", activate)
-    sys.exit(app.run(None))
+    ui.run("org.zoomies.Parent", lambda app: Parent(app, config))

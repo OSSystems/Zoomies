@@ -5,7 +5,6 @@ the game brings the kid straight back here.
 """
 
 import os
-import pwd
 import re
 import shlex
 import signal
@@ -235,17 +234,5 @@ class Launcher(Gtk.ApplicationWindow):
 
 def main():
     config = state.load_config()
-    user = pwd.getpwuid(os.getuid()).pw_name
-    kid = state.kids_by_user(config).get(user)
-    if kid is None:
-        sys.exit(f"{user} has no Zoomies profile")
-    app = Gtk.Application(application_id="org.zoomies.Launcher")
-
-    def activate(app):
-        ui.load_css()
-        window = Launcher(app, config, kid)
-        window.fullscreen()
-        window.present()
-
-    app.connect("activate", activate)
-    sys.exit(app.run(None))
+    kid = state.current_kid(config)
+    ui.run("org.zoomies.Launcher", lambda app: Launcher(app, config, kid))

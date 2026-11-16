@@ -10,7 +10,6 @@ clock, switching player and turning off sit on the right.
 """
 
 import os
-import pwd
 import subprocess
 import sys
 
@@ -563,10 +562,7 @@ class Shelf(Gtk.Window):
 
 def main():
     config = state.load_config()
-    user = pwd.getpwuid(os.getuid()).pw_name
-    kid = state.kids_by_user(config).get(user)
-    if kid is None:
-        sys.exit(f"{user} has no Zoomies profile")
+    kid = state.current_kid(config)
     css()
     shelf = Shelf(config, kid)
     shelf.show_all()

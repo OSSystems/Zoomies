@@ -408,7 +408,7 @@ class Setup:
                 # The PIN may have been saved even though the answer got
                 # lost; asking again would then need the "old" PIN.
                 if self.greeter.pin_set() is not True:
-                    message.set_label(_(str(error)).capitalize() + ".")
+                    message.set_label(ui.reason(error))
                     return
             self.pin = first.get_text()
             self.kids()
@@ -458,7 +458,7 @@ class Setup:
             try:
                 admin.request("add-kid", pin=self.pin, **values)
             except admin.Refused as error:
-                message.set_label(_(str(error)).capitalize() + ".")
+                message.set_label(ui.reason(error))
                 return
             self.kids()
 
@@ -475,13 +475,4 @@ class Setup:
 
 def main():
     config = state.load_config()
-    app = Gtk.Application(application_id="org.zoomies.Greeter")
-
-    def activate(app):
-        ui.load_css()
-        window = Greeter(app, config)
-        window.fullscreen()
-        window.present()
-
-    app.connect("activate", activate)
-    sys.exit(app.run(None))
+    ui.run("org.zoomies.Greeter", lambda app: Greeter(app, config))

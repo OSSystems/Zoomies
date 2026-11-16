@@ -3,6 +3,7 @@
 import datetime
 import os
 import subprocess
+import sys
 
 import gi
 
@@ -68,6 +69,25 @@ def load_css():
     Gtk.StyleContext.add_provider_for_display(
         Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
     )
+
+
+def run(app_id, make_window):
+    """Run a fullscreen app whose one window make_window(app) builds."""
+    app = Gtk.Application(application_id=app_id)
+
+    def activate(app):
+        load_css()
+        window = make_window(app)
+        window.fullscreen()
+        window.present()
+
+    app.connect("activate", activate)
+    sys.exit(app.run(None))
+
+
+def reason(error):
+    """The admin service's refusal as a sentence for the screen."""
+    return _(str(error)).capitalize() + "."
 
 
 def play(name):
