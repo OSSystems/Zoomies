@@ -107,7 +107,15 @@ in
       # terminal if needed.
       wireless.enable = lib.mkForce false;
     };
-    nixpkgs.hostPlatform = "x86_64-linux";
+    # The disc copies a system built in advance and evaluates no Nix code, so
+    # it needs no copy of nixpkgs' 200 MiB source.
+    nixpkgs = {
+      flake = {
+        setFlakeRegistry = false;
+        setNixPath = false;
+      };
+      hostPlatform = "x86_64-linux";
+    };
     # KPMcore, which Calamares partitions with, needs its D-Bus helper.
     programs.partition-manager.enable = true;
     services = {
@@ -126,6 +134,8 @@ in
       '';
     };
     system = {
+      # Another copy of that source, for nix-channel.
+      installer.channel.enable = false;
       nixos.distroName = "Zoomies";
       stateVersion = "26.05";
     };

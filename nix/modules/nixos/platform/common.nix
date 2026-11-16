@@ -22,6 +22,12 @@
     "pt_BR.UTF-8/UTF-8"
   ];
   networking.networkmanager.enable = true;
+  # Updates come from the Zoomies flake, which brings its own nixpkgs; one
+  # pinned for `nix run nixpkgs#…` and <nixpkgs> only adds a 200 MiB source.
+  nixpkgs.flake = {
+    setFlakeRegistry = false;
+    setNixPath = false;
+  };
   services.fstrim.enable = true;
   # Reads the options' documentation and brings man-db back.
   system.tools.nixos-option.enable = false;
