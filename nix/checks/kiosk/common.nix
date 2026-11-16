@@ -15,7 +15,8 @@ let
 
   # Talks to greetd directly, bypassing the greeter, to prove PAM itself
   # decides who gets in. An optional second argument answers the password
-  # prompt.
+  # prompt; PAM's notes, such as a lock, get no answer, so they cannot
+  # use it up.
   greetdTry = pkgs.writers.writePython3Bin "greetd-try" { } ''
     import glob
     import json
@@ -36,9 +37,14 @@ let
 
 
     reply = send({"type": "create_session", "username": sys.argv[1]})
-    while reply["type"] == "auth_message" and secret is not None:
-        reply = send({"type": "post_auth_message_response", "response": secret})
-        secret = None
+    while reply["type"] == "auth_message":
+        if reply["auth_message_type"] in ("info", "error"):
+            response = None
+        elif secret is not None:
+            response, secret = secret, None
+        else:
+            break
+        reply = send({"type": "post_auth_message_response", "response": response})
     send({"type": "cancel_session"})
     print(reply)
     sys.exit(0 if reply["type"] == "success" else 1)
