@@ -18,6 +18,9 @@ let
         boot.kernelParams = [ "console=ttyAMA0,115200n8" ];
         sdImage.compressImage = false;
         services.getty.autologinUser = "root";
+        # The check runs its own update; one from GitHub would only slow the
+        # emulated boot down.
+        system.autoUpgrade.enable = lib.mkForce false;
         # Games and apps do not affect the boot path.
         zoomies = {
           games = lib.mkForce [ ];
@@ -30,7 +33,11 @@ let
 
   test =
     pkgs.writers.writePython3 "zoomies-raspberry-pi-test"
-      { libraries = [ pkgs.python3Packages.pexpect ]; }
+      {
+        # The image's store path alone runs past 79 columns.
+        flakeIgnore = [ "E501" ];
+        libraries = [ pkgs.python3Packages.pexpect ];
+      }
       ''
         import json
         import os
@@ -97,13 +104,14 @@ let
             logfile=sys.stdout,
             timeout=3600,
         )
-        vm.expect(r"\[root@zoomies-pi:~\]#")
+        # Bash sets the terminal title inside the prompt's brackets.
+        vm.expect(r"root@zoomies-pi:~\]#")
         vm.timeout = 600
 
 
         def succeed(command):
             vm.sendline(f"{command}; echo __rc=$?")
-            vm.expect(r"__rc=(\d+)\r?\n")
+            vm.expect(r"__rc=(\d+)\r*\n")
             rc = int(vm.match.group(1))
             output = vm.before
             assert rc == 0, f"{command!r} failed with {rc}"

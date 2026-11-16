@@ -148,6 +148,16 @@ back, put the card in another computer and point `os_prefix` in
 `nix build --accept-flake-config .#checks.x86_64-linux.raspberry-pi` boots
 the image's own boot files in QEMU's Pi 3 emulation and runs an update.
 
+## Updates
+
+An installed Zoomies, on a PC or a Pi, updates itself from this repository's
+`main` branch. It checks ten minutes after each boot, and every night at
+04:40 if it is on, whenever it has a network. The update downloads and builds
+in the background, at the lowest priority, so games keep running smoothly.
+The new system starts at the next boot, never in the middle of a session.
+Kids and their settings are kept. Systems older than 7 days are deleted to
+free disk space.
+
 ## Use it in your own NixOS configuration
 
 ```nix
@@ -180,6 +190,7 @@ All Nix code lives under `nix/` and is wired by
 | `nix/checks/raspberry-pi.nix` | `checks.raspberry-pi` (Pi image boot and update in QEMU) |
 | `nix/checks/kiosk.nix` | `checks.kiosk` (logins, PIN, screen time, network block, home reset) |
 | `nix/checks/splash.nix` | `checks.splash` (records the boot; fails if the screen goes dark before the greeter) |
+| `nix/checks/translations.nix` | `checks.translations` (the template lists every string; each translation compiles) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
 | `nix/hosts/zoomies-pi/` | `nixosConfigurations.zoomies-pi` |
 | `nix/devshell.nix` | `devShells.default` |

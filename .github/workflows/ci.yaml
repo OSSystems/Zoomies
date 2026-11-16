@@ -38,6 +38,7 @@ jobs:
             .#checks.x86_64-linux.nixos-zoomies
             .#checks.x86_64-linux.kiosk
             .#checks.x86_64-linux.installer
+            .#checks.x86_64-linux.translations
           checks: "true"
   # GitHub's Arm runners build the Raspberry Pi host natively, with the
   # kernel from the nixos-raspberrypi cache. The image itself is left out: it

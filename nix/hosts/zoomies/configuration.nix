@@ -8,6 +8,7 @@
   imports = [
     flake.nixosModules.platform
     flake.nixosModules.zoomies
+    ../updates.nix
   ];
   networking.hostName = hostName;
   nixpkgs.hostPlatform = "x86_64-linux";

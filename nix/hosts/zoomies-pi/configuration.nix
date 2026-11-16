@@ -9,6 +9,7 @@
   imports = [
     flake.nixosModules.raspberry-pi
     flake.nixosModules.zoomies
+    ../updates.nix
   ];
   networking.hostName = hostName;
   nixpkgs.hostPlatform = "aarch64-linux";
