@@ -132,8 +132,8 @@ class Popup(Gtk.Window):
         self.card.get_style_context().add_class("card")
         self.add(self.card)
         self.connect("key-press-event", self._key)
-        self.connect("focus-out-event", lambda *_: self.close_card())
-        self.connect("delete-event", lambda *_: self.close_card() or True)
+        self.connect("focus-out-event", lambda *_args: self.close_card())
+        self.connect("delete-event", lambda *_args: self.close_card() or True)
 
     def _key(self, _window, event):
         if event.keyval == Gdk.KEY_Escape:
@@ -184,11 +184,11 @@ class AppsPanel(Popup):
         rest = []
         for info in entries:
             categories = set(filter(None, (info.get_categories() or "").split(";")))
-            target = next((g for _, cats, g in groups if categories & cats), rest)
+            target = next((g for _name, cats, g in groups if categories & cats), rest)
             target.append(info)
         last = "Internet, files and games" if games else "Internet and files"
         self.first = None
-        for name, _, members in [*groups, (last, None, rest)]:
+        for name, _cats, members in [*groups, (last, None, rest)]:
             extra = name == last and games
             if not members and not extra:
                 continue
@@ -203,7 +203,7 @@ class AppsPanel(Popup):
                 inside = f"{len(games)} games inside" if len(games) > 1 else "1 game inside"
                 button = tile(None, TILE_ICON, "Games ›", inside, "applications-games")
                 button.get_style_context().add_class("games")
-                button.connect("clicked", lambda *_: self.show_games())
+                button.connect("clicked", lambda *_args: self.show_games())
                 flow.add(button)
                 self.games_button = button
                 self.first = self.first or button
@@ -226,7 +226,7 @@ class AppsPanel(Popup):
             top = Gtk.Box(spacing=16)
             back = Gtk.Button(label="← All apps")
             back.get_style_context().add_class("back")
-            back.connect("clicked", lambda *_: self.show_apps())
+            back.connect("clicked", lambda *_args: self.show_apps())
             top.pack_start(back, False, False, 0)
             top.pack_start(label("Games", "card-title", xalign=0), False, False, 0)
             page.pack_start(top, False, False, 0)
@@ -281,11 +281,11 @@ class Ask(Popup):
         buttons = Gtk.Box(spacing=GAP, halign=Gtk.Align.CENTER)
         no = Gtk.Button(label="No")
         no.get_style_context().add_class("answer")
-        no.connect("clicked", lambda *_: self.close_card())
+        no.connect("clicked", lambda *_args: self.close_card())
         button = Gtk.Button(label=yes)
         button.get_style_context().add_class("answer")
         button.get_style_context().add_class("yes")
-        button.connect("clicked", lambda *_: self.close_card() or on_yes())
+        button.connect("clicked", lambda *_args: self.close_card() or on_yes())
         buttons.pack_start(no, False, False, 0)
         buttons.pack_start(button, False, False, 0)
         self.card.pack_start(buttons, False, False, 0)
@@ -313,11 +313,11 @@ class Running(Gtk.Button):
         self.add(self.box)
         self._identify()
         # LibreOffice changes its class once it knows which app it is.
-        window.connect("class-changed", lambda *_: self._identify())
-        window.connect("icon-changed", lambda *_: self._identify())
+        window.connect("class-changed", lambda *_args: self._identify())
+        window.connect("icon-changed", lambda *_args: self._identify())
         self.set_tooltip_text(window.get_name())
         window.connect("name-changed", lambda w: self.set_tooltip_text(w.get_name()))
-        self.connect("clicked", lambda *_: window.activate(now(shelf)))
+        self.connect("clicked", lambda *_args: window.activate(now(shelf)))
 
     def _identify(self):
         info = self.shelf.app_for(self.window)
@@ -411,14 +411,14 @@ class Shelf(Gtk.Window):
             bar.pack_start(button, False, False, 0)
         self.switch = Ask(self, "Stop and switch player?", "Switch", lambda: self._session("--logout"))
         self.power = Ask(self, "Turn the computer off?", "Turn off", lambda: self._session("--halt"))
-        switch.connect("clicked", lambda *_: self._ask(self.switch))
-        power.connect("clicked", lambda *_: self._ask(self.power))
+        switch.connect("clicked", lambda *_args: self._ask(self.switch))
+        power.connect("clicked", lambda *_args: self._ask(self.power))
 
         self.panel = AppsPanel(self, entries, games)
 
-        self.connect("realize", lambda *_: self.place())
-        Gdk.Screen.get_default().connect("monitors-changed", lambda *_: self.place())
-        Gdk.Screen.get_default().connect("size-changed", lambda *_: self.place())
+        self.connect("realize", lambda *_args: self.place())
+        Gdk.Screen.get_default().connect("monitors-changed", lambda *_args: self.place())
+        Gdk.Screen.get_default().connect("size-changed", lambda *_args: self.place())
 
         self.buttons = {}
         self.front = None
@@ -426,7 +426,7 @@ class Shelf(Gtk.Window):
         self.screen = Wnck.Screen.get_default()
         self.screen.connect("window-opened", lambda _s, w: self._opened(w))
         self.screen.connect("window-closed", lambda _s, w: self._closed(w))
-        self.screen.connect("active-window-changed", lambda *_: self._front())
+        self.screen.connect("active-window-changed", lambda *_args: self._front())
         self.screen.force_update()
         for window in self.screen.get_windows():
             self._opened(window)
@@ -471,7 +471,7 @@ class Shelf(Gtk.Window):
     def _opened(self, window):
         if not self._ours(window) or window in self.buttons:
             return
-        window.connect("state-changed", lambda w, *_: self._fit(w))
+        window.connect("state-changed", lambda w, *_args: self._fit(w))
         self._fit(window)
         button = Running(self, window)
         self.buttons[window] = button
@@ -509,7 +509,7 @@ class Shelf(Gtk.Window):
         for window, button in self.buttons.items():
             button.front(window == active)
 
-    def _toggle_apps(self, *_):
+    def _toggle_apps(self, *_args):
         if self.panel.get_visible() or self.panel.just_closed():
             self.panel.close_card()
         else:
