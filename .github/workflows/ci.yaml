@@ -34,12 +34,30 @@ jobs:
           flake-check-args: --no-build
           # The microVMs are x86_64 only; the aarch64 job builds the Pi host.
           build-hosts: "false"
+          # The tests build the packages they use; the public ISO is left to
+          # the installer-iso job and the dev shell to whoever enters it.
+          build-devshells: "false"
+          build-packages: "false"
           build-attrs: >-
             .#checks.x86_64-linux.nixos-zoomies
             .#checks.x86_64-linux.kiosk
             .#checks.x86_64-linux.installer
             .#checks.x86_64-linux.translations
           checks: "true"
+  # The installer test boots its own ISO, which shares the installer but not
+  # the games, so packing the published one is only worth it once merged.
+  installer-iso:
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: octocat-microvm
+    steps:
+      - uses: ossystems/nix-actions@v1
+        with:
+          # The ci job already evaluates the flake.
+          flake-check: "false"
+          build-hosts: "false"
+          build-devshells: "false"
+          build-packages: "false"
+          build-attrs: .#packages.x86_64-linux.installer-iso
   # GitHub's Arm runners build the Raspberry Pi host natively, with the
   # kernel from the nixos-raspberrypi cache. The image itself is left out: it
   # would roughly double the store on a runner with little disk.
@@ -53,6 +71,7 @@ jobs:
           # The ci job already evaluates the flake.
           flake-check: "false"
           build-hosts: "false"
+          build-devshells: "false"
           build-packages: "false"
           build-attrs: .#checks.aarch64-linux.nixos-zoomies-pi
           checks: "true"
