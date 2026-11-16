@@ -180,6 +180,7 @@ All Nix code lives under `nix/` and is wired by
 | `nix/checks/raspberry-pi.nix` | `checks.raspberry-pi` (Pi image boot and update in QEMU) |
 | `nix/checks/kiosk.nix` | `checks.kiosk` (logins, PIN, screen time, network block, home reset) |
 | `nix/checks/splash.nix` | `checks.splash` (records the boot; fails if the screen goes dark before the greeter) |
+| `nix/checks/translations.nix` | `checks.translations` (the template lists every string; each translation compiles) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
 | `nix/hosts/zoomies-pi/` | `nixosConfigurations.zoomies-pi` |
 | `nix/devshell.nix` | `devShells.default` |
