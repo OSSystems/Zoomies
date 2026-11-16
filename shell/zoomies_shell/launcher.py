@@ -13,8 +13,8 @@ import sys
 
 from . import apps, state, ui
 from .i18n import _
-from .ui import Gio, GLib, Gtk
-from gi.repository import Pango
+from .ui import GLib, Gtk
+from gi.repository import Gio, Pango
 
 # Desktop entry field codes; games start without files or URLs.
 FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")

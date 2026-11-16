@@ -51,18 +51,10 @@ def cover(width, height, image_width, image_height):
     return scale, x, y
 
 
-def render(data, width, height):
-    loader = GdkPixbuf.PixbufLoader()
-    loader.set_size(width, height)
-    loader.write(data)
-    loader.close()
-    return loader.get_pixbuf()
-
-
 def zoomed(data, width, height, image_width, image_height):
     """The SVG as xfdesktop draws it on a monitor, transparent where it is."""
     scale, x, y = cover(width, height, image_width, image_height)
-    image = render(data, int(image_width * scale), int(image_height * scale))
+    image = art.pixbuf(data, int(image_width * scale), int(image_height * scale))
     canvas = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
     canvas.fill(0)
     image.composite(canvas, 0, 0, width, height, x, y, 1, 1, GdkPixbuf.InterpType.BILINEAR, 255)
@@ -207,7 +199,7 @@ class Sky(Gtk.Window):
         self.clouds = []
         for group in paper.clouds:
             svg, (bx, by, bw, bh), size = paper.cloud(group)
-            image = render(svg, max(1, round(bw * scale)), max(1, round(bh * scale)))
+            image = art.pixbuf(svg, max(1, round(bw * scale)), max(1, round(bh * scale)))
             speed = CLOUD_SPEED * size * scale * STEP_MS / 1000
             self.clouds.append(Cloud(self._surface(image), ox + bx * scale, oy + by * scale, speed))
         self.zip = []

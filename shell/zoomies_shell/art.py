@@ -2,9 +2,22 @@
 
 import xml.etree.ElementTree as ET
 
+import gi
+
+gi.require_version("GdkPixbuf", "2.0")
+from gi.repository import GdkPixbuf, Gio, GLib  # noqa: E402
+
 SVG = "http://www.w3.org/2000/svg"
 ET.register_namespace("", SVG)
 ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+
+
+def pixbuf(data, width=-1, height=-1):
+    """The SVG data drawn at that size. Given one side only, it keeps its
+    proportions; given both, it fills them exactly."""
+    stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(data))
+    keep = width < 0 or height < 0
+    return GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, width, height, keep, None)
 
 
 def svg_frames(path):

@@ -11,10 +11,9 @@ from . import art, state
 from .i18n import N_, _
 
 gi.require_version("Gdk", "4.0")
-gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Graphene", "1.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Graphene, Gtk  # noqa: E402
+from gi.repository import Gdk, GLib, Graphene, Gtk  # noqa: E402
 
 try:
     gi.require_version("Manette", "0.2")
@@ -114,12 +113,10 @@ POSES = {"rest": "zip.svg", "fly": "zip-flying.svg"}
 def mascot_frames(path, height):
     # Rendered at the wanted height: a Picture of the SVG itself would ask
     # for the SVG's large natural size and squeeze everything around it.
-    textures = []
-    for data in art.svg_frames(path):
-        stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(data))
-        pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, -1, height, True, None)
-        textures.append(Gdk.Texture.new_for_pixbuf(pixbuf))
-    return textures
+    return [
+        Gdk.Texture.new_for_pixbuf(art.pixbuf(data, height=height))
+        for data in art.svg_frames(path)
+    ]
 
 
 class Mascot(Gtk.Picture):
@@ -260,9 +257,7 @@ class Sky(Gtk.Widget):
             self.textures = {}
             for size, factor in enumerate(self.SIZES):
                 width = max(1, round(390 * factor * scale))
-                stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(CLOUD.encode()))
-                pixbuf = GdkPixbuf.Pixbuf.new_from_stream_at_scale(stream, width, -1, True, None)
-                self.textures[size] = Gdk.Texture.new_for_pixbuf(pixbuf)
+                self.textures[size] = Gdk.Texture.new_for_pixbuf(art.pixbuf(CLOUD.encode(), width))
         return self.textures
 
     def _layout(self):
