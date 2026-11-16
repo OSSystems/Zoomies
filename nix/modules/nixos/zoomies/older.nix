@@ -136,8 +136,6 @@ in
     apps = lib.mkOption {
       default = with pkgs; [
         audacity
-        gcompris
-        inkscape
         kdePackages.kgeography
         kdePackages.ktouch
         krita
