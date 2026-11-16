@@ -10,8 +10,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 permissions:
-  # Each VM test reports its own status on the pull request.
-  checks: write
   contents: read
 jobs:
   nix-fmt:
@@ -22,15 +20,12 @@ jobs:
         run: nix fmt
       - name: Fail if any file would be reformatted
         run: git diff --exit-code
-  # Octocat's microVMs build through a host Nix daemon with KVM, so the VM
-  # tests run there too, and the store is shared between runs.
-  ci:
+  flake-check:
     runs-on: octocat-microvm
     steps:
       - uses: ossystems/nix-actions@v1
         with:
-          # The VM tests are built below, each with its own status, rather
-          # than all at once by the flake check.
+          # Building is left to the checks job, so the tests run side by side.
           flake-check-args: --no-build
           # The microVMs are x86_64 only; the aarch64 job builds the Pi host.
           build-hosts: "false"
@@ -38,12 +33,35 @@ jobs:
           # the installer-iso job and the dev shell to whoever enters it.
           build-devshells: "false"
           build-packages: "false"
-          build-attrs: >-
-            .#checks.x86_64-linux.nixos-zoomies
-            .#checks.x86_64-linux.kiosk
-            .#checks.x86_64-linux.installer
-            .#checks.x86_64-linux.translations
-          checks: "true"
+  # Octocat's microVMs build through a host Nix daemon with KVM, so the VM
+  # tests run there too, and the store is shared between runs. The action
+  # builds its attributes one after another, so each check gets its own job
+  # to run in parallel and report its own status. The VM tests peak at
+  # about 9 GiB of guest memory together, so the host needs no
+  # max-parallel.
+  checks:
+    name: ${{ matrix.check }}
+    runs-on: octocat-microvm
+    strategy:
+      # One broken test must not hide whether the others pass.
+      fail-fast: false
+      matrix:
+        check:
+          - installer
+          - kiosk
+          - kiosk-memory
+          - nixos-zoomies
+          - splash
+          - translations
+    steps:
+      - uses: ossystems/nix-actions@v1
+        with:
+          # The flake-check job evaluates the whole flake once.
+          flake-check: "false"
+          build-hosts: "false"
+          build-devshells: "false"
+          build-packages: "false"
+          build-attrs: .#checks.x86_64-linux.${{ matrix.check }}
   # The installer test boots its own ISO, which shares the installer but not
   # the games, so packing the published one is only worth it once merged.
   installer-iso:
@@ -52,7 +70,7 @@ jobs:
     steps:
       - uses: ossystems/nix-actions@v1
         with:
-          # The ci job already evaluates the flake.
+          # The flake-check job already evaluates the flake.
           flake-check: "false"
           build-hosts: "false"
           build-devshells: "false"
@@ -68,10 +86,9 @@ jobs:
         with:
           install-nix: "true"
           cache-save: ${{ github.ref == 'refs/heads/main' }}
-          # The ci job already evaluates the flake.
+          # The flake-check job already evaluates the flake.
           flake-check: "false"
           build-hosts: "false"
           build-devshells: "false"
           build-packages: "false"
           build-attrs: .#checks.aarch64-linux.nixos-zoomies-pi
-          checks: "true"
