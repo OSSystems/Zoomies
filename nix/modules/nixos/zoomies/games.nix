@@ -33,11 +33,26 @@ let
     };
 
   fixups = {
+    # Neverball and Neverputt size their drawing once, right after making
+    # the window, and ignore resizes, so they draw in a corner of the
+    # screen-sized window they get. In their own fullscreen mode they take
+    # the size of the screen, but their high-DPI mode asks the window, which
+    # is still at its first size then. Both are forced, whatever an earlier
+    # session saved, since their settings survive the home reset.
     neverball =
       pkg:
-      withEntries pkg [
-        (entry pkg "neverball" "Neverball" "share/neverball/data/icon/neverball.png")
-        (entry pkg "neverputt" "Neverputt" "share/neverball/data/icon/neverputt.png")
+      let
+        fullscreen = pkg.overrideAttrs (old: {
+          postPatch = (old.postPatch or "") + ''
+            substituteInPlace share/video.c \
+              --replace-fail 'video_mode(config_get_d(CONFIG_FULLSCREEN),' 'video_mode(1,' \
+              --replace-fail 'config_get_d(CONFIG_HIGHDPI)     ? 1 : 0' '0'
+          '';
+        });
+      in
+      withEntries fullscreen [
+        (entry fullscreen "neverball" "Neverball" "share/neverball/data/icon/neverball.png")
+        (entry fullscreen "neverputt" "Neverputt" "share/neverball/data/icon/neverputt.png")
       ];
     tuxpaint = pkg: withIcon pkg "tuxpaint.desktop" "share/tuxpaint/images/tuxpaint-icon.svg";
   };
