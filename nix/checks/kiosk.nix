@@ -17,6 +17,9 @@ pkgs.testers.runNixOSTest {
   # Reads the translated greeter off the screen.
   enableOCR = true;
   extraPythonPackages = p: [ p.pillow ];
+  # Three times a normal run: a stuck step fails the check instead of
+  # holding an idle VM for the driver's default hour.
+  globalTimeout = 1200;
   # qemu-system-x86_64 under KVM.
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk";
@@ -134,7 +137,7 @@ pkgs.testers.runNixOSTest {
         print(machine.succeed(f"grep -zE '^(LANG|LC_|XKB)' {environ} | tr '\\0' '\\n'"))
         machine.succeed(f"grep -qzx LANG=pt_BR.UTF-8 {environ}")
         machine.succeed(f"grep -qzx XKB_DEFAULT_LAYOUT=br {environ}")
-        machine.wait_for_text("Quem vai jogar")
+        machine.wait_for_text("Quem vai jogar", timeout=60)
         machine.screenshot("greeter-pt-br")
         machine.succeed(
             "systemctl show -p EnvironmentFiles zoomies-timekeeper | grep -q /var/lib/zoomies/locale.conf"
@@ -375,7 +378,7 @@ pkgs.testers.runNixOSTest {
         machine.wait_until_succeeds(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))
         machine.sleep(2)
         # Tiles say what an app is for in a kid's words, not "Word Processor".
-        machine.wait_for_text("Write stories")
+        machine.wait_for_text("Write stories", timeout=60)
         machine.screenshot("older-apps-card")
         machine.succeed(in_max_x("xdotool key Escape"))
         machine.wait_until_fails(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))

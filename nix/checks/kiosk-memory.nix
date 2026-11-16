@@ -12,6 +12,9 @@ let
   inherit (common) pages;
 in
 pkgs.testers.runNixOSTest {
+  # Three times a normal run: a stuck step fails the check instead of
+  # holding an idle VM for the driver's default hour.
+  globalTimeout = 720;
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk-memory";
   nodes.machine = {

@@ -40,7 +40,9 @@ in
 pkgs.testers.runNixOSTest {
   # Reads the boot menu off the screen.
   enableOCR = true;
-  globalTimeout = 7200;
+  # Three times a normal run: a stuck step fails the check instead of
+  # holding an idle VM for an hour or two.
+  globalTimeout = 1800;
   # qemu-system-x86_64 under KVM.
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-installer";
@@ -90,22 +92,23 @@ pkgs.testers.runNixOSTest {
         qemu_img("create", "-f", "qcow2", disk, "32G")
         machine = start(start_command(firmware, disk, medium), f"{name}_installer")
         # Calamares is driven with its keyboard shortcuts, reading each page
-        # off the screen before moving on.
-        machine.wait_for_text("Welcome to the Zoomies installer")
+        # off the screen before moving on. Pages show within seconds; the
+        # driver's 15-minute default would stare at a page that never comes.
+        machine.wait_for_text("Welcome to the Zoomies installer", timeout=180)
         # Next stays disabled until the requirement checks finish.
         machine.sleep(5)
         machine.screenshot(f"{name}-welcome")
         machine.send_key("alt-n")
-        machine.wait_for_text("Region")
+        machine.wait_for_text("Region", timeout=60)
         machine.send_key("alt-n")
-        machine.wait_for_text("Keyboard model")
+        machine.wait_for_text("Keyboard model", timeout=60)
         machine.send_key("alt-n")
-        machine.wait_for_text("Erase disk")
+        machine.wait_for_text("Erase disk", timeout=60)
         machine.screenshot(f"{name}-partitions")
         machine.send_key("alt-n")
-        machine.wait_for_text("overview of what will happen")
+        machine.wait_for_text("overview of what will happen", timeout=60)
         machine.send_key("alt-i")
-        machine.wait_for_text("Install Now")
+        machine.wait_for_text("Install Now", timeout=60)
         machine.send_key("alt-i")
         # Not wait_for_console_text: given a timeout, it reads one queued
         # serial line per second, so it trails the boot's 1000-odd lines and
@@ -116,7 +119,7 @@ pkgs.testers.runNixOSTest {
             "dmesg | grep -E 'zoomies-installer: (Installation complete|ERROR)'", timeout=600
         )
         machine.fail("dmesg | grep 'zoomies-installer: ERROR'")
-        machine.wait_for_text("All done")
+        machine.wait_for_text("All done", timeout=60)
         machine.screenshot(f"{name}-done")
         machine.shutdown()
         return disk
@@ -200,7 +203,7 @@ pkgs.testers.runNixOSTest {
             )
             machine.shutdown()
             machine.start()
-            machine.wait_for_text("configurations")
+            machine.wait_for_text("configurations", timeout=300)
             machine.screenshot("boot-menu")
             machine.send_key("ret")
             machine.wait_for_unit("multi-user.target")

@@ -10,6 +10,9 @@
 
 pkgs.testers.runNixOSTest {
   extraPythonPackages = p: [ p.pillow ];
+  # Several times a normal run: a stuck step fails the check instead of
+  # holding an idle VM for the driver's default hour.
+  globalTimeout = 600;
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-splash";
   nodes.machine = {
