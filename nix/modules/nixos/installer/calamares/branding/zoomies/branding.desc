@@ -1,7 +1,5 @@
 ---
 componentName: zoomies
-welcomeStyleCalamares: false
-welcomeExpandingLogo: true
 windowExpanding: fullscreen
 windowSize: 1024px,640px
 windowPlacement: center
