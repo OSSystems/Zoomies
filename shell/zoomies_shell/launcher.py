@@ -99,9 +99,6 @@ class Launcher(Gtk.ApplicationWindow):
             on_home=self.stop_game,
             enabled=lambda: not self.running(),
         )
-        keys = Gtk.EventControllerKey()
-        keys.connect("key-pressed", self._key)
-        self.add_controller(keys)
 
         self.refresh()
         GLib.timeout_add_seconds(5, self.refresh)
@@ -130,12 +127,6 @@ class Launcher(Gtk.ApplicationWindow):
         button.set_child(box)
         button.connect("clicked", lambda *_args: self.start_game(info))
         return button
-
-    def _key(self, _controller, keyval, _code, _modifiers):
-        if ui.Gdk.keyval_name(keyval) == "Escape" and self.overlay.open:
-            self.overlay.close()
-            return True
-        return False
 
     def start_game(self, info):
         if self.running():

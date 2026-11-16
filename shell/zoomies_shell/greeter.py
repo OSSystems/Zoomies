@@ -244,9 +244,6 @@ class Greeter(Gtk.ApplicationWindow):
         if name in ("p", "P") and modifiers & ctrl_alt == ctrl_alt:
             self.ask_pin()
             return True
-        if name == "Escape" and self.overlay.open:
-            self.overlay.close()
-            return True
         return False
 
     def play(self, kid):

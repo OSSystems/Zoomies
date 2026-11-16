@@ -340,6 +340,15 @@ class Overlay(Gtk.Overlay):
         self._layer = None
         self._previous_focus = None
         self.modal = False
+        keys = Gtk.EventControllerKey()
+        keys.connect("key-pressed", self._key)
+        self.add_controller(keys)
+
+    def _key(self, _controller, keyval, _code, _modifiers):
+        if keyval == Gdk.KEY_Escape and self.open:
+            self.close()
+            return True
+        return False
 
     def show(self, child, modal=False):
         if self._layer is None:
