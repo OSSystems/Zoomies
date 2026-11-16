@@ -80,9 +80,12 @@ in
       # Zoomies installs to ext4; ZFS only slows the ISO build down.
       supportedFilesystems.zfs = lib.mkForce false;
     };
+    # Nobody reads the manuals on the disc. The installation-device profile
+    # turns documentation on with a priority above plain settings, and
+    # man-db follows man.enable, not enable.
     documentation = {
-      enable = false;
-      nixos.enable = false;
+      enable = lib.mkForce false;
+      man.enable = false;
     };
     environment.systemPackages = [ installTarget ];
     fonts = {
