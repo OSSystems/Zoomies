@@ -107,6 +107,8 @@ let
   };
 in
 pkgs.testers.runNixOSTest {
+  # Reads the translated greeter off the screen.
+  enableOCR = true;
   # qemu-system-x86_64 under KVM.
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk";
@@ -279,6 +281,27 @@ pkgs.testers.runNixOSTest {
         )
         machine.succeed("swapon --show | grep -q zram")
         sample_memory("greeter")
+
+    with subtest("the screens speak the language saved at install"):
+        machine.succeed(
+            "printf 'LANG=pt_BR.UTF-8\\nXKB_DEFAULT_LAYOUT=br\\n' > /var/lib/zoomies/locale.conf"
+        )
+        restart_greeter()
+        # The greeter writes its own PID once it takes input.
+        # grep -z reads the file itself: piping through tr lets grep -q exit
+        # early, and the test shell turns tr's broken pipe into a failure.
+        environ = "/proc/$(cat /run/user/$(id -u greeter)/zoomies-greeter-ready)/environ"
+        print(machine.succeed(f"grep -zE '^(LANG|LC_|XKB)' {environ} | tr '\\0' '\\n'"))
+        machine.succeed(f"grep -qzx LANG=pt_BR.UTF-8 {environ}")
+        machine.succeed(f"grep -qzx XKB_DEFAULT_LAYOUT=br {environ}")
+        machine.wait_for_text("Quem vai jogar")
+        machine.screenshot("greeter-pt-br")
+        machine.succeed(
+            "systemctl show -p EnvironmentFiles zoomies-timekeeper | grep -q /var/lib/zoomies/locale.conf"
+        )
+        machine.succeed("rm /var/lib/zoomies/locale.conf")
+        restart_greeter()
+        machine.fail(f"grep -qz LANG=pt_BR {environ}")
 
     with subtest("a wrong PIN keeps grown-ups out"):
         machine.send_key("ctrl-alt-p")

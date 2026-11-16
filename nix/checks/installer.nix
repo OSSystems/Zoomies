@@ -98,10 +98,12 @@ pkgs.testers.runNixOSTest {
         machine.send_key("alt-n")
         machine.wait_for_text("Region")
         machine.send_key("alt-n")
+        machine.wait_for_text("Keyboard model")
+        machine.send_key("alt-n")
         machine.wait_for_text("Erase disk")
         machine.screenshot(f"{name}-partitions")
         machine.send_key("alt-n")
-        machine.wait_for_text("Install Zoomies on")
+        machine.wait_for_text("overview of what will happen")
         machine.send_key("alt-i")
         machine.wait_for_text("Install Now")
         machine.send_key("alt-i")
@@ -127,8 +129,10 @@ pkgs.testers.runNixOSTest {
         else:
             machine.fail("test -d /sys/firmware/efi")
 
-        # Offline, Calamares keeps its default time zone.
+        # Offline, Calamares keeps its default time zone, language and keyboard.
         machine.succeed('test "$(readlink /etc/localtime)" = /etc/zoneinfo/Europe/London')
+        machine.succeed("grep -qx LANG=en_US.UTF-8 /var/lib/zoomies/locale.conf")
+        machine.succeed("grep -qx XKB_DEFAULT_LAYOUT=us /var/lib/zoomies/locale.conf")
 
         machine.succeed("test -s /boot/efi/EFI/BOOT/BOOTX64.EFI")
         # Kernels live on the root filesystem, not on the small ESP.

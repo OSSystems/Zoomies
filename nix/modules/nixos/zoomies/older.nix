@@ -63,6 +63,12 @@ in
         ];
         programs.firefox = {
           enable = true;
+          # The languages Zoomies' own screens are translated to; English is
+          # built in. Firefox fetches them on its first start, online.
+          languagePacks = [
+            "es-ES"
+            "pt-BR"
+          ];
           # The easy ways around the filter from inside the browser.
           policies = {
             BlockAboutConfig = true;
@@ -80,6 +86,8 @@ in
               Mode = "system";
             };
           };
+          # Follow the session's language, which the installer saved.
+          preferences."intl.locale.requested" = "";
         };
         services.xserver = {
           desktopManager.xfce = {
@@ -97,6 +105,7 @@ in
               name = "zoomies-older-desktop";
               runtimeInputs = [
                 pkgs.gawk
+                pkgs.setxkbmap
                 pkgs.xfce4-session
                 pkgs.xrandr
               ];
@@ -107,6 +116,7 @@ in
             };
           in
           pkgs.writeShellScript "zoomies-older-session" ''
+            ${cfg.loadLocale}
             exec ${pkgs.xinit}/bin/startx ${lib.getExe desktop} -- -keeptty vt"$XDG_VTNR"
           '';
       }

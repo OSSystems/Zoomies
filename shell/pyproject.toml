@@ -18,5 +18,8 @@ zoomies-reset-home = "zoomies_shell.reset_home:main"
 zoomies-shelf = "zoomies_shell.shelf:main"
 zoomies-time = "zoomies_shell.timekeeper:main"
 
+[tool.setuptools]
+packages = ["zoomies_shell"]
+
 [tool.setuptools.package-data]
-zoomies_shell = ["*.css"]
+zoomies_shell = ["*.css", "locale/*/LC_MESSAGES/*.mo"]

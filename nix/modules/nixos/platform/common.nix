@@ -13,6 +13,13 @@
     enableRedistributableFirmware = true;
     graphics.enable = true;
   };
+  # The languages Zoomies' screens are translated to; the installer offers
+  # only these.
+  i18n.supportedLocales = [
+    "en_US.UTF-8/UTF-8"
+    "es_ES.UTF-8/UTF-8"
+    "pt_BR.UTF-8/UTF-8"
+  ];
   networking.networkmanager.enable = true;
   services.fstrim.enable = true;
   zramSwap = {

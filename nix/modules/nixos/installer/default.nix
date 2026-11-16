@@ -29,6 +29,11 @@ let
     text = builtins.readFile ./install-target.sh;
   };
 
+  # Only the languages the installed system has; in glibc's SUPPORTED format.
+  supportedLocales = pkgs.writeText "zoomies-supported-locales" (
+    lib.concatMapStrings (locale: "${locale} \\\n") cfg.system.config.i18n.supportedLocales
+  );
+
   calamaresConfig =
     pkgs.runCommand "zoomies-calamares-config"
       {
@@ -49,7 +54,7 @@ let
 
         substituteInPlace $out/settings.conf --replace-fail @modules@ $out/modules-dir
         substituteInPlace $out/modules/welcome.conf --replace-fail @requiredStorage@ "$storage"
-        substituteInPlace $out/modules/locale.conf --replace-fail @glibcLocales@ ${pkgs.glibcLocales}
+        substituteInPlace $out/modules/locale.conf --replace-fail @supportedLocales@ ${supportedLocales}
         substituteInPlace $out/branding/zoomies/branding.desc \
           --replace-fail @version@ ${cfg.system.config.system.nixos.release}
         substituteInPlace $out/modules-dir/zoomies/main.py \
