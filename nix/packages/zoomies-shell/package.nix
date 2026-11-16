@@ -3,6 +3,7 @@
   gobject-introspection,
   gtk3,
   gtk4,
+  lib,
   libmanette,
   libnotify,
   libwnck,
@@ -58,6 +59,15 @@ python3Packages.buildPythonApplication {
     done
   '';
   pyproject = true;
-  src = ../../../shell;
+  # Only what the package installs or compiles, so the translators' notes
+  # do not rebuild the shell and every system around it.
+  src = lib.fileset.toSource {
+    fileset = lib.fileset.unions [
+      ../../../shell/pyproject.toml
+      ../../../shell/zoomies_shell
+      (lib.fileset.fileFilter (file: file.hasExt "po") ../../../shell/po)
+    ];
+    root = ../../../shell;
+  };
   version = "0.1.0";
 }

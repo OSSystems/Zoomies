@@ -9,16 +9,11 @@ import json
 import os
 import socket
 import struct
-import subprocess
 import sys
-import time
 
 from . import admin, state, ui
 from .i18n import _
 from .ui import GLib, Gtk
-
-PIN_ATTEMPTS = 3
-PIN_LOCKOUT = 30
 
 
 class Greetd:
@@ -103,16 +98,15 @@ class Greeter(Gtk.ApplicationWindow):
         self.config = config
         self.greetd = Greetd()
         self.tiles = {}
-        self.failures = 0
-        self.locked_until = 0
 
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
         page.add_css_class("page")
+        self.overlay = ui.Overlay(page, ui.sky(40))
+        self.set_child(self.overlay)
 
         top = Gtk.CenterBox()
-        top.set_start_widget(ui.mascot(config, 120))
-        title = Gtk.Label(label=_("Who's playing?"))
-        title.add_css_class("title")
+        top.set_start_widget(ui.Mascot(config, 120))
+        title = Gtk.Label(label=_("Who's playing?"), css_classes=["title"])
         top.set_center_widget(title)
         top.set_end_widget(ui.clock())
         page.append(top)
@@ -130,8 +124,9 @@ class Greeter(Gtk.ApplicationWindow):
             margin_end=14,
         )
         # A big family must not push the grown-ups and power buttons away.
-        scroller = Gtk.ScrolledWindow(vexpand=True, child=self.kids)
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller = Gtk.ScrolledWindow(
+            vexpand=True, child=self.kids, hscrollbar_policy=Gtk.PolicyType.NEVER
+        )
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
@@ -143,21 +138,10 @@ class Greeter(Gtk.ApplicationWindow):
         # tooltips never show on touch screens.
         parent.connect("clicked", lambda *_args: self.hint(_("Keep holding 🔒 to open")))
         bottom.append(parent)
-        self.hint_label = Gtk.Label(hexpand=True, xalign=0)
-        self.hint_label.add_css_class("kid-note")
+        self.hint_label = Gtk.Label(hexpand=True, xalign=0, css_classes=["kid-note"])
         bottom.append(self.hint_label)
-        power = ui.big_button(None, "subtle", "⏻")
-        power.connect(
-            "clicked",
-            lambda *_args: self.overlay.confirm(
-                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
-            ),
-        )
-        bottom.append(power)
+        bottom.append(ui.system_button(self.overlay, "poweroff"))
         page.append(bottom)
-
-        self.overlay = ui.Overlay(page, ui.sky(40))
-        self.set_child(self.overlay)
 
         keys = Gtk.EventControllerKey()
         keys.connect("key-pressed", self._key)
@@ -179,9 +163,11 @@ class Greeter(Gtk.ApplicationWindow):
         for index, kid in enumerate(kids):
             self.kids.attach(self._kid_tile(kid), index % columns, index // columns, 1, 1)
         if not self.tiles:
-            empty = Gtk.Label(label=_("No kids yet.\nGrown-ups can add them with the 🔒 button."))
-            empty.set_justify(Gtk.Justification.CENTER)
-            empty.add_css_class("dialog-title")
+            empty = Gtk.Label(
+                label=_("No kids yet.\nGrown-ups can add them with the 🔒 button."),
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
             self.kids.attach(empty, 0, 0, 1, 1)
         self.refresh()
         first = next(iter(self.tiles.values()), None)
@@ -205,6 +191,14 @@ class Greeter(Gtk.ApplicationWindow):
             print(f"setup check failed: {error}", file=sys.stderr)
             return None
 
+    def pin_locked(self):
+        """Whether PAM locked the grown-ups out after too many wrong PINs."""
+        try:
+            return bool(admin.request("pin-locked").get("locked"))
+        except admin.Refused as error:
+            print(f"lock check failed: {error}", file=sys.stderr)
+            return False
+
     def maybe_set_up(self, tries=10):
         if not self.config.get("parent"):
             self.ready("setup")
@@ -224,11 +218,8 @@ class Greeter(Gtk.ApplicationWindow):
         button.add_css_class("kid-tile")
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.append(ui.avatar(kid))
-        name = Gtk.Label(label=kid["name"])
-        name.add_css_class("kid-name")
-        box.append(name)
-        note = Gtk.Label()
-        note.add_css_class("kid-note")
+        box.append(Gtk.Label(label=kid["name"], css_classes=["kid-name"]))
+        note = Gtk.Label(css_classes=["kid-note"])
         box.append(note)
         button.set_child(box)
         button.note = note
@@ -253,9 +244,6 @@ class Greeter(Gtk.ApplicationWindow):
         if name in ("p", "P") and modifiers & ctrl_alt == ctrl_alt:
             self.ask_pin()
             return True
-        if name == "Escape" and self.overlay.open:
-            self.overlay.close()
-            return True
         return False
 
     def play(self, kid):
@@ -278,10 +266,12 @@ class Greeter(Gtk.ApplicationWindow):
             self.send_outside(kid, status)
             self.refresh()
         else:
-            self.say("🙈", "Oops, that did not work.\nAsk a grown-up for help.")
+            self.say("🙈", _("Oops, that did not work.\nAsk a grown-up for help."))
 
     def send_outside(self, kid, status):
-        text = f"{describe(status)}, {kid['name']}!\nZip says: go run around outside!"
+        text = _("{status}, {name}!\nZip says: go run around outside!").format(
+            status=describe(status), name=kid["name"]
+        )
         self.say(kid["avatar"], text, flying=True)
 
     def say(self, emoji, text, flying=False):
@@ -290,11 +280,15 @@ class Greeter(Gtk.ApplicationWindow):
             # A vertical box would size the picture for the full dialog
             # width; a row gives it only its own width.
             row = Gtk.Box(halign=Gtk.Align.CENTER)
-            row.append(ui.mascot(self.config, 120, "fly"))
+            row.append(ui.Mascot(self.config, 120, "fly"))
             box.append(row)
-        label = Gtk.Label(label=f"{emoji}\n{text}", justify=Gtk.Justification.CENTER)
-        label.add_css_class("dialog-title")
-        box.append(label)
+        box.append(
+            Gtk.Label(
+                label=f"{emoji}\n{text}",
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
+        )
         ok = ui.big_button(_("OK"), "yes", "👍")
         ok.set_halign(Gtk.Align.CENTER)
         ok.connect("clicked", lambda *_args: self.overlay.close())
@@ -310,10 +304,13 @@ class Greeter(Gtk.ApplicationWindow):
             Setup(self).start()
             return
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        title = Gtk.Label(label=_("🔒\nGrown-ups only"))
-        title.set_justify(Gtk.Justification.CENTER)
-        title.add_css_class("dialog-title")
-        box.append(title)
+        box.append(
+            Gtk.Label(
+                label=_("🔒\nGrown-ups only"),
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
+        )
         entry = ui.pin_entry(_("PIN"))
         box.append(entry)
         message = ui.message_label()
@@ -340,9 +337,6 @@ class Greeter(Gtk.ApplicationWindow):
         def submit():
             if not entry.get_text():
                 return
-            if time.monotonic() < self.locked_until:
-                message.set_label(_("Too many tries. Wait a little."))
-                return
             error = self.greetd.login(
                 parent["user"], self.config["parentSession"], secret=entry.get_text()
             )
@@ -350,11 +344,11 @@ class Greeter(Gtk.ApplicationWindow):
             if error is None:
                 self.get_application().quit()
                 return
-            self.failures += 1
-            if self.failures >= PIN_ATTEMPTS:
-                self.failures = 0
-                self.locked_until = time.monotonic() + PIN_LOCKOUT
-                message.set_label(_("Too many tries. Wait a little."))
+            # greetd answers a locked account like a wrong PIN.
+            if self.pin_locked():
+                message.set_label(
+                    _("Too many tries. Ask a grown-up, or wait a little and try again.")
+                )
             else:
                 message.set_label(_("That is not the PIN."))
 
@@ -381,8 +375,8 @@ class Setup:
         title = Gtk.Label(
             label=_("👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN."),
             justify=Gtk.Justification.CENTER,
+            css_classes=["dialog-title"],
         )
-        title.add_css_class("dialog-title")
         box.append(title)
         hint = Gtk.Label(label=_("4 to 12 digits. Kids should not see it!"))
         box.append(hint)
@@ -408,7 +402,7 @@ class Setup:
                 # The PIN may have been saved even though the answer got
                 # lost; asking again would then need the "old" PIN.
                 if self.greeter.pin_set() is not True:
-                    message.set_label(_(str(error)).capitalize() + ".")
+                    message.set_label(ui.reason(error))
                     return
             self.pin = first.get_text()
             self.kids()
@@ -423,15 +417,16 @@ class Setup:
     def kids(self):
         config = state.load_config()
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        title = Gtk.Label(label=_("Who will play?"), justify=Gtk.Justification.CENTER)
-        title.add_css_class("dialog-title")
+        title = Gtk.Label(
+            label=_("Who will play?"), justify=Gtk.Justification.CENTER, css_classes=["dialog-title"]
+        )
         box.append(title)
         added = Gtk.Label(
             label="  ".join(f"{k['avatar']} {k['name']}" for k in config["kids"])
             or _("Type a name, pick a face, then press Add."),
             wrap=True,
+            css_classes=["kid-note"],
         )
-        added.add_css_class("kid-note")
         box.append(added)
         form = ui.KidForm(
             older=config.get("olderEnabled", False),
@@ -458,7 +453,7 @@ class Setup:
             try:
                 admin.request("add-kid", pin=self.pin, **values)
             except admin.Refused as error:
-                message.set_label(_(str(error)).capitalize() + ".")
+                message.set_label(ui.reason(error))
                 return
             self.kids()
 
@@ -475,13 +470,4 @@ class Setup:
 
 def main():
     config = state.load_config()
-    app = Gtk.Application(application_id="org.zoomies.Greeter")
-
-    def activate(app):
-        ui.load_css()
-        window = Greeter(app, config)
-        window.fullscreen()
-        window.present()
-
-    app.connect("activate", activate)
-    sys.exit(app.run(None))
+    ui.run("org.zoomies.Greeter", lambda app: Greeter(app, config))

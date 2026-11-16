@@ -16,17 +16,18 @@ let
   rules =
     lib.optional cfg.network.blockKids "OUTPUT ! -o lo -m owner --gid-owner ${little} -j REJECT"
     ++ lib.optionals cfg.older.enable (
-      lib.concatMap
+      lib.mapCartesianProduct
         (
-          proto:
-          map (
-            port: "OUTPUT ! -o lo -p ${proto} --dport ${port} -m owner --gid-owner ${older} -j REJECT"
-          ) dnsPorts
+          { protocol, targetPort }:
+          "OUTPUT ! -o lo -p ${protocol} --dport ${targetPort} -m owner --gid-owner ${older} -j REJECT"
         )
-        [
-          "tcp"
-          "udp"
-        ]
+        {
+          protocol = [
+            "tcp"
+            "udp"
+          ];
+          targetPort = dnsPorts;
+        }
     );
 
   remove = lib.concatMapStrings (rule: ''

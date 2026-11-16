@@ -8,10 +8,11 @@
     "vm.watermark_boost_factor" = 0;
     "vm.watermark_scale_factor" = 125;
   };
-  hardware = {
-    # Only redistributable firmware, so the images can be shared freely.
-    enableRedistributableFirmware = true;
-    graphics.enable = true;
+  # Nobody reads manuals on a family's Zoomies, and they would fill the
+  # image. man-db follows man.enable, not enable.
+  documentation = {
+    enable = false;
+    man.enable = false;
   };
   # The languages Zoomies' screens are translated to; the installer offers
   # only these.
@@ -21,7 +22,15 @@
     "pt_BR.UTF-8/UTF-8"
   ];
   networking.networkmanager.enable = true;
+  # Updates come from the Zoomies flake, which brings its own nixpkgs; one
+  # pinned for `nix run nixpkgs#…` and <nixpkgs> only adds a 200 MiB source.
+  nixpkgs.flake = {
+    setFlakeRegistry = false;
+    setNixPath = false;
+  };
   services.fstrim.enable = true;
+  # Reads the options' documentation and brings man-db back.
+  system.tools.nixos-option.enable = false;
   zramSwap = {
     algorithm = "zstd";
     enable = true;

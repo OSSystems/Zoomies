@@ -1,5 +1,5 @@
 # Finishes an install once Calamares has partitioned and mounted the target:
-# labels the filesystems the system mounts, copies the prebuilt system and
+# labels the root filesystem, records the ESP, copies the prebuilt system and
 # installs GRUB. TOPLEVEL and CLOSURE_INFO come from the Nix wrapper.
 set -eu
 
@@ -41,14 +41,12 @@ for other in $(blkid -t LABEL=zoomies -o device); do
 done
 e2label "$root_device" zoomies
 
+mkdir -p "$root/var/lib/zoomies"
 if [ -n "$esp_device" ]; then
-  mkdir -p "$root/var/lib/zoomies"
   blkid -s PARTUUID -o value "$esp_device" >"$root/var/lib/zoomies/esp-partuuid"
 fi
 
 disk=/dev/$(lsblk -no PKNAME "$root_device")
-# GRUB installs to the disk this link points at.
-ln -sfn "$disk" /dev/disk/zoomies-boot
 
 # Old BIOSes only boot a GPT disk whose protective MBR is marked active. The
 # UEFI specification forbids that mark and some UEFI firmware rejects the
@@ -63,7 +61,6 @@ if [ -n "$time_zone" ] && [ -e "/etc/zoneinfo/$time_zone" ]; then
 fi
 
 if [ ${#locale_settings[@]} -gt 0 ]; then
-  mkdir -p "$root/var/lib/zoomies"
   printf '%s\n' "${locale_settings[@]}" >"$root/var/lib/zoomies/locale.conf"
 fi
 

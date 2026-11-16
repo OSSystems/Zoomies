@@ -17,10 +17,8 @@ from . import state
 from .i18n import _, ngettext
 
 TICK = 5
-# Warn at these remaining-seconds marks.
-WARNINGS = (300, 60)
-# Seconds without saving usage before kid sessions are ended.
-FAILSAFE = 30
+WARN_AT_SECONDS = (300, 60)
+FAILSAFE_SECONDS = 30
 
 
 def user_state(user):
@@ -89,8 +87,7 @@ def daemon(_args):
         # the cap only keeps one stalled tick from counting as minutes.
         elapsed = min(now - last, TICK * 4)
         last = now
-        if usage.get("date") != state.today():
-            usage = {"date": state.today(), "seconds": {}}
+        usage = state.roll_usage(usage)
         config = state.load_config()
         policy = state.load_policy()
 
@@ -111,7 +108,7 @@ def daemon(_args):
                 remaining = status["remaining"]
                 before = previous.get(user)
                 if login in ("active", "online") and remaining is not None and before:
-                    for mark in WARNINGS:
+                    for mark in WARN_AT_SECONDS:
                         if before > mark >= remaining > 0:
                             warn(user, remaining, config.get("warningSound"))
                 previous[user] = remaining
@@ -133,7 +130,7 @@ def daemon(_args):
             # PAM reads the saved usage at login, so if it cannot be kept
             # up to date, screen time would quietly stop working: fail
             # closed and end the kids' sessions instead.
-            if now - saved > FAILSAFE:
+            if now - saved > FAILSAFE_SECONDS:
                 for user in active:
                     end_session(user, "screen time cannot be saved")
         try:

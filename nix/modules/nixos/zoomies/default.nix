@@ -8,6 +8,7 @@
 let
   cfg = config.zoomies;
   fixGame = import ./games.nix { inherit lib pkgs; };
+  gamePaths = map (game: toString (fixGame game));
 
   kid =
     { name, ... }:
@@ -105,7 +106,7 @@ in
     environment = {
       etc."zoomies/config.json".text = builtins.toJSON {
         assets = "${cfg.package}/share/zoomies";
-        defaultGames = map (game: toString (fixGame game)) cfg.games;
+        defaultGames = gamePaths cfg.games;
         kidSession = cfg.sessions.kid;
         kids = lib.mapAttrsToList (user: k: {
           inherit user;
@@ -114,10 +115,10 @@ in
             color
             dailyMinutes
             hours
+            kind
             name
             ;
-          inherit (k) kind;
-          games = map (game: toString (fixGame game)) k.games;
+          games = gamePaths k.games;
         }) cfg.kids;
         olderApps = lib.optionals cfg.older.enable cfg.older.startable;
         olderEnabled = cfg.older.enable;

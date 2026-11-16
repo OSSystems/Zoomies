@@ -1,7 +1,6 @@
 """Grown-ups' panel: kids, screen time rules, extra time, the PIN, and the way out."""
 
 import subprocess
-import sys
 
 from . import admin, state, ui
 from .i18n import _
@@ -46,13 +45,9 @@ class KidRow(Gtk.Box):
         header.append(ui.avatar(kid, "small"))
         names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
         line = Gtk.Box(spacing=12)
-        name = Gtk.Label(label=kid["name"], xalign=0)
-        name.add_css_class("kid-name")
-        line.append(name)
+        line.append(Gtk.Label(label=kid["name"], xalign=0, css_classes=["kid-name"]))
         emoji, title, _hint = ui.KidForm.KIND_LABELS[kid.get("kind", "little")]
-        tag = Gtk.Label(label=f"{emoji} {title}", valign=Gtk.Align.CENTER)
-        tag.add_css_class("tag")
-        line.append(tag)
+        line.append(Gtk.Label(label=f"{emoji} {title}", valign=Gtk.Align.CENTER, css_classes=["tag"]))
         names.append(line)
         self.played = Gtk.Label(xalign=0)
         names.append(self.played)
@@ -92,7 +87,8 @@ class KidRow(Gtk.Box):
         self.start = time_spin(0, 47, state.minutes_of_day(hours["start"]) // 30)
         self.end = time_spin(1, 48, state.minutes_of_day(hours["end"]) // 30)
         rules.append(self.start)
-        rules.append(Gtk.Label(label="to"))
+        # Translators: between the start and the end of the hours a kid may play.
+        rules.append(Gtk.Label(label=_("to")))
         rules.append(self.end)
         self.append(rules)
         self.message = ui.message_label()
@@ -164,12 +160,12 @@ class Parent(Gtk.ApplicationWindow):
         super().__init__(application=app, title=_("Zoomies grown-ups"))
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         page.add_css_class("page")
+        self.overlay = ui.Overlay(page)
+        self.set_child(self.overlay)
 
         top = Gtk.Box(spacing=20)
-        top.append(ui.mascot(config, 72))
-        title = Gtk.Label(label=_("Grown-ups"), xalign=0, hexpand=True)
-        title.add_css_class("title")
-        top.append(title)
+        top.append(ui.Mascot(config, 72))
+        top.append(Gtk.Label(label=_("Grown-ups"), xalign=0, hexpand=True, css_classes=["title"]))
         add = ui.big_button(_("Add a kid"), "yes", "➕")
         add.connect("clicked", lambda *_args: self.edit_kid(None))
         top.append(add)
@@ -180,8 +176,9 @@ class Parent(Gtk.ApplicationWindow):
         page.append(top)
 
         self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        scroller = Gtk.ScrolledWindow(vexpand=True, child=self.list)
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller = Gtk.ScrolledWindow(
+            vexpand=True, child=self.list, hscrollbar_policy=Gtk.PolicyType.NEVER
+        )
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
@@ -198,26 +195,10 @@ class Parent(Gtk.ApplicationWindow):
         calm.connect("notify::active", lambda switch, _pspec: state.set_calm_screen(switch.get_active()))
         bottom.append(calm)
         bottom.append(Gtk.Label(label=_("Calm screen")))
-        restart = ui.big_button(_("Restart"), "subtle", "🔄")
-        restart.connect(
-            "clicked",
-            lambda *_args: self.overlay.confirm(
-                _("Restart the computer?"), "🔄", lambda: subprocess.Popen(["systemctl", "reboot"])
-            ),
-        )
-        bottom.append(restart)
-        power = ui.big_button(_("Power off"), "subtle", "⏻")
-        power.connect(
-            "clicked",
-            lambda *_args: self.overlay.confirm(
-                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
-            ),
-        )
-        bottom.append(power)
+        bottom.append(ui.system_button(self.overlay, "reboot", _("Restart")))
+        bottom.append(ui.system_button(self.overlay, "poweroff", _("Power off")))
         page.append(bottom)
 
-        self.overlay = ui.Overlay(page)
-        self.set_child(self.overlay)
         self.populate()
         GLib.timeout_add_seconds(5, self.refresh)
 
@@ -229,15 +210,15 @@ class Parent(Gtk.ApplicationWindow):
         for row in self.rows:
             self.list.append(row)
         if not self.rows:
-            empty = Gtk.Label(label=_("No kids yet. Press ➕ Add a kid."))
-            empty.add_css_class("dialog-title")
-            self.list.append(empty)
+            self.list.append(
+                Gtk.Label(label=_("No kids yet. Press ➕ Add a kid."), css_classes=["dialog-title"])
+            )
 
     def dialog(self, title, body, action, on_accept):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        label = Gtk.Label(label=title, justify=Gtk.Justification.CENTER)
-        label.add_css_class("dialog-title")
-        box.append(label)
+        box.append(
+            Gtk.Label(label=title, justify=Gtk.Justification.CENTER, css_classes=["dialog-title"])
+        )
         box.append(body)
         message = ui.message_label()
         box.append(message)
@@ -250,7 +231,7 @@ class Parent(Gtk.ApplicationWindow):
             try:
                 on_accept()
             except admin.Refused as error:
-                message.set_label(_(str(error)).capitalize() + ".")
+                message.set_label(ui.reason(error))
                 return
             self.overlay.close()
             self.populate()
@@ -323,13 +304,4 @@ class Parent(Gtk.ApplicationWindow):
 
 def main():
     config = state.load_config()
-    app = Gtk.Application(application_id="org.zoomies.Parent")
-
-    def activate(app):
-        ui.load_css()
-        window = Parent(app, config)
-        window.fullscreen()
-        window.present()
-
-    app.connect("activate", activate)
-    sys.exit(app.run(None))
+    ui.run("org.zoomies.Parent", lambda app: Parent(app, config))

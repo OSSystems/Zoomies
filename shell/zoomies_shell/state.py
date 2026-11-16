@@ -10,6 +10,8 @@ remaining time but never change it.
 import datetime
 import json
 import os
+import pwd
+import sys
 import tempfile
 
 CONFIG = os.environ.get("ZOOMIES_CONFIG", "/etc/zoomies/config.json")
@@ -84,6 +86,15 @@ def kids_by_user(config=None):
     return {kid["user"]: kid for kid in config["kids"]}
 
 
+def current_kid(config):
+    """The kid this session belongs to; anyone else has no place here."""
+    user = pwd.getpwuid(os.getuid()).pw_name
+    kid = kids_by_user(config).get(user)
+    if kid is None:
+        sys.exit(f"{user} has no Zoomies profile")
+    return kid
+
+
 def today():
     return datetime.date.today().isoformat()
 
@@ -114,17 +125,21 @@ def grant_bonus(user, minutes):
     policy = load_policy()
     bonus = policy.setdefault("bonus", {})
     # Old days are dropped so the file does not grow forever.
-    day = {k: v for k, v in bonus.get(today(), {}).items()}
+    day = dict(bonus.get(today(), {}))
     day[user] = max(0, day.get(user, 0) + minutes)
     policy["bonus"] = {today(): day}
     save_policy(policy)
 
 
-def load_usage():
-    usage = read_json(USAGE, {})
+def roll_usage(usage):
+    """The usage itself, or a fresh count once its day is over."""
     if usage.get("date") != today():
-        usage = {"date": today(), "seconds": {}}
+        return {"date": today(), "seconds": {}}
     return usage
+
+
+def load_usage():
+    return roll_usage(read_json(USAGE, {}))
 
 
 def effective_rules(kid, policy):
@@ -185,6 +200,17 @@ def kid_status(kid, policy, usage, now=None):
 
 def read_status():
     return read_json(STATUS, {})
+
+
+LOW_SECONDS = 300
+
+
+def time_left(status):
+    """The time-left text and whether it runs low, or None without a limit."""
+    remaining = (status or {}).get("remaining")
+    if remaining is None:
+        return None
+    return f"⏳ {format_duration(remaining)}", remaining <= LOW_SECONDS
 
 
 def format_duration(seconds):

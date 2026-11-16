@@ -3,11 +3,6 @@ import QtQuick 2.15
 import calamares.slideshow 1.0
 
 Presentation {
-    id: presentation
-
-    function onActivate() { }
-    function onLeave() { }
-
     Slide {
         Rectangle {
             anchors.fill: parent

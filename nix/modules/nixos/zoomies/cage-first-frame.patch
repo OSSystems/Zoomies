@@ -1,0 +1,123 @@
+--- a/output.c
++++ b/output.c
+@@ -34,6 +34,7 @@
+ #include <wlr/util/box.h>
+ #include <wlr/util/log.h>
+ #include <wlr/util/region.h>
++#include <wlr/util/transform.h>
+ 
+ #include "output.h"
+ #include "seat.h"
+@@ -97,6 +98,8 @@
+ 	wlr_output_layout_remove(output->server->output_layout, output->wlr_output);
+ }
+ 
++static void output_commit_drawn(struct cg_output *output, const struct wlr_output_state *state);
++
+ static void
+ output_enable(struct cg_output *output)
+ {
+@@ -109,10 +112,7 @@
+ 
+ 	struct wlr_output_state state = {0};
+ 	wlr_output_state_set_enabled(&state, true);
+-
+-	if (wlr_output_commit_state(wlr_output, &state)) {
+-		output_layout_add_auto(output);
+-	}
++	output_commit_drawn(output, &state);
+ 
+ 	update_output_manager_config(output->server);
+ }
+@@ -199,8 +199,32 @@
+ 	rgba[3] = 1.f;
+ }
+ 
++/* As wlr_output_effective_resolution(), so that the sky covers what the
++ * layout gives the output once the state is committed. */
++static void
++output_pending_size(struct wlr_output *output, const struct wlr_output_state *state, int *width, int *height)
++{
++	*width = output->width;
++	*height = output->height;
++	if (state->committed & WLR_OUTPUT_STATE_MODE) {
++		if (state->mode_type == WLR_OUTPUT_STATE_MODE_CUSTOM) {
++			*width = state->custom_mode.width;
++			*height = state->custom_mode.height;
++		} else {
++			*width = state->mode->width;
++			*height = state->mode->height;
++		}
++	}
++	enum wl_output_transform transform =
++		state->committed & WLR_OUTPUT_STATE_TRANSFORM ? state->transform : output->transform;
++	wlr_output_transform_coords(transform, width, height);
++	float scale = state->committed & WLR_OUTPUT_STATE_SCALE ? state->scale : output->scale;
++	*width /= scale;
++	*height /= scale;
++}
++
+ static void
+-paint_sky(struct cg_server *server)
++paint_sky(struct cg_server *server, struct cg_output *pending, const struct wlr_output_state *state)
+ {
+ 	const int bands = 128;
+ 
+@@ -217,6 +241,9 @@
+ 	wl_list_for_each (output, &server->outputs, link) {
+ 		struct wlr_box box;
+ 		wlr_output_layout_get_box(server->output_layout, output->wlr_output, &box);
++		if (output == pending) {
++			output_pending_size(output->wlr_output, state, &box.width, &box.height);
++		}
+ 		if (wlr_box_empty(&box)) {
+ 			continue;
+ 		}
+@@ -238,11 +265,35 @@
+ {
+ 	struct cg_server *server = wl_container_of(listener, server, output_layout_change);
+ 
+-	paint_sky(server);
++	paint_sky(server, NULL, NULL);
+ 	view_position_all(server);
+ 	update_output_manager_config(server);
+ }
+ 
++/* Zoomies: an output lights up with the sky already drawn. Without a buffer,
++ * wlroots lights it up black and the sky follows one frame later; on a busy
++ * machine that draws without a GPU, that is a black screen of a second or
++ * more between the boot splash and the greeter. The layout knows only the
++ * current mode, so the sky is painted for the pending one. If drawing fails,
++ * the output still lights up, black, as it does without this patch. */
++static void
++output_commit_drawn(struct cg_output *output, const struct wlr_output_state *state)
++{
++	output_layout_add_auto(output);
++	paint_sky(output->server, output, state);
++
++	struct wlr_output_state drawn;
++	wlr_output_state_init(&drawn);
++	bool ok = wlr_output_state_copy(&drawn, state) &&
++		  wlr_scene_output_build_state(output->scene_output, &drawn, NULL) &&
++		  wlr_output_commit_state(output->wlr_output, &drawn);
++	wlr_output_state_finish(&drawn);
++
++	if (!ok && !wlr_output_commit_state(output->wlr_output, state)) {
++		output_layout_remove(output);
++	}
++}
++
+ static bool
+ is_nested_output(struct cg_output *output)
+ {
+@@ -372,9 +423,7 @@
+ 	}
+ 
+ 	wlr_log(WLR_DEBUG, "Enabling new output %s", wlr_output->name);
+-	if (wlr_output_commit_state(wlr_output, &state)) {
+-		output_layout_add_auto(output);
+-	}
++	output_commit_drawn(output, &state);
+ 
+ 	view_position_all(output->server);
+ 	update_output_manager_config(output->server);

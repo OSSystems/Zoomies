@@ -9,12 +9,23 @@
 
 let
   cfg = config.zoomies;
+  kidGroups = [
+    "zoomies-kids"
+    "zoomies-older"
+  ];
+  kidCondition = lib.concatMapStringsSep " || " (group: "subject.isInGroup(\"${group}\")") kidGroups;
   pam = "${config.security.pam.package}/lib/security";
 
   # Cage clears to black until its window draws, a flash between the boot
   # splash and the greeter and whenever a game starts; it paints the sky.
+  # It also lights the screen up black and draws one frame later, which on a
+  # busy machine without a GPU leaves a second of black after the splash; it
+  # lights the screen up with the sky already drawn.
   cage = pkgs.cage.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./cage-sky.patch ];
+    patches = (old.patches or [ ]) ++ [
+      ./cage-sky.patch
+      ./cage-first-frame.patch
+    ];
   });
 
   kiosk =
@@ -40,7 +51,7 @@ in
       // Before NixOS's own rules, which would accept the grown-up's PIN
       // (a wheel password) from a kid's session and so let kids guess it.
       polkit.addAdminRule(function(action, subject) {
-        if (subject.isInGroup("zoomies-kids") || subject.isInGroup("zoomies-older")) {
+        if (${kidCondition}) {
           return ["unix-user:root"];
         }
       });
@@ -48,7 +59,7 @@ in
       // ends, outside screen time.
       polkit.addRule(function(action, subject) {
         if (action.id == "org.freedesktop.login1.set-self-linger" &&
-            (subject.isInGroup("zoomies-kids") || subject.isInGroup("zoomies-older"))) {
+            (${kidCondition})) {
           return polkit.Result.NO;
         }
       });
@@ -103,28 +114,23 @@ in
             lockout
             {
               auth = lib.listToAttrs (
-                lib.imap0
-                  (index: group: {
-                    name = group;
-                    value = {
-                      args = [
-                        "quiet"
-                        "user"
-                        "ingroup"
-                        group
-                      ];
-                      control = "sufficient";
-                      modulePath = "${pam}/pam_succeed_if.so";
-                      # Ahead of every module that would prompt for a
-                      # password, such as the early pam_unix that GNOME
-                      # Keyring adds.
-                      order = 10000 + index;
-                    };
-                  })
-                  [
-                    "zoomies-kids"
-                    "zoomies-older"
-                  ]
+                lib.imap0 (index: group: {
+                  name = group;
+                  value = {
+                    args = [
+                      "quiet"
+                      "user"
+                      "ingroup"
+                      group
+                    ];
+                    control = "sufficient";
+                    modulePath = "${pam}/pam_succeed_if.so";
+                    # Ahead of every module that would prompt for a
+                    # password, such as the early pam_unix that GNOME
+                    # Keyring adds.
+                    order = 10000 + index;
+                  };
+                }) kidGroups
               );
             }
           ];
@@ -132,48 +138,61 @@ in
           login.rules = lockout;
           # Kids could otherwise guess the PIN with su; grown-ups use sudo.
           su.requireWheel = true;
+          # greetd fails a locked account just like a wrong PIN, apart from
+          # a note in the system's language, so the admin service asks this
+          # for the greeter. It reads the count without adding to it, and
+          # only root may ask: it ends in pam_permit.
+          zoomies-pin-lock.text = ''
+            auth requisite ${pam}/pam_rootok.so
+            auth required ${faillock} preauth nodelay ${lib.concatStringsSep " " options}
+            auth required ${pam}/pam_permit.so
+          '';
         };
       polkit.enable = true;
     };
     services.greetd = {
       enable = true;
+      # The boot splash hands the screen to cage without quitting, and leaves
+      # once the greeter has drawn: quitting earlier gives the screen back to
+      # the kernel's black console for a moment.
+      greeterManagesPlymouth = config.boot.plymouth.enable;
       settings.default_session = {
         command = kiosk "greeter" "${cfg.package}/bin/zoomies-greeter";
         user = "greeter";
       };
     };
-    # The boot splash hands the screen to cage without quitting, and leaves
-    # once the greeter has drawn: quitting earlier gives the screen back to
-    # the kernel's black console for a moment.
-    services.greetd.greeterManagesPlymouth = config.boot.plymouth.enable;
-    # "idle" holds the greeter back up to 5 s for boot messages to settle on
-    # a text console; the kiosk draws its own screen, so that is only a
-    # black screen at the end of the boot.
-    systemd.services.greetd.serviceConfig.Type = lib.mkForce "simple";
-    systemd.services.plymouth-quit = lib.mkIf config.boot.plymouth.enable {
-      after = [ "display-manager.service" ];
-      serviceConfig.ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
-    };
-    # Asking Mesa takes half a second, too long for every login, so it is
-    # asked once, early in the boot, while the rest of the system starts.
-    systemd.services.zoomies-gpu = {
-      before = [ "display-manager.service" ];
-      description = "Check whether Zoomies draws without a GPU";
-      script = ''
-        if ${lib.getExe' pkgs.mesa-demos "eglinfo"} -B -p surfaceless 2>/dev/null |
-          ${lib.getExe pkgs.gnugrep} -qE 'renderer: (llvmpipe|softpipe)'; then
-          touch /run/zoomies-gpu/software
-        fi
-      '';
-      serviceConfig = {
-        RemainAfterExit = true;
-        RuntimeDirectory = "zoomies-gpu";
-        RuntimeDirectoryPreserve = true;
-        Type = "oneshot";
+    systemd = {
+      services = {
+        # "idle" holds the greeter back up to 5 s for boot messages to settle on
+        # a text console; the kiosk draws its own screen, so that is only a
+        # black screen at the end of the boot.
+        greetd.serviceConfig.Type = lib.mkForce "simple";
+        plymouth-quit = lib.mkIf config.boot.plymouth.enable {
+          after = [ "display-manager.service" ];
+          serviceConfig.ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
+        };
+        # Asking Mesa takes half a second, too long for every login, so it is
+        # asked once, early in the boot, while the rest of the system starts.
+        zoomies-gpu = {
+          before = [ "display-manager.service" ];
+          description = "Check whether Zoomies draws without a GPU";
+          script = ''
+            if ${lib.getExe' pkgs.mesa-demos "eglinfo"} -B -p surfaceless 2>/dev/null |
+              ${lib.getExe pkgs.gnugrep} -qE 'renderer: (llvmpipe|softpipe)'; then
+              touch /run/zoomies-gpu/software
+            fi
+          '';
+          serviceConfig = {
+            RemainAfterExit = true;
+            RuntimeDirectory = "zoomies-gpu";
+            RuntimeDirectoryPreserve = true;
+            Type = "oneshot";
+          };
+          wantedBy = [ "display-manager.service" ];
+        };
       };
-      wantedBy = [ "display-manager.service" ];
+      tmpfiles.rules = [ "d /var/lib/zoomies/faillock 0700 root root -" ];
     };
-    systemd.tmpfiles.rules = [ "d /var/lib/zoomies/faillock 0700 root root -" ];
     users = lib.mkIf (cfg.parent.user != null) {
       groups.zoomies-parents = { };
       users.${cfg.parent.user} = {

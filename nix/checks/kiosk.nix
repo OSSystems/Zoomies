@@ -2,11 +2,6 @@
 # checks the outcome from the system side, so screen time, the PIN,
 # profiles, the network rules and the home reset are enforced by the OS,
 # not just hidden by the UI.
-#
-# The machines have 2 GiB of RAM, the smallest Zoomies supports, and run a
-# real 3D game, Firefox and LibreOffice, so a PC that small stays usable.
-# Memory use lands in memory-report.txt. QEMU has no GPU acceleration, so
-# Mesa renders on the CPU and the numbers are a little pessimistic.
 {
   flake,
   lib,
@@ -15,110 +10,16 @@
 }:
 
 let
-  # A stand-in game: a real window that covers the launcher, cheap to start.
-  game = pkgs.makeDesktopItem {
-    categories = [ "Game" ];
-    desktopName = "Aaa Test Game";
-    exec = "${lib.getExe pkgs.foot} --title zoomies-test-game";
-    name = "zoomies-test-game";
-  };
-
-  # Talks to greetd directly, bypassing the greeter, to prove PAM itself
-  # decides who gets in. An optional second argument answers the password
-  # prompt.
-  greetdTry = pkgs.writers.writePython3Bin "greetd-try" { } ''
-    import glob
-    import json
-    import socket
-    import struct
-    import sys
-
-    sock = socket.socket(socket.AF_UNIX)
-    sock.connect(glob.glob("/run/greetd-*.sock")[0])
-    secret = sys.argv[2] if len(sys.argv) > 2 else None
-
-
-    def send(payload):
-        data = json.dumps(payload).encode()
-        sock.sendall(struct.pack("=I", len(data)) + data)
-        size = struct.unpack("=I", sock.recv(4))[0]
-        return json.loads(sock.recv(size))
-
-
-    reply = send({"type": "create_session", "username": sys.argv[1]})
-    while reply["type"] == "auth_message" and secret is not None:
-        reply = send({"type": "post_auth_message_response", "response": secret})
-        secret = None
-    send({"type": "cancel_session"})
-    print(reply)
-    sys.exit(0 if reply["type"] == "success" else 1)
-  '';
-
-  # Runs a command as a kid, in the environment the launcher gives games.
-  asGame = pkgs.writeShellScript "as-game" ''
-    user=$1
-    shift
-    # The newest match: cage and its logger name the launcher too.
-    mapfile -d "" vars < "/proc/$(pgrep -u "$user" -n -f zoomies-launcher)/environ"
-    exec runuser -u "$user" -- env -i "''${vars[@]}" "$@"
-  '';
-
-  manual = flake.nixosConfigurations.zoomies.config.system.build.manual.manualHTML;
-
-  # Static manuals are lighter than the sites kids use; these stand in for a
-  # video or document app: a large JS heap and a page that keeps repainting.
-  webApp = pkgs.writeTextDir "app.html" ''
-    <!doctype html>
-    <title>web app</title>
-    <canvas id="c" width="1280" height="720"></canvas>
-    <script>
-      const heap = [];
-      for (let i = 0; i < 40; i++) heap.push(new Float64Array(256 * 1024).fill(i));
-      const ctx = document.getElementById("c").getContext("2d");
-      let t = 0;
-      (function draw() {
-        ctx.fillStyle = `hsl(''${t++ % 360} 60% 50%)`;
-        ctx.fillRect(0, 0, 1280, 720);
-        requestAnimationFrame(draw);
-      })();
-    </script>
-  '';
-
-  pages = [
-    "file://${manual}/share/doc/nixos/index.html"
-    "file://${manual}/share/doc/nixos/release-notes.html"
-    "file://${webApp}/app.html"
-    "file://${webApp}/app.html?2"
-  ];
-
-  common = {
-    imports = [
-      flake.nixosModules.zoomies
-      # The zram and VM tuning of a real install, not its disk layout.
-      ../modules/nixos/platform/hardware.nix
-    ];
-    virtualisation = {
-      memorySize = 2048;
-      qemu.options = [
-        "-vga none"
-        "-device virtio-vga"
-      ];
-    };
-    zoomies = {
-      enable = true;
-      games = [
-        game
-        # The heaviest game in the default set.
-        pkgs.supertuxkart
-      ];
-      older.apps = [ pkgs.libreoffice ];
-    };
-  };
+  common = import ./kiosk/common.nix { inherit flake lib pkgs; };
+  inherit (common) asGame;
 in
 pkgs.testers.runNixOSTest {
   # Reads the translated greeter off the screen.
   enableOCR = true;
   extraPythonPackages = p: [ p.pillow ];
+  # Three times a normal run: a stuck step fails the check instead of
+  # holding an idle VM for the driver's default hour.
+  globalTimeout = 1200;
   # qemu-system-x86_64 under KVM.
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk";
@@ -126,42 +27,17 @@ pkgs.testers.runNixOSTest {
     # A fresh install that skipped the installer's PIN question. It also
     # covers the nftables firewall and a system without older kids.
     fresh = {
-      environment.systemPackages = [
-        greetdTry
-        pkgs.curl
-      ];
-      imports = [ common ];
+      imports = [ common.node ];
       networking.nftables.enable = true;
+      zoomies.games = lib.mkForce [ ];
       zoomies.older.enable = false;
     };
     # Set up ahead of time: kids and the PIN (1234) in the configuration.
     machine =
       { nodes, ... }:
       {
-        environment.systemPackages = [
-          greetdTry
-          pkgs.curl
-          pkgs.dig
-          pkgs.e2fsprogs
-          pkgs.pam
-          pkgs.xdotool
-          # Started by hand, not from the launcher, which would shift the
-          # tiles the other subtests pick by position.
-          (import ../modules/nixos/zoomies/games.nix { inherit lib pkgs; } pkgs.neverball)
-        ];
-        imports = [ common ];
-        zoomies = {
-          kids = {
-            ana = {
-              avatar = "🦊";
-              dailyMinutes = 60;
-            };
-            ben.avatar = "🐼";
-            lia.avatar = "🦄";
-          };
-          older.dnsFilter.servers = [ nodes.server.networking.primaryIPAddress ];
-          parent.initialHashedPassword = "$y$j9T$3WW/k1HS/Ed6c6kwRa2ZP/$rNZyoGDfB9pcnRP3J/BeYYy2AjCMPPQ4CVQgZnLVdz3";
-        };
+        imports = [ common.machine ];
+        zoomies.older.dnsFilter.servers = [ nodes.server.networking.primaryIPAddress ];
       };
     # Web server and stand-in family DNS filter.
     server =
@@ -195,35 +71,12 @@ pkgs.testers.runNixOSTest {
         };
       };
   };
-  testScript = ''
+  testScript = common.helpers + ''
     import json
-    import shlex
 
     from PIL import Image
 
-    memory_report = []
-
-
-    def sample_memory(label):
-        meminfo = dict(
-            (line.split(":")[0], int(line.split()[1]))
-            for line in machine.succeed("cat /proc/meminfo").splitlines()
-        )
-        pressure = machine.succeed("cat /proc/pressure/memory").strip().replace("\n", " | ")
-        # orig_data_size compr_data_size ...
-        zram = machine.succeed("cat /sys/block/zram0/mm_stat").split()
-        line = (
-            f"{label}: available {meminfo['MemAvailable'] // 1024} MiB,"
-            f" zram {int(zram[0]) // 2**20} MiB in {int(zram[1]) // 2**20} MiB,"
-            f" pressure {pressure}"
-        )
-        machine.log(line)
-        memory_report.append(line)
-
-
-    def nothing_killed():
-        machine.succeed("[ \"$(awk '/^oom_kill / { print $2 }' /proc/vmstat)\" = 0 ]")
-        machine.fail("journalctl -u systemd-oomd | grep -q Killed")
+    XFCONF = "/home/max/.config/xfce4/xfconf/xfce-perchannel-xml"
 
 
     def write_state(name, data):
@@ -232,53 +85,42 @@ pkgs.testers.runNixOSTest {
         )
 
 
-    def wait_for_ready(screen, user, node=machine):
-        # Keys sent before the window has focus are lost, and on a slow
-        # runner a lost key can land on the wrong screen; the screens mark
-        # when they take input.
-        node.wait_until_succeeds(
-            f"kill -0 \"$(cat /run/user/$(id -u {user})/{screen}-ready)\"", timeout=120
+    def enter_pin(pin):
+        machine.send_key("ctrl-alt-p")
+        machine.sleep(2)
+        machine.send_chars(f"{pin}\n")
+
+
+    def wait_for_pin_failures(count):
+        machine.wait_until_succeeds(
+            "[ \"$(faillock --dir /var/lib/zoomies/faillock --user parent | grep -c ' V$')\""
+            f" = {count} ]"
         )
 
 
-    def in_max_x(command):
-        """A shell command run in Max's X session."""
-        return (
-            "runuser -u max -- sh -c 'export $(tr \"\\\\0\" \"\\\\n\" "
-            "</proc/$(pgrep -u max -o xfce4-session)/environ"
-            " | grep -E \"^(DISPLAY|XAUTHORITY|DBUS_SESSION_BUS_ADDRESS)=\"); "
-            + command + "'"
-        )
+    def set_pin(old, new):
+        return f"printf '{old}\\n{new}\\n' | " + as_parent("zoomies-profile set-pin --stdin")
 
 
-    def wait_for_greeter(node=machine):
-        wait_for_ready("zoomies-greeter", "greeter", node)
+    def offline(node, kid):
+        node.succeed("curl -sf --max-time 5 http://server/")
+        node.fail(f"runuser -u {kid} -- curl -sf --max-time 5 http://server/")
 
 
-    def restart_greeter(node=machine):
-        node.succeed("systemctl restart greetd")
-        wait_for_greeter(node)
-
-
-    def log_out(user, node=machine):
-        node.succeed(f"loginctl terminate-user {user}")
-        node.wait_until_fails(f"pgrep -u {user} -f 'cage|xinit'")
-        wait_for_greeter(node)
-
-
-    def as_parent(command):
-        return f"runuser -u parent -- {command}"
+    def hour():
+        return int(machine.succeed("date +%H"))
 
 
     def hours_from_now(start, end):
-        hour = int(machine.succeed("date +%H"))
+        current = hour()
         return {
-            "start": f"{(hour + start) % 24:02d}:00",
-            "end": "24:00" if hour + end == 24 else f"{(hour + end) % 24:02d}:00",
+            "start": f"{(current + start) % 24:02d}:00",
+            "end": "24:00" if current + end == 24 else f"{(current + end) % 24:02d}:00",
         }
 
 
-    start_all()
+    machine.start()
+    server.start()
     server.wait_for_unit("nginx.service")
     server.wait_for_unit("dnsmasq.service")
     machine.wait_for_unit("greetd.service")
@@ -290,26 +132,19 @@ pkgs.testers.runNixOSTest {
         # The test VM has no GPU: the screens draw with GTK's cheaper
         # renderer there.
         machine.succeed("test -e /run/zoomies-gpu/software")
-        machine.succeed(
-            "tr '\\0' '\\n' </proc/$(pgrep -u greeter -n -f zoomies-greeter)/environ"
-            " | grep -qx GSK_RENDERER=cairo"
-        )
+        machine.succeed(f"grep -qzx GSK_RENDERER=cairo {greeter_environ()}")
         machine.succeed("swapon --show | grep -q zram")
-        sample_memory("greeter")
 
     with subtest("the screens speak the language saved at install"):
         machine.succeed(
             "printf 'LANG=pt_BR.UTF-8\\nXKB_DEFAULT_LAYOUT=br\\n' > /var/lib/zoomies/locale.conf"
         )
         restart_greeter()
-        # The greeter writes its own PID once it takes input.
-        # grep -z reads the file itself: piping through tr lets grep -q exit
-        # early, and the test shell turns tr's broken pipe into a failure.
-        environ = "/proc/$(cat /run/user/$(id -u greeter)/zoomies-greeter-ready)/environ"
+        environ = greeter_environ()
         print(machine.succeed(f"grep -zE '^(LANG|LC_|XKB)' {environ} | tr '\\0' '\\n'"))
         machine.succeed(f"grep -qzx LANG=pt_BR.UTF-8 {environ}")
         machine.succeed(f"grep -qzx XKB_DEFAULT_LAYOUT=br {environ}")
-        machine.wait_for_text("Quem vai jogar")
+        machine.wait_for_text("Quem vai jogar", timeout=60)
         machine.screenshot("greeter-pt-br")
         machine.succeed(
             "systemctl show -p EnvironmentFiles zoomies-timekeeper | grep -q /var/lib/zoomies/locale.conf"
@@ -318,18 +153,21 @@ pkgs.testers.runNixOSTest {
         restart_greeter()
         machine.fail(f"grep -qz LANG=pt_BR {environ}")
 
-    with subtest("a wrong PIN keeps grown-ups out"):
-        machine.send_key("ctrl-alt-p")
-        machine.sleep(2)
-        machine.send_chars("9999\n")
-        machine.sleep(5)
+    with subtest("wrong PINs keep grown-ups out"):
+        enter_pin("9999")
+        wait_for_pin_failures(1)
+        for tries in (2, 3):
+            # The greeter takes no keys while PAM delays its answer.
+            machine.sleep(3)
+            machine.send_chars("9999\n")
+            wait_for_pin_failures(tries)
+        machine.sleep(3)
         machine.fail("pgrep -u parent zoomies-parent")
-        machine.send_key("esc")
 
     with subtest("the PIN set in the configuration opens the grown-ups panel"):
         machine.succeed("zoomies-profile status | grep -q '\"pinSet\": true'")
-        machine.send_key("ctrl-alt-p")
-        machine.sleep(2)
+        # Right after three wrong ones: only PAM counts them, and it
+        # allows five.
         machine.send_chars("1234\n")
         machine.wait_until_succeeds("pgrep -u parent -f zoomies-parent")
         machine.sleep(3)
@@ -348,19 +186,6 @@ pkgs.testers.runNixOSTest {
         machine.succeed("pkill -u ana -f zoomies-test-game")
         machine.sleep(2)
         machine.succeed("pgrep -u ana -f zoomies-launcher")
-
-    with subtest("a 3D game runs in 2 GiB"):
-        machine.send_key("right")
-        machine.sleep(1)
-        machine.send_key("ret")
-        machine.wait_until_succeeds("pgrep -u ana -f supertuxkart")
-        machine.sleep(60)
-        machine.screenshot("supertuxkart")
-        machine.succeed("pgrep -u ana -f supertuxkart")
-        sample_memory("SuperTuxKart")
-        nothing_killed()
-        machine.succeed("pkill -u ana -f supertuxkart")
-        machine.wait_until_fails("pgrep -u ana -f supertuxkart")
 
     with subtest("Neverputt fills the screen even if it was saved windowed"):
         machine.succeed(
@@ -381,12 +206,10 @@ pkgs.testers.runNixOSTest {
 
         for before, after in zip(corners("neverputt-before"), corners("neverputt")):
             assert after not in ((0, 0, 0), before), f"Neverputt leaves a corner uncovered: {after}"
-        machine.succeed("pkill -u ana -f neverputt")
-        machine.wait_until_fails("pgrep -u ana -f neverputt")
+        quit("ana", "neverputt")
 
     with subtest("little kids cannot reach the network"):
-        machine.succeed("curl -sf --max-time 5 http://server/")
-        machine.fail("runuser -u ana -- curl -sf --max-time 5 http://server/")
+        offline(machine, "ana")
 
     with subtest("kids have no other group to switch to"):
         machine.succeed('[ "$(id -G ana)" = 2700 ]')
@@ -395,7 +218,15 @@ pkgs.testers.runNixOSTest {
         machine.fail("runuser -u ana -- unshare --map-auto --map-root-user true")
 
     with subtest("the session ends when screen time runs out"):
-        # Ana has been playing for a while; a one-minute budget is used up.
+        # Prove real accounting before seeding a full minute; expiry must
+        # not depend on how long the functional scenarios happen to take.
+        machine.wait_until_succeeds("grep -Eq '\"ana\": [1-9]' /var/lib/zoomies/usage.json")
+        machine.succeed("systemctl stop zoomies-timekeeper")
+        usage = json.loads(machine.succeed("cat /var/lib/zoomies/usage.json"))
+        assert usage["seconds"]["ana"] > 0, usage
+        usage["seconds"]["ana"] = max(60, usage["seconds"]["ana"])
+        write_state("usage", usage)
+        machine.succeed("systemctl start zoomies-timekeeper")
         write_state("policy", {"kids": {"ana": {"dailyMinutes": 1}}})
         machine.wait_until_fails("pgrep -u ana cage", timeout=120)
         wait_for_greeter()
@@ -426,9 +257,8 @@ pkgs.testers.runNixOSTest {
     with subtest("zero minutes means no play, a window can end at midnight"):
         write_state("policy", {"kids": {"ben": {"dailyMinutes": 0}}})
         machine.fail("greetd-try ben")
-        hour = int(machine.succeed("date +%H"))
         write_state("policy", {"kids": {"ben": {"hours": {
-            "start": f"{hour:02d}:00", "end": "24:00",
+            "start": f"{hour():02d}:00", "end": "24:00",
         }}}})
         machine.succeed("greetd-try ben")
         write_state("policy", {})
@@ -455,18 +285,38 @@ pkgs.testers.runNixOSTest {
         machine.fail("id sneaky")
 
     with subtest("the PIN changes only with the current one"):
-        machine.fail("printf '0000\\n5678\\n' | " + as_parent("zoomies-profile set-pin --stdin"))
-        machine.fail("printf '1234\\n12\\n' | " + as_parent("zoomies-profile set-pin --stdin"))
-        machine.succeed("printf '1234\\n5678\\n' | " + as_parent("zoomies-profile set-pin --stdin"))
+        machine.fail(set_pin("0000", "5678"))
+        machine.fail(set_pin("1234", "12"))
+        machine.succeed(set_pin("1234", "5678"))
         machine.fail("greetd-try parent 1234")
         machine.succeed("greetd-try parent 5678")
 
     with subtest("guessing the PIN locks the grown-ups account"):
-        for _ in range(5):
-            machine.fail("greetd-try parent 0000")
+        enter_pin("0000")
+        wait_for_pin_failures(1)
+        for tries in range(2, 6):
+            machine.sleep(3)
+            machine.send_chars("0000\n")
+            wait_for_pin_failures(tries)
+        # Told on the very try that locked it, not "wrong PIN".
+        machine.wait_for_text("Too many tries", timeout=60)
+        machine.screenshot("pin-locked")
+        machine.sleep(3)
+        machine.send_chars("5678\n")
+        machine.sleep(5)
+        machine.fail("pgrep -u parent zoomies-parent")
         machine.fail("greetd-try parent 5678")
+        # Asking whether it is locked neither adds a try nor lifts the lock.
+        for _ in range(3):
+            machine.fail("${lib.getExe pkgs.pamtester} zoomies-pin-lock parent authenticate")
+        wait_for_pin_failures(5)
+        machine.send_key("esc")
         machine.succeed("faillock --dir /var/lib/zoomies/faillock --user parent --reset")
         machine.succeed("greetd-try parent 5678")
+        # The question ends in pam_permit, so it must not be a way in for
+        # anyone but root.
+        machine.succeed("${lib.getExe pkgs.pamtester} zoomies-pin-lock parent authenticate")
+        machine.fail("runuser -u ana -- ${lib.getExe pkgs.pamtester} zoomies-pin-lock parent authenticate")
         # Kids cannot try it through su or polkit either.
         machine.succeed("grep -q pam_wheel.so /etc/pam.d/su")
         machine.fail("echo 5678 | timeout 10 runuser -u max -- su -c true parent")
@@ -480,30 +330,30 @@ pkgs.testers.runNixOSTest {
         machine.screenshot("greeter-more-kids")
         machine.send_key("ret")
         machine.wait_until_succeeds("pgrep -u max xfce4-session", timeout=60)
-        machine.sleep(10)
+        find_window("^Zoomies shelf$")
+        find_window("^Zip$")
         machine.screenshot("older-desktop")
         machine.succeed(
-            "tr -d '\\n' </home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
+            f"tr -d '\\n' <{XFCONF}/xfce4-desktop.xml"
             " | grep -q 'monitorVirtual-1.*older.svg'"
         )
         # The Zoomies look is set up, and the wallpaper comes alive.
-        machine.succeed("grep -q Andika /home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
+        machine.succeed(f"grep -q Andika {XFCONF}/xsettings.xml")
         # The shelf stands in for the grown-ups' panel.
         machine.wait_until_succeeds("pgrep -u max -f zoomies-shelf")
         machine.fail("pgrep -u max xfce4-panel")
         machine.wait_until_succeeds("pgrep -u max -f zoomies-desktop-zip")
         # Clouds drift over the whole desktop, with no icons on top.
         machine.succeed(
-            "tr -d '\\n' </home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xfce4-desktop.xml"
+            f"tr -d '\\n' <{XFCONF}/xfce4-desktop.xml"
             " | grep -q 'desktop-icons.*name=\"style\" type=\"int\" value=\"0\"'"
         )
         # The live wallpaper lets clicks through to the desktop: a right
         # click on it opens the desktop's menu.
-        cape = machine.wait_until_succeeds(in_max_x('xdotool search --name "^Zip$"')).split()[0]
-        geometry = machine.succeed(in_max_x(f"xdotool getwindowgeometry --shell {cape}"))
-        box = dict(line.split("=") for line in geometry.split())
-        screen = machine.succeed(in_max_x("xdotool getdisplaygeometry")).split()
-        assert [box["WIDTH"], box["HEIGHT"]] == screen, f"the sky covers {box}, not {screen}"
+        cape = find_window("^Zip$")
+        box = window_box(cape)
+        screen = display_size()
+        assert [int(box["WIDTH"]), int(box["HEIGHT"])] == screen, f"the sky covers {box}, not {screen}"
         # Old PCs draw without a GPU: only what moves is redrawn.
         helper = machine.succeed("pgrep -u max -o -f zoomies-desktop-zip").strip()
         ticks = "awk '{ print $14 + $15 }' /proc/" + helper + "/stat"
@@ -529,54 +379,21 @@ pkgs.testers.runNixOSTest {
         machine.succeed(in_max_x("timeout 10 zoomies-desktop-zip /dev/null"))
         write_state("policy", policy)
 
-    with subtest("Firefox and LibreOffice run together in 2 GiB"):
-        sample_memory("older kids' desktop")
-        machine.succeed(in_max_x("setsid firefox ${lib.escapeShellArgs pages} >/dev/null 2>&1 &"))
-        machine.wait_until_succeeds(in_max_x("xdotool search --onlyvisible --class firefox"), timeout=300)
-        machine.sleep(60)
-        sample_memory("Firefox, 4 tabs")
-        machine.succeed(in_max_x("setsid soffice --writer >/dev/null 2>&1 &"))
-        machine.wait_until_succeeds(
-            in_max_x("xdotool search --onlyvisible --name \"LibreOffice Writer\""), timeout=300
-        )
-        machine.sleep(30)
-        machine.screenshot("older-apps")
-        sample_memory("Firefox and Writer")
-        # Switching back makes Firefox touch memory that may be in zram.
-        machine.succeed(in_max_x("xdotool search --onlyvisible --class firefox windowactivate --sync"))
-        machine.sleep(30)
-        sample_memory("back in Firefox")
-        machine.succeed("pgrep -u max -f firefox")
-        machine.succeed("pgrep -u max -f soffice")
-        nothing_killed()
-        machine.succeed(f"printf '%s\\n' {shlex.join(memory_report)} > /tmp/memory-report.txt")
-        machine.copy_from_vm("/tmp/memory-report.txt")
-
     with subtest("the shelf keeps apps full screen and offers the apps"):
-        shelf = machine.succeed(in_max_x('xdotool search --name "^Zoomies shelf$"')).split()[0]
-        box = dict(
-            line.split("=")
-            for line in machine.succeed(in_max_x(f"xdotool getwindowgeometry --shell {shelf}")).split()
-        )
-        screen_width, screen_height = map(
-            int, machine.succeed(in_max_x("xdotool getdisplaygeometry")).split()
-        )
+        machine.succeed(in_max_x("setsid soffice --writer >/dev/null 2>&1 &"))
+        machine.wait_until_succeeds(WRITER_SEARCH, timeout=300)
+        shelf = find_window("^Zoomies shelf$")
+        box = window_box(shelf)
+        screen_width, screen_height = display_size()
         top = int(box["Y"])
         assert top + int(box["HEIGHT"]) == screen_height, f"the shelf sits at {box}"
-        writer = machine.succeed(
-            in_max_x("xdotool search --onlyvisible --name \"LibreOffice Writer\"")
-        ).split()[0]
+        writer = machine.succeed(WRITER_SEARCH).split()[0]
 
-        def writer_box():
-            return dict(
-                line.split("=")
-                for line in machine.succeed(
-                    in_max_x(f"xdotool getwindowgeometry --shell {writer}")
-                ).split()
-            )
-
-        # Maximized above the shelf, under a title strip of its own.
-        app = writer_box()
+        # Writer maps its window before the shelf has maximized it.
+        machine.wait_until_succeeds(
+            in_max_x(f"[ \"$(xdotool getwindowgeometry --shell {writer} | grep WIDTH)\" = WIDTH={screen_width} ]")
+        )
+        app = window_box(writer)
         assert int(app["WIDTH"]) == screen_width, f"Writer is {app}"
         assert int(app["Y"]) > 0, f"Writer has no title strip: {app}"
         assert int(app["Y"]) + int(app["HEIGHT"]) <= top, f"Writer runs under the shelf: {app}"
@@ -586,8 +403,7 @@ pkgs.testers.runNixOSTest {
             in_max_x(f"[ \"$(xdotool getwindowgeometry --shell {writer} | grep WIDTH)\" = WIDTH={screen_width} ]")
         )
         machine.succeed(in_max_x(f"xdotool windowminimize {writer}"))
-        machine.sleep(3)
-        machine.succeed(in_max_x("xdotool search --onlyvisible --name \"LibreOffice Writer\""))
+        machine.wait_until_succeeds(WRITER_SEARCH)
         machine.succeed(in_max_x(f"xdotool windowactivate --sync {writer}"))
         machine.sleep(2)
         machine.screenshot("older-shelf")
@@ -596,7 +412,7 @@ pkgs.testers.runNixOSTest {
         machine.wait_until_succeeds(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))
         machine.sleep(2)
         # Tiles say what an app is for in a kid's words, not "Word Processor".
-        machine.wait_for_text("Write stories")
+        machine.wait_for_text("Write stories", timeout=60)
         machine.screenshot("older-apps-card")
         machine.succeed(in_max_x("xdotool key Escape"))
         machine.wait_until_fails(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))
@@ -641,6 +457,10 @@ pkgs.testers.runNixOSTest {
         machine.fail("test -e /home/zoe/junk")
         machine.succeed("test -e /home/max/homework.odt")
 
+    # The two kiosk sessions never overlap, so they need not compete for RAM.
+    machine.shutdown()
+    fresh.start()
+
     with subtest("the first boot asks for a PIN, then for the kids"):
         fresh.wait_for_unit("greetd.service")
         wait_for_greeter(fresh)
@@ -668,8 +488,7 @@ pkgs.testers.runNixOSTest {
         fresh.succeed("greetd-try parent 2468")
 
     with subtest("the nftables rules keep little kids offline too"):
-        fresh.succeed("curl -sf --max-time 5 http://server/")
-        fresh.fail("runuser -u kim -- curl -sf --max-time 5 http://server/")
+        offline(fresh, "kim")
 
     with subtest("without older kids, none can be added"):
         fresh.fail("zoomies-profile add --name Teen --kind older")

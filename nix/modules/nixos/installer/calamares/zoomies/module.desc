@@ -3,3 +3,6 @@ type: "job"
 name: "zoomies"
 interface: "python"
 script: "main.py"
+# Copying the system takes most of the install time, so it gets most of
+# the progress bar.
+weight: 60

@@ -35,9 +35,6 @@ class Refused(Exception):
     pass
 
 
-# Client side.
-
-
 def request(action, **fields):
     """Send one request; raise Refused with a readable reason on failure."""
     try:
@@ -45,12 +42,8 @@ def request(action, **fields):
             sock.settimeout(60)
             sock.connect(SOCKET)
             sock.sendall(json.dumps({"action": action, **fields}).encode() + b"\n")
-            data = b""
-            while not data.endswith(b"\n"):
-                chunk = sock.recv(4096)
-                if not chunk:
-                    break
-                data += chunk
+            with sock.makefile("rb") as stream:
+                data = stream.readline()
         reply = json.loads(data) if data else None
     except (OSError, ValueError) as error:
         raise Refused(f"the admin service is not reachable ({error})") from error
@@ -61,9 +54,6 @@ def request(action, **fields):
     if "error" in reply:
         raise Refused(reply["error"])
     return reply
-
-
-# Service side.
 
 
 class Admin:
@@ -93,6 +83,21 @@ class Admin:
         stored = self.shadow_hash()
         return bool(stored) and not stored.startswith(("!", "*"))
 
+    def pin_locked(self):
+        # pam_faillock answers with the limits the logins use; a PAM service
+        # that only reads its count never counts as a try itself.
+        result = subprocess.run(
+            ["pamtester", "zoomies-pin-lock", self.parent, "authenticate"],
+            capture_output=True,
+            text=True,
+            env={**os.environ, "LC_ALL": "C"},
+        )
+        if result.returncode == 0:
+            return False
+        if "Authentication failure" in result.stderr:
+            return True
+        raise Refused(f"pamtester failed: {result.stderr.strip()}")
+
     def check_pin(self, pin):
         if time.monotonic() < self.locked_until:
             raise Refused(N_("too many wrong PINs, wait a minute"))
@@ -117,6 +122,8 @@ class Admin:
         action = message.get("action")
         if action == "status":
             return {"pinSet": self.pin_set()}
+        if action == "pin-locked":
+            return {"locked": self.pin_locked()}
         if action == "set-pin":
             return self.set_pin(uid, message)
         if action in ("add-kid", "edit-kid", "remove-kid"):
@@ -263,13 +270,8 @@ def serve():
             try:
                 creds = conn.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, 12)
                 _pid, uid, _gid = struct.unpack("3i", creds)
-                data = b""
-                while not data.endswith(b"\n") and len(data) < 65536:
-                    chunk = conn.recv(4096)
-                    if not chunk:
-                        break
-                    data += chunk
-                message = json.loads(data)
+                with conn.makefile("rb") as stream:
+                    message = json.loads(stream.readline(65536))
                 reply = admin.handle(uid, message)
                 print(f"uid {uid}: {message.get('action')} ok", flush=True)
             except Refused as error:
@@ -285,13 +287,7 @@ def serve():
                 pass
 
 
-# Command line, for grown-ups in a terminal or over SSH.
-
-
-def ask_pin(prompt):
-    return getpass.getpass(prompt)
-
-
+# For grown-ups in a terminal or over SSH.
 def main():
     parser = argparse.ArgumentParser(prog="zoomies-profile")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -328,7 +324,7 @@ def main():
                 if k in ("name", "avatar", "color", "kind", "user") and v is not None
             }
             reply = request(f"{args.command}-kid", **fields)
-            print(reply.get("user", args.__dict__.get("user")))
+            print(reply.get("user", getattr(args, "user", None)))
         elif args.command == "remove":
             request("remove-kid", user=args.user)
         elif args.command == "set-pin":
@@ -336,9 +332,9 @@ def main():
                 # First line the current PIN (empty when none), then the new one.
                 old, new = (sys.stdin.read().splitlines() + ["", ""])[:2]
             else:
-                old = ask_pin("Current PIN (empty if none): ")
-                new = ask_pin("New PIN: ")
-                if ask_pin("New PIN again: ") != new:
+                old = getpass.getpass("Current PIN (empty if none): ")
+                new = getpass.getpass("New PIN: ")
+                if getpass.getpass("New PIN again: ") != new:
                     sys.exit("The PINs do not match.")
             request("set-pin", old=old, new=new)
     except Refused as error:

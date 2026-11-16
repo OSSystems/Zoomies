@@ -10,7 +10,6 @@ clock, switching player and turning off sit on the right.
 """
 
 import os
-import pwd
 import subprocess
 import sys
 
@@ -116,12 +115,12 @@ def tile(info, size, name=None, what=None, fallback="application-x-executable"):
     return button
 
 
-def tiles():
+def tiles(columns):
     return Gtk.FlowBox(
         selection_mode=Gtk.SelectionMode.NONE,
         homogeneous=True,
-        min_children_per_line=3,
-        max_children_per_line=6,
+        min_children_per_line=columns,
+        max_children_per_line=columns,
         column_spacing=GAP,
         row_spacing=GAP,
     )
@@ -207,34 +206,30 @@ class AppsPanel(Popup):
             target = next((g for _name, cats, g in groups if categories & cats), rest)
             target.append(info)
         last = _("Internet, files and games") if games else _("Internet and files")
-        self.first = None
-        for name, _cats, members in [*groups, (last, None, rest)]:
-            extra = name == last and games
-            if not members and not extra:
-                continue
-            page.pack_start(label(name, "group-title", xalign=0), False, False, 0)
-            flow = tiles()
-            for info in members:
-                button = tile(info, TILE_ICON)
-                button.connect("clicked", lambda _b, i=info: self.start(i))
-                flow.add(button)
-                self.first = self.first or button
-            if extra:
-                inside = ngettext("{count} game inside", "{count} games inside", len(games)).format(count=len(games))
-                button = tile(None, TILE_ICON, _("Games ›"), inside, "applications-games")
-                button.get_style_context().add_class("games")
-                button.connect("clicked", lambda *_args: self.show_games())
-                flow.add(button)
-                self.games_button = button
-                self.first = self.first or button
-            page.pack_start(flow, False, False, 0)
+        if games:
+            # Stands for the tile that opens the games page.
+            rest.append(None)
+        sections = [(name, members) for name, _cats, members in [*groups, (last, None, rest)] if members]
         # As wide as the biggest group, so a few apps do not sit in a wide
         # empty card.
-        flows = [c for c in page.get_children() if isinstance(c, Gtk.FlowBox)]
-        columns = max([3, *(min(6, len(f.get_children())) for f in flows)])
-        for flow in flows:
-            flow.set_min_children_per_line(columns)
-            flow.set_max_children_per_line(columns)
+        columns = max([3, *(min(6, len(members)) for _name, members in sections)])
+        self.first = None
+        for name, members in sections:
+            page.pack_start(label(name, "group-title", xalign=0), False, False, 0)
+            flow = tiles(columns)
+            for info in members:
+                if info is None:
+                    inside = ngettext("{count} game inside", "{count} games inside", len(games)).format(count=len(games))
+                    button = tile(None, TILE_ICON, _("Games ›"), inside, "applications-games")
+                    button.get_style_context().add_class("games")
+                    button.connect("clicked", lambda *_args: self.show_games())
+                    self.games_button = button
+                else:
+                    button = tile(info, TILE_ICON)
+                    button.connect("clicked", lambda _b, i=info: self.start(i))
+                flow.add(button)
+                self.first = self.first or button
+            page.pack_start(flow, False, False, 0)
         if self.first is None:
             page.pack_start(
                 label(_("No apps here yet.\nAsk a grown-up to add some!"), "group-title"), False, False, 0
@@ -250,9 +245,7 @@ class AppsPanel(Popup):
             top.pack_start(back, False, False, 0)
             top.pack_start(label(_("Games"), "card-title", xalign=0), False, False, 0)
             page.pack_start(top, False, False, 0)
-            flow = tiles()
-            flow.set_min_children_per_line(min(4, max(3, len(games))))
-            flow.set_max_children_per_line(min(4, max(3, len(games))))
+            flow = tiles(min(4, max(3, len(games))))
             self.first_game = None
             for info in games:
                 button = tile(info, GAME_ICON, what="")
@@ -403,11 +396,11 @@ class Shelf(Gtk.Window):
         inside = Gtk.Box(spacing=6)
         zip_art = os.path.join(config.get("assets", ""), "zip.svg")
         if os.path.exists(zip_art):
-            loader = GdkPixbuf.PixbufLoader()
-            loader.set_size(int(ICON * 1.15), int(ICON * 1.15))
-            loader.write(art.svg_frames(zip_art)[0])
-            loader.close()
-            inside.pack_start(Gtk.Image.new_from_pixbuf(loader.get_pixbuf()), False, False, 0)
+            size = int(ICON * 1.15)
+            zip_image = Gtk.Image.new_from_pixbuf(art.pixbuf(art.svg_frames(zip_art)[0], height=size))
+            # Zip is taller than wide; the square keeps the label in place.
+            zip_image.set_size_request(size, size)
+            inside.pack_start(zip_image, False, False, 0)
         inside.pack_start(label(_("Apps"), "apps-label"), False, False, 0)
         self.apps_button.add(inside)
         self.apps_button.connect("clicked", self._toggle_apps)
@@ -546,14 +539,14 @@ class Shelf(Gtk.Window):
 
     def tick(self):
         self.clock.set_label(GLib.DateTime.new_now_local().format("%H:%M"))
-        status = state.read_status().get(self.kid["user"])
-        remaining = status and status.get("remaining")
-        if remaining is None:
+        left = state.time_left(state.read_status().get(self.kid["user"]))
+        if left is None:
             self.time_left.hide()
         else:
-            self.time_left.set_label(f"⏳ {state.format_duration(remaining)}")
+            text, low = left
+            self.time_left.set_label(text)
             style = self.time_left.get_style_context()
-            if remaining <= 300:
+            if low:
                 style.add_class("low")
             else:
                 style.remove_class("low")
@@ -563,10 +556,7 @@ class Shelf(Gtk.Window):
 
 def main():
     config = state.load_config()
-    user = pwd.getpwuid(os.getuid()).pw_name
-    kid = state.kids_by_user(config).get(user)
-    if kid is None:
-        sys.exit(f"{user} has no Zoomies profile")
+    kid = state.current_kid(config)
     css()
     shelf = Shelf(config, kid)
     shelf.show_all()
