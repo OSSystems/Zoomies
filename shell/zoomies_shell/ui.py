@@ -8,7 +8,7 @@ import sys
 import gi
 
 from . import art, state
-from .i18n import _
+from .i18n import N_, _
 
 gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -198,6 +198,25 @@ def big_button(text, css=None, emoji=None):
     button.set_valign(Gtk.Align.CENTER)
     if css:
         button.add_css_class(css)
+    return button
+
+
+SYSTEM_ACTIONS = {
+    "poweroff": ("⏻", "🌙", N_("Turn the computer off?")),
+    "reboot": ("🔄", "🔄", N_("Restart the computer?")),
+}
+
+
+def system_button(overlay, action, text=None):
+    """A button that asks first, then runs systemctl's action."""
+    emoji, question_emoji, question = SYSTEM_ACTIONS[action]
+    button = big_button(text, "subtle", emoji)
+    button.connect(
+        "clicked",
+        lambda *_args: overlay.confirm(
+            _(question), question_emoji, lambda: subprocess.Popen(["systemctl", action])
+        ),
+    )
     return button
 
 

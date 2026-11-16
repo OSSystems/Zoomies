@@ -9,7 +9,6 @@ import json
 import os
 import socket
 import struct
-import subprocess
 import sys
 import time
 
@@ -108,6 +107,8 @@ class Greeter(Gtk.ApplicationWindow):
 
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
         page.add_css_class("page")
+        self.overlay = ui.Overlay(page, ui.sky(40))
+        self.set_child(self.overlay)
 
         top = Gtk.CenterBox()
         top.set_start_widget(ui.mascot(config, 120))
@@ -146,18 +147,8 @@ class Greeter(Gtk.ApplicationWindow):
         self.hint_label = Gtk.Label(hexpand=True, xalign=0)
         self.hint_label.add_css_class("kid-note")
         bottom.append(self.hint_label)
-        power = ui.big_button(None, "subtle", "⏻")
-        power.connect(
-            "clicked",
-            lambda *_args: self.overlay.confirm(
-                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
-            ),
-        )
-        bottom.append(power)
+        bottom.append(ui.system_button(self.overlay, "poweroff"))
         page.append(bottom)
-
-        self.overlay = ui.Overlay(page, ui.sky(40))
-        self.set_child(self.overlay)
 
         keys = Gtk.EventControllerKey()
         keys.connect("key-pressed", self._key)

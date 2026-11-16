@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-15 22:35-0300\n"
+"POT-Creation-Date: 2026-11-16 08:31-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -72,9 +72,6 @@ msgid "Grown-ups"
 msgstr ""
 
 msgid "Keep holding 🔒 to open"
-msgstr ""
-
-msgid "Turn the computer off?"
 msgstr ""
 
 msgid ""
@@ -222,9 +219,6 @@ msgstr ""
 msgid "Restart"
 msgstr ""
 
-msgid "Restart the computer?"
-msgstr ""
-
 msgid "Power off"
 msgstr ""
 
@@ -341,6 +335,9 @@ msgstr ""
 msgid "Switch"
 msgstr ""
 
+msgid "Turn the computer off?"
+msgstr ""
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -348,6 +345,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Save your work, time is almost up for today."
+msgstr ""
+
+msgid "Restart the computer?"
 msgstr ""
 
 msgid "Yes"

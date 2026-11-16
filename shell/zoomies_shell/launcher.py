@@ -37,6 +37,8 @@ class Launcher(Gtk.ApplicationWindow):
 
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         page.add_css_class("page")
+        self.overlay = ui.Overlay(page, ui.sky(60, strength=0.6))
+        self.set_child(self.overlay)
 
         top = Gtk.Box(spacing=20)
         top.append(ui.avatar(kid, "small"))
@@ -88,18 +90,9 @@ class Launcher(Gtk.ApplicationWindow):
             lambda *_args: self.overlay.confirm(_("Stop playing and switch player?"), "👋", self.leave),
         )
         bottom.append(switch)
-        power = ui.big_button(None, "subtle", "⏻")
-        power.connect(
-            "clicked",
-            lambda *_args: self.overlay.confirm(
-                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
-            ),
-        )
-        bottom.append(power)
+        bottom.append(ui.system_button(self.overlay, "poweroff"))
         page.append(bottom)
 
-        self.overlay = ui.Overlay(page, ui.sky(60, strength=0.6))
-        self.set_child(self.overlay)
         self.gamepad = ui.Gamepad(
             self,
             on_back=self.overlay.close,

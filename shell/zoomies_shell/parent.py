@@ -163,6 +163,8 @@ class Parent(Gtk.ApplicationWindow):
         super().__init__(application=app, title=_("Zoomies grown-ups"))
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=20)
         page.add_css_class("page")
+        self.overlay = ui.Overlay(page)
+        self.set_child(self.overlay)
 
         top = Gtk.Box(spacing=20)
         top.append(ui.mascot(config, 72))
@@ -197,26 +199,10 @@ class Parent(Gtk.ApplicationWindow):
         calm.connect("notify::active", lambda switch, _pspec: state.set_calm_screen(switch.get_active()))
         bottom.append(calm)
         bottom.append(Gtk.Label(label=_("Calm screen")))
-        restart = ui.big_button(_("Restart"), "subtle", "🔄")
-        restart.connect(
-            "clicked",
-            lambda *_args: self.overlay.confirm(
-                _("Restart the computer?"), "🔄", lambda: subprocess.Popen(["systemctl", "reboot"])
-            ),
-        )
-        bottom.append(restart)
-        power = ui.big_button(_("Power off"), "subtle", "⏻")
-        power.connect(
-            "clicked",
-            lambda *_args: self.overlay.confirm(
-                _("Turn the computer off?"), "🌙", lambda: subprocess.Popen(["systemctl", "poweroff"])
-            ),
-        )
-        bottom.append(power)
+        bottom.append(ui.system_button(self.overlay, "reboot", _("Restart")))
+        bottom.append(ui.system_button(self.overlay, "poweroff", _("Power off")))
         page.append(bottom)
 
-        self.overlay = ui.Overlay(page)
-        self.set_child(self.overlay)
         self.populate()
         GLib.timeout_add_seconds(5, self.refresh)
 
