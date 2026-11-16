@@ -10,6 +10,7 @@
 
 pkgs.testers.runNixOSTest {
   extraPythonPackages = p: [ p.pillow ];
+  meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-splash";
   nodes.machine = {
     # As installed: test VMs print every kernel message to the screen, and
