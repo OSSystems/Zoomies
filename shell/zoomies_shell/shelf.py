@@ -17,6 +17,7 @@ import sys
 import gi
 
 from . import apps, art, state
+from .i18n import N_, _, ngettext
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -35,9 +36,24 @@ GAP = 16
 # Desktop entry categories, in the order the panel shows them; apps in none
 # of them land in the last group.
 GROUPS = (
-    ("Write and study", {"Office", "Education", "Science", "Math", "Languages", "Geography"}),
-    ("Create", {"Graphics", "AudioVideo", "Audio", "Video"}),
+    (N_("Write and study"), {"Office", "Education", "Science", "Math", "Languages", "Geography"}),
+    (N_("Create"), {"Graphics", "AudioVideo", "Audio", "Video"}),
 )
+# What the default apps are for, in a kid's words: their own generic names
+# ("Word Processor", "Spreadsheet") are written for grown-ups. Apps a parent
+# adds fall back to theirs. Keyed by desktop entry file name.
+WHAT = {
+    "calc.desktop": N_("Make tables"),
+    "firefox.desktop": N_("Visit websites"),
+    "impress.desktop": N_("Make slideshows"),
+    "org.audacityteam.Audacity.desktop": N_("Record sounds"),
+    "org.kde.kgeography.desktop": N_("Learn about countries"),
+    "org.kde.krita.desktop": N_("Paint pictures"),
+    "org.kde.ktouch.desktop": N_("Learn to type"),
+    "org.stellarium.Stellarium.desktop": N_("Explore the sky"),
+    "thunar.desktop": N_("Find your files"),
+    "writer.desktop": N_("Write stories"),
+}
 
 
 def css():
@@ -87,9 +103,13 @@ def tile(info, size, name=None, what=None, fallback="application-x-executable"):
     text.set_max_width_chars(12)
     box.pack_start(text, False, False, 0)
     if what is None and info is not None:
-        what = info.get_generic_name() or ""
+        what = WHAT.get(os.path.basename(info.get_filename() or ""))
+        what = _(what) if what else info.get_generic_name() or ""
     if what:
-        note = label(what, "tile-what", ellipsize=Pango.EllipsizeMode.END)
+        # Two lines fit the longer translations without cutting them.
+        note = label(what, "tile-what", ellipsize=Pango.EllipsizeMode.END, justify=Gtk.Justification.CENTER)
+        note.set_line_wrap(True)
+        note.set_lines(2)
         note.set_max_width_chars(14)
         box.pack_start(note, False, False, 0)
     button.add(box)
@@ -132,8 +152,8 @@ class Popup(Gtk.Window):
         self.card.get_style_context().add_class("card")
         self.add(self.card)
         self.connect("key-press-event", self._key)
-        self.connect("focus-out-event", lambda *_: self.close_card())
-        self.connect("delete-event", lambda *_: self.close_card() or True)
+        self.connect("focus-out-event", lambda *_args: self.close_card())
+        self.connect("delete-event", lambda *_args: self.close_card() or True)
 
     def _key(self, _window, event):
         if event.keyval == Gdk.KEY_Escape:
@@ -167,7 +187,7 @@ class Popup(Gtk.Window):
 
 class AppsPanel(Popup):
     def __init__(self, shelf, entries, games):
-        super().__init__(shelf, "Apps")
+        super().__init__(shelf, _("Apps"))
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         # Small screens scroll the card rather than lose its bottom.
         scroller = Gtk.ScrolledWindow(
@@ -179,16 +199,16 @@ class AppsPanel(Popup):
         self.card.pack_start(scroller, True, True, 0)
 
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page.pack_start(label("What do you want to do?", "card-title", xalign=0), False, False, 0)
-        groups = [(name, cats, []) for name, cats in GROUPS]
+        page.pack_start(label(_("What do you want to do?"), "card-title", xalign=0), False, False, 0)
+        groups = [(_(name), cats, []) for name, cats in GROUPS]
         rest = []
         for info in entries:
             categories = set(filter(None, (info.get_categories() or "").split(";")))
-            target = next((g for _, cats, g in groups if categories & cats), rest)
+            target = next((g for _name, cats, g in groups if categories & cats), rest)
             target.append(info)
-        last = "Internet, files and games" if games else "Internet and files"
+        last = _("Internet, files and games") if games else _("Internet and files")
         self.first = None
-        for name, _, members in [*groups, (last, None, rest)]:
+        for name, _cats, members in [*groups, (last, None, rest)]:
             extra = name == last and games
             if not members and not extra:
                 continue
@@ -200,10 +220,10 @@ class AppsPanel(Popup):
                 flow.add(button)
                 self.first = self.first or button
             if extra:
-                inside = f"{len(games)} games inside" if len(games) > 1 else "1 game inside"
-                button = tile(None, TILE_ICON, "Games ›", inside, "applications-games")
+                inside = ngettext("{count} game inside", "{count} games inside", len(games)).format(count=len(games))
+                button = tile(None, TILE_ICON, _("Games ›"), inside, "applications-games")
                 button.get_style_context().add_class("games")
-                button.connect("clicked", lambda *_: self.show_games())
+                button.connect("clicked", lambda *_args: self.show_games())
                 flow.add(button)
                 self.games_button = button
                 self.first = self.first or button
@@ -217,18 +237,18 @@ class AppsPanel(Popup):
             flow.set_max_children_per_line(columns)
         if self.first is None:
             page.pack_start(
-                label("No apps here yet.\nAsk a grown-up to add some!", "group-title"), False, False, 0
+                label(_("No apps here yet.\nAsk a grown-up to add some!"), "group-title"), False, False, 0
             )
         self.stack.add_named(page, "apps")
 
         if games:
             page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
             top = Gtk.Box(spacing=16)
-            back = Gtk.Button(label="← All apps")
+            back = Gtk.Button(label=_("← All apps"))
             back.get_style_context().add_class("back")
-            back.connect("clicked", lambda *_: self.show_apps())
+            back.connect("clicked", lambda *_args: self.show_apps())
             top.pack_start(back, False, False, 0)
-            top.pack_start(label("Games", "card-title", xalign=0), False, False, 0)
+            top.pack_start(label(_("Games"), "card-title", xalign=0), False, False, 0)
             page.pack_start(top, False, False, 0)
             flow = tiles()
             flow.set_min_children_per_line(min(4, max(3, len(games))))
@@ -279,13 +299,13 @@ class Ask(Popup):
         super().__init__(shelf, question)
         self.card.pack_start(label(question, "card-title"), False, False, 0)
         buttons = Gtk.Box(spacing=GAP, halign=Gtk.Align.CENTER)
-        no = Gtk.Button(label="No")
+        no = Gtk.Button(label=_("No"))
         no.get_style_context().add_class("answer")
-        no.connect("clicked", lambda *_: self.close_card())
+        no.connect("clicked", lambda *_args: self.close_card())
         button = Gtk.Button(label=yes)
         button.get_style_context().add_class("answer")
         button.get_style_context().add_class("yes")
-        button.connect("clicked", lambda *_: self.close_card() or on_yes())
+        button.connect("clicked", lambda *_args: self.close_card() or on_yes())
         buttons.pack_start(no, False, False, 0)
         buttons.pack_start(button, False, False, 0)
         self.card.pack_start(buttons, False, False, 0)
@@ -313,11 +333,11 @@ class Running(Gtk.Button):
         self.add(self.box)
         self._identify()
         # LibreOffice changes its class once it knows which app it is.
-        window.connect("class-changed", lambda *_: self._identify())
-        window.connect("icon-changed", lambda *_: self._identify())
+        window.connect("class-changed", lambda *_args: self._identify())
+        window.connect("icon-changed", lambda *_args: self._identify())
         self.set_tooltip_text(window.get_name())
         window.connect("name-changed", lambda w: self.set_tooltip_text(w.get_name()))
-        self.connect("clicked", lambda *_: window.activate(now(shelf)))
+        self.connect("clicked", lambda *_args: window.activate(now(shelf)))
 
     def _identify(self):
         info = self.shelf.app_for(self.window)
@@ -388,7 +408,7 @@ class Shelf(Gtk.Window):
             loader.write(art.svg_frames(zip_art)[0])
             loader.close()
             inside.pack_start(Gtk.Image.new_from_pixbuf(loader.get_pixbuf()), False, False, 0)
-        inside.pack_start(label("Apps", "apps-label"), False, False, 0)
+        inside.pack_start(label(_("Apps"), "apps-label"), False, False, 0)
         self.apps_button.add(inside)
         self.apps_button.connect("clicked", self._toggle_apps)
         bar.pack_start(self.apps_button, False, False, 0)
@@ -396,7 +416,7 @@ class Shelf(Gtk.Window):
 
         self.running = Gtk.Box(spacing=10)
         bar.pack_start(self.running, True, True, 0)
-        self.hint = label("Press Apps to start something!", "hint", xalign=0)
+        self.hint = label(_("Press Apps to start something!"), "hint", xalign=0)
         self.running.pack_start(self.hint, False, False, 0)
 
         self.time_left = label("", "time-pill", valign=Gtk.Align.CENTER)
@@ -404,21 +424,21 @@ class Shelf(Gtk.Window):
         bar.pack_start(self.time_left, False, False, 0)
         self.clock = label("", "clock")
         bar.pack_start(self.clock, False, False, 0)
-        switch = Gtk.Button(label="👋", tooltip_text="Switch player")
-        power = Gtk.Button(label="⏻", tooltip_text="Turn off")
+        switch = Gtk.Button(label="👋", tooltip_text=_("Switch player"))
+        power = Gtk.Button(label="⏻", tooltip_text=_("Turn off"))
         for button in (switch, power):
             button.get_style_context().add_class("round")
             bar.pack_start(button, False, False, 0)
-        self.switch = Ask(self, "Stop and switch player?", "Switch", lambda: self._session("--logout"))
-        self.power = Ask(self, "Turn the computer off?", "Turn off", lambda: self._session("--halt"))
-        switch.connect("clicked", lambda *_: self._ask(self.switch))
-        power.connect("clicked", lambda *_: self._ask(self.power))
+        self.switch = Ask(self, _("Stop and switch player?"), _("Switch"), lambda: self._session("--logout"))
+        self.power = Ask(self, _("Turn the computer off?"), _("Turn off"), lambda: self._session("--halt"))
+        switch.connect("clicked", lambda *_args: self._ask(self.switch))
+        power.connect("clicked", lambda *_args: self._ask(self.power))
 
         self.panel = AppsPanel(self, entries, games)
 
-        self.connect("realize", lambda *_: self.place())
-        Gdk.Screen.get_default().connect("monitors-changed", lambda *_: self.place())
-        Gdk.Screen.get_default().connect("size-changed", lambda *_: self.place())
+        self.connect("realize", lambda *_args: self.place())
+        Gdk.Screen.get_default().connect("monitors-changed", lambda *_args: self.place())
+        Gdk.Screen.get_default().connect("size-changed", lambda *_args: self.place())
 
         self.buttons = {}
         self.front = None
@@ -426,7 +446,7 @@ class Shelf(Gtk.Window):
         self.screen = Wnck.Screen.get_default()
         self.screen.connect("window-opened", lambda _s, w: self._opened(w))
         self.screen.connect("window-closed", lambda _s, w: self._closed(w))
-        self.screen.connect("active-window-changed", lambda *_: self._front())
+        self.screen.connect("active-window-changed", lambda *_args: self._front())
         self.screen.force_update()
         for window in self.screen.get_windows():
             self._opened(window)
@@ -471,7 +491,7 @@ class Shelf(Gtk.Window):
     def _opened(self, window):
         if not self._ours(window) or window in self.buttons:
             return
-        window.connect("state-changed", lambda w, *_: self._fit(w))
+        window.connect("state-changed", lambda w, *_args: self._fit(w))
         self._fit(window)
         button = Running(self, window)
         self.buttons[window] = button
@@ -509,7 +529,7 @@ class Shelf(Gtk.Window):
         for window, button in self.buttons.items():
             button.front(window == active)
 
-    def _toggle_apps(self, *_):
+    def _toggle_apps(self, *_args):
         if self.panel.get_visible() or self.panel.just_closed():
             self.panel.close_card()
         else:
