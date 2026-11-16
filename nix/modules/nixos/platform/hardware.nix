@@ -2,6 +2,8 @@
 { modulesPath, ... }:
 
 {
+  # Only redistributable firmware, so the images can be shared freely.
+  hardware.enableRedistributableFirmware = true;
   imports = [
     "${modulesPath}/profiles/all-hardware.nix"
     ./common.nix

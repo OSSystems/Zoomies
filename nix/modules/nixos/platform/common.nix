@@ -8,10 +8,6 @@
     "vm.watermark_boost_factor" = 0;
     "vm.watermark_scale_factor" = 125;
   };
-  hardware = {
-    # Only redistributable firmware, so the images can be shared freely.
-    enableRedistributableFirmware = true;
-  };
   # The languages Zoomies' screens are translated to; the installer offers
   # only these.
   i18n.supportedLocales = [
