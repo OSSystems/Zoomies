@@ -1,7 +1,5 @@
-{ flake, ... }:
+{ flake, lib, ... }:
 
-flake.nixosConfigurations.zoomies-pi.config.system.build.sdImage.overrideAttrs (old: {
-  meta = old.meta or { } // {
-    platforms = [ "aarch64-linux" ];
-  };
-})
+lib.addMetaAttrs {
+  platforms = [ "aarch64-linux" ];
+} flake.nixosConfigurations.zoomies-pi.config.system.build.sdImage
