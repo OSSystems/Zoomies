@@ -37,6 +37,7 @@
   imports = with inputs.nixos-raspberrypi.nixosModules; [
     "${modulesPath}/installer/sd-card/sd-image.nix"
     ../platform/common.nix
+    ./firmware.nix
     inputs.nixos-raspberrypi.lib.inject-overlays
     raspberry-pi-4.base
     raspberry-pi-4.bluetooth
