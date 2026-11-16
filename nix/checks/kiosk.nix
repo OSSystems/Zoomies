@@ -31,6 +31,7 @@ pkgs.testers.runNixOSTest {
     fresh = {
       imports = [ common.node ];
       networking.nftables.enable = true;
+      zoomies.games = lib.mkForce [ ];
       zoomies.older.enable = false;
     };
     # Set up ahead of time: kids and the PIN (1234) in the configuration.
@@ -137,7 +138,8 @@ pkgs.testers.runNixOSTest {
         }
 
 
-    start_all()
+    machine.start()
+    server.start()
     server.wait_for_unit("nginx.service")
     server.wait_for_unit("dnsmasq.service")
     machine.wait_for_unit("greetd.service")
@@ -467,6 +469,10 @@ pkgs.testers.runNixOSTest {
         machine.fail("test -e /home/ana/Downloads")
         machine.fail("test -e /home/zoe/junk")
         machine.succeed("test -e /home/max/homework.odt")
+
+    # The two kiosk sessions never overlap, so they need not compete for RAM.
+    machine.shutdown()
+    fresh.start()
 
     with subtest("the first boot asks for a PIN, then for the kids"):
         fresh.wait_for_unit("greetd.service")
