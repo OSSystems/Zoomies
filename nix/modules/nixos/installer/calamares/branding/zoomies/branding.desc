@@ -12,6 +12,7 @@ strings:
   shortVersion: "@version@"
   versionedName: Zoomies
   shortVersionedName: Zoomies
+  # The partition page names the new root partition with this.
   bootloaderEntryName: Zoomies
   productUrl: https://github.com/OSSystems/zoomies
   supportUrl: https://github.com/OSSystems/zoomies/issues

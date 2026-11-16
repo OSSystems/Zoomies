@@ -38,7 +38,7 @@ let
   ];
 in
 pkgs.testers.runNixOSTest {
-  # Reads the boot menu off the screen.
+  # Reads the installer's pages and the boot menu off the screen.
   enableOCR = true;
   # Three times a normal run: a stuck step fails the check instead of
   # holding an idle VM for an hour or two.

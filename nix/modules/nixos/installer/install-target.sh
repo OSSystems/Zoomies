@@ -1,5 +1,5 @@
 # Finishes an install once Calamares has partitioned and mounted the target:
-# labels the filesystems the system mounts, copies the prebuilt system and
+# labels the root filesystem, records the ESP, copies the prebuilt system and
 # installs GRUB. TOPLEVEL and CLOSURE_INFO come from the Nix wrapper.
 set -eu
 

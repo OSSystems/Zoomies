@@ -1,4 +1,4 @@
-/* The kids' screens use Andika and navy text; the installer matches. */
+/* The kids' screens use Andika; the installer matches. */
 QWidget {
     font-family: "Andika";
     font-size: 13pt;

@@ -9,8 +9,9 @@
   boot.loader = {
     efi.efiSysMountPoint = "/boot/efi";
     grub = {
-      # GRUB reads kernels from the store on the root filesystem, so older
-      # generations no longer fill a small /boot.
+      # Ten older versions reach back far enough after a bad update and keep
+      # the menu short. Kernels stay in the store on the root filesystem, so
+      # /boot space sets no limit.
       configurationLimit = 10;
       device = "/dev/disk/zoomies-boot";
       efiInstallAsRemovable = true;
