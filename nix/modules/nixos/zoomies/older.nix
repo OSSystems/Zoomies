@@ -12,6 +12,14 @@
 let
   cfg = config.zoomies;
   inherit (cfg) older;
+  autostart = name: exec: ''
+    [Desktop Entry]
+    Type=Application
+    Name=${name}
+    Exec=${exec}
+    OnlyShowIn=XFCE;
+    NoDisplay=true
+  '';
   # Title strips with only a close button: apps are always maximized.
   windowTheme =
     pkgs.runCommand "zoomies-window-theme"
@@ -25,35 +33,25 @@ in
     lib.mkMerge [
       {
         environment = {
-          # The cape on the wallpaper flaps; the helper checks the wallpaper
-          # is still Zoomies' own.
-          etc."xdg/autostart/zoomies-desktop-zip.desktop".text = ''
-            [Desktop Entry]
-            Type=Application
-            Name=Zip on the desktop
-            Exec=${cfg.package}/bin/zoomies-desktop-zip ${older.wallpaper}
-            OnlyShowIn=XFCE;
-            NoDisplay=true
-          '';
-          # The shelf takes the place of the Xfce panel.
-          etc."xdg/autostart/zoomies-shelf.desktop".text = ''
-            [Desktop Entry]
-            Type=Application
-            Name=Zoomies shelf
-            Exec=${cfg.package}/bin/zoomies-shelf
-            OnlyShowIn=XFCE;
-            NoDisplay=true
-          '';
-          # Settings that would only confuse or let a kid undo the setup.
-          etc."xdg/xfce4/kiosk/kioskrc".text = ''
-            [xfce4-session]
-            SaveSession=NONE
-            CustomizeSplash=%zoomies-setup
-            CustomizeChooser=%zoomies-setup
+          etc = {
+            # The cape on the wallpaper flaps; the helper checks the wallpaper
+            # is still Zoomies' own.
+            "xdg/autostart/zoomies-desktop-zip.desktop".text =
+              autostart "Zip on the desktop" "${cfg.package}/bin/zoomies-desktop-zip ${older.wallpaper}";
+            # The shelf takes the place of the Xfce panel.
+            "xdg/autostart/zoomies-shelf.desktop".text =
+              autostart "Zoomies shelf" "${cfg.package}/bin/zoomies-shelf";
+            # Settings that would only confuse or let a kid undo the setup.
+            "xdg/xfce4/kiosk/kioskrc".text = ''
+              [xfce4-session]
+              SaveSession=NONE
+              CustomizeSplash=%zoomies-setup
+              CustomizeChooser=%zoomies-setup
 
-            [xfce4-panel]
-            CustomizePanel=%zoomies-setup
-          '';
+              [xfce4-panel]
+              CustomizePanel=%zoomies-setup
+            '';
+          };
           systemPackages = older.apps ++ [ windowTheme ];
         };
         # Kids must not install software of their own.
