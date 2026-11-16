@@ -146,8 +146,6 @@ in
     apps = lib.mkOption {
       default = with pkgs; [
         audacity
-        gcompris
-        inkscape
         kdePackages.kgeography
         kdePackages.ktouch
         krita
@@ -184,6 +182,22 @@ in
       default = true;
       description = "Offer older kid profiles with a desktop and filtered web.";
       type = lib.types.bool;
+    };
+    hiddenApps = lib.mkOption {
+      # LibreOffice ships a tile per component; these few only confuse kids.
+      default = [
+        "base.desktop"
+        "draw.desktop"
+        "math.desktop"
+        "startcenter.desktop"
+      ];
+      description = ''
+        Desktop entry file names the shelf leaves out of the apps card, for
+        packages in apps that ship entries kids do not need. The apps stay
+        installed.
+      '';
+      example = [ "impress.desktop" ];
+      type = lib.types.listOf lib.types.str;
     };
     startable = lib.mkOption {
       # Thunar's bulk renamer and settings would only clutter the shelf.

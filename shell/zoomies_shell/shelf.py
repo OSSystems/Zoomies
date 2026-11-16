@@ -361,7 +361,7 @@ class Shelf(Gtk.Window):
 
         for path in apps.icon_dirs(config.get("olderApps", []) + kid["games"]):
             Gtk.IconTheme.get_default().append_search_path(path)
-        entries = apps.entries(config.get("olderApps", []))
+        entries = apps.entries(config.get("olderApps", []), set(config.get("olderHiddenApps", [])))
         games = apps.entries(kid["games"])
         self.known = {}
         for info in [*Gio.AppInfo.get_all(), *entries, *games]:

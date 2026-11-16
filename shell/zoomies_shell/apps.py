@@ -6,9 +6,10 @@ import os
 from gi.repository import Gio
 
 
-def entries(sources):
+def entries(sources, hidden=()):
     """The visible desktop entries, by name, of packages or of single
-    desktop entry files: a package may ship helpers kids do not need."""
+    desktop entry files: a package may ship helpers kids do not need.
+    Entries whose file name is in hidden are left out too."""
     found = []
     seen = set()
     for source in sources:
@@ -21,7 +22,7 @@ def entries(sources):
                 continue
             files = [os.path.join(applications, n) for n in sorted(os.listdir(applications))]
         for path in files:
-            if not path.endswith(".desktop"):
+            if not path.endswith(".desktop") or os.path.basename(path) in hidden:
                 continue
             try:
                 info = Gio.DesktopAppInfo.new_from_filename(path)

@@ -121,6 +121,7 @@ in
         }) cfg.kids;
         olderApps = lib.optionals cfg.older.enable cfg.older.startable;
         olderEnabled = cfg.older.enable;
+        olderHiddenApps = cfg.older.hiddenApps;
         olderSession = if cfg.older.enable then cfg.sessions.older else null;
         parent = if cfg.parent.user == null then null else { inherit (cfg.parent) user; };
         parentSession = cfg.sessions.parent;
