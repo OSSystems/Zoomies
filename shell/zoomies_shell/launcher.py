@@ -13,7 +13,8 @@ import sys
 
 from . import apps, state, ui
 from .i18n import _
-from .ui import Gio, GLib, Gtk, Pango
+from .ui import Gio, GLib, Gtk
+from gi.repository import Pango
 
 # Desktop entry field codes; games start without files or URLs.
 FIELD_CODE = re.compile(r"%[fFuUdDnNickvm]")
@@ -42,12 +43,15 @@ class Launcher(Gtk.ApplicationWindow):
 
         top = Gtk.Box(spacing=20)
         top.append(ui.avatar(kid, "small"))
-        hello = Gtk.Label(label=_("Hi, {name}!").format(name=kid["name"]), xalign=0, hexpand=True)
-        hello.set_ellipsize(Pango.EllipsizeMode.END)
-        hello.add_css_class("title")
+        hello = Gtk.Label(
+            label=_("Hi, {name}!").format(name=kid["name"]),
+            xalign=0,
+            hexpand=True,
+            ellipsize=Pango.EllipsizeMode.END,
+            css_classes=["title"],
+        )
         top.append(hello)
-        self.time_left = Gtk.Label(valign=Gtk.Align.CENTER)
-        self.time_left.add_css_class("time-pill")
+        self.time_left = Gtk.Label(valign=Gtk.Align.CENTER, css_classes=["time-pill"])
         top.append(self.time_left)
         top.append(ui.clock())
         page.append(top)
@@ -66,23 +70,30 @@ class Launcher(Gtk.ApplicationWindow):
         games = games_for(kid)
         columns = 4 if len(games) > 6 else 3 if len(games) > 4 else max(1, len(games))
         if not games:
-            empty = Gtk.Label(label="No games here yet.\nAsk a grown-up to add some!")
-            empty.set_justify(Gtk.Justification.CENTER)
-            empty.add_css_class("dialog-title")
+            empty = Gtk.Label(
+                label="No games here yet.\nAsk a grown-up to add some!",
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
             self.grid.attach(empty, 0, 0, 1, 1)
         for index, info in enumerate(games):
             self.grid.attach(self._tile(info), index % columns, index // columns, 1, 1)
-        scroller = Gtk.ScrolledWindow(vexpand=True, child=self.grid)
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller = Gtk.ScrolledWindow(
+            vexpand=True, child=self.grid, hscrollbar_policy=Gtk.PolicyType.NEVER
+        )
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
-        self.zip = ui.mascot(config, 88)
+        self.zip = ui.Mascot(config, 88)
         bottom.append(self.zip)
         self.bubble = Gtk.Label(
-            label=_("Pick a game!"), xalign=0, hexpand=True, valign=Gtk.Align.CENTER, wrap=True
+            label=_("Pick a game!"),
+            xalign=0,
+            hexpand=True,
+            valign=Gtk.Align.CENTER,
+            wrap=True,
+            css_classes=["bubble"],
         )
-        self.bubble.add_css_class("bubble")
         bottom.append(self.bubble)
         switch = ui.big_button(_("Switch player"), "subtle", "👋")
         switch.connect(
@@ -120,9 +131,13 @@ class Launcher(Gtk.ApplicationWindow):
         else:
             image.set_from_gicon(icon)
         box.append(image)
-        name = Gtk.Label(label=info.get_name(), wrap=True, justify=Gtk.Justification.CENTER)
-        name.set_max_width_chars(14)
-        name.add_css_class("game-name")
+        name = Gtk.Label(
+            label=info.get_name(),
+            wrap=True,
+            justify=Gtk.Justification.CENTER,
+            max_width_chars=14,
+            css_classes=["game-name"],
+        )
         box.append(name)
         button.set_child(box)
         button.connect("clicked", lambda *_args: self.start_game(info))

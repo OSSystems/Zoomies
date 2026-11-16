@@ -45,13 +45,9 @@ class KidRow(Gtk.Box):
         header.append(ui.avatar(kid, "small"))
         names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
         line = Gtk.Box(spacing=12)
-        name = Gtk.Label(label=kid["name"], xalign=0)
-        name.add_css_class("kid-name")
-        line.append(name)
+        line.append(Gtk.Label(label=kid["name"], xalign=0, css_classes=["kid-name"]))
         emoji, title, _hint = ui.KidForm.KIND_LABELS[kid.get("kind", "little")]
-        tag = Gtk.Label(label=f"{emoji} {title}", valign=Gtk.Align.CENTER)
-        tag.add_css_class("tag")
-        line.append(tag)
+        line.append(Gtk.Label(label=f"{emoji} {title}", valign=Gtk.Align.CENTER, css_classes=["tag"]))
         names.append(line)
         self.played = Gtk.Label(xalign=0)
         names.append(self.played)
@@ -167,10 +163,8 @@ class Parent(Gtk.ApplicationWindow):
         self.set_child(self.overlay)
 
         top = Gtk.Box(spacing=20)
-        top.append(ui.mascot(config, 72))
-        title = Gtk.Label(label=_("Grown-ups"), xalign=0, hexpand=True)
-        title.add_css_class("title")
-        top.append(title)
+        top.append(ui.Mascot(config, 72))
+        top.append(Gtk.Label(label=_("Grown-ups"), xalign=0, hexpand=True, css_classes=["title"]))
         add = ui.big_button(_("Add a kid"), "yes", "➕")
         add.connect("clicked", lambda *_args: self.edit_kid(None))
         top.append(add)
@@ -181,8 +175,9 @@ class Parent(Gtk.ApplicationWindow):
         page.append(top)
 
         self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        scroller = Gtk.ScrolledWindow(vexpand=True, child=self.list)
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller = Gtk.ScrolledWindow(
+            vexpand=True, child=self.list, hscrollbar_policy=Gtk.PolicyType.NEVER
+        )
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
@@ -214,15 +209,15 @@ class Parent(Gtk.ApplicationWindow):
         for row in self.rows:
             self.list.append(row)
         if not self.rows:
-            empty = Gtk.Label(label=_("No kids yet. Press ➕ Add a kid."))
-            empty.add_css_class("dialog-title")
-            self.list.append(empty)
+            self.list.append(
+                Gtk.Label(label=_("No kids yet. Press ➕ Add a kid."), css_classes=["dialog-title"])
+            )
 
     def dialog(self, title, body, action, on_accept):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        label = Gtk.Label(label=title, justify=Gtk.Justification.CENTER)
-        label.add_css_class("dialog-title")
-        box.append(label)
+        box.append(
+            Gtk.Label(label=title, justify=Gtk.Justification.CENTER, css_classes=["dialog-title"])
+        )
         box.append(body)
         message = ui.message_label()
         box.append(message)

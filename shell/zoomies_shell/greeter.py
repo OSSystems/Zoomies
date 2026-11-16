@@ -111,9 +111,8 @@ class Greeter(Gtk.ApplicationWindow):
         self.set_child(self.overlay)
 
         top = Gtk.CenterBox()
-        top.set_start_widget(ui.mascot(config, 120))
-        title = Gtk.Label(label=_("Who's playing?"))
-        title.add_css_class("title")
+        top.set_start_widget(ui.Mascot(config, 120))
+        title = Gtk.Label(label=_("Who's playing?"), css_classes=["title"])
         top.set_center_widget(title)
         top.set_end_widget(ui.clock())
         page.append(top)
@@ -131,8 +130,9 @@ class Greeter(Gtk.ApplicationWindow):
             margin_end=14,
         )
         # A big family must not push the grown-ups and power buttons away.
-        scroller = Gtk.ScrolledWindow(vexpand=True, child=self.kids)
-        scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroller = Gtk.ScrolledWindow(
+            vexpand=True, child=self.kids, hscrollbar_policy=Gtk.PolicyType.NEVER
+        )
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)
@@ -144,8 +144,7 @@ class Greeter(Gtk.ApplicationWindow):
         # tooltips never show on touch screens.
         parent.connect("clicked", lambda *_args: self.hint(_("Keep holding 🔒 to open")))
         bottom.append(parent)
-        self.hint_label = Gtk.Label(hexpand=True, xalign=0)
-        self.hint_label.add_css_class("kid-note")
+        self.hint_label = Gtk.Label(hexpand=True, xalign=0, css_classes=["kid-note"])
         bottom.append(self.hint_label)
         bottom.append(ui.system_button(self.overlay, "poweroff"))
         page.append(bottom)
@@ -170,9 +169,11 @@ class Greeter(Gtk.ApplicationWindow):
         for index, kid in enumerate(kids):
             self.kids.attach(self._kid_tile(kid), index % columns, index // columns, 1, 1)
         if not self.tiles:
-            empty = Gtk.Label(label=_("No kids yet.\nGrown-ups can add them with the 🔒 button."))
-            empty.set_justify(Gtk.Justification.CENTER)
-            empty.add_css_class("dialog-title")
+            empty = Gtk.Label(
+                label=_("No kids yet.\nGrown-ups can add them with the 🔒 button."),
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
             self.kids.attach(empty, 0, 0, 1, 1)
         self.refresh()
         first = next(iter(self.tiles.values()), None)
@@ -215,11 +216,8 @@ class Greeter(Gtk.ApplicationWindow):
         button.add_css_class("kid-tile")
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         box.append(ui.avatar(kid))
-        name = Gtk.Label(label=kid["name"])
-        name.add_css_class("kid-name")
-        box.append(name)
-        note = Gtk.Label()
-        note.add_css_class("kid-note")
+        box.append(Gtk.Label(label=kid["name"], css_classes=["kid-name"]))
+        note = Gtk.Label(css_classes=["kid-note"])
         box.append(note)
         button.set_child(box)
         button.note = note
@@ -278,11 +276,15 @@ class Greeter(Gtk.ApplicationWindow):
             # A vertical box would size the picture for the full dialog
             # width; a row gives it only its own width.
             row = Gtk.Box(halign=Gtk.Align.CENTER)
-            row.append(ui.mascot(self.config, 120, "fly"))
+            row.append(ui.Mascot(self.config, 120, "fly"))
             box.append(row)
-        label = Gtk.Label(label=f"{emoji}\n{text}", justify=Gtk.Justification.CENTER)
-        label.add_css_class("dialog-title")
-        box.append(label)
+        box.append(
+            Gtk.Label(
+                label=f"{emoji}\n{text}",
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
+        )
         ok = ui.big_button(_("OK"), "yes", "👍")
         ok.set_halign(Gtk.Align.CENTER)
         ok.connect("clicked", lambda *_args: self.overlay.close())
@@ -298,10 +300,13 @@ class Greeter(Gtk.ApplicationWindow):
             Setup(self).start()
             return
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        title = Gtk.Label(label=_("🔒\nGrown-ups only"))
-        title.set_justify(Gtk.Justification.CENTER)
-        title.add_css_class("dialog-title")
-        box.append(title)
+        box.append(
+            Gtk.Label(
+                label=_("🔒\nGrown-ups only"),
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
+        )
         entry = ui.pin_entry(_("PIN"))
         box.append(entry)
         message = ui.message_label()
@@ -369,8 +374,8 @@ class Setup:
         title = Gtk.Label(
             label=_("👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN."),
             justify=Gtk.Justification.CENTER,
+            css_classes=["dialog-title"],
         )
-        title.add_css_class("dialog-title")
         box.append(title)
         hint = Gtk.Label(label=_("4 to 12 digits. Kids should not see it!"))
         box.append(hint)
@@ -411,15 +416,16 @@ class Setup:
     def kids(self):
         config = state.load_config()
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        title = Gtk.Label(label=_("Who will play?"), justify=Gtk.Justification.CENTER)
-        title.add_css_class("dialog-title")
+        title = Gtk.Label(
+            label=_("Who will play?"), justify=Gtk.Justification.CENTER, css_classes=["dialog-title"]
+        )
         box.append(title)
         added = Gtk.Label(
             label="  ".join(f"{k['avatar']} {k['name']}" for k in config["kids"])
             or _("Type a name, pick a face, then press Add."),
             wrap=True,
+            css_classes=["kid-note"],
         )
-        added.add_css_class("kid-note")
         box.append(added)
         form = ui.KidForm(
             older=config.get("olderEnabled", False),

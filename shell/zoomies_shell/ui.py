@@ -14,7 +14,7 @@ gi.require_version("Gdk", "4.0")
 gi.require_version("GdkPixbuf", "2.0")
 gi.require_version("Graphene", "1.0")
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Graphene, Gtk, Pango  # noqa: E402
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Graphene, Gtk  # noqa: E402
 
 try:
     gi.require_version("Manette", "0.2")
@@ -99,13 +99,12 @@ def play(name):
 
 
 def avatar(kid, size="big"):
-    label = Gtk.Label(label=kid.get("avatar", "🙂"))
-    label.add_css_class("avatar")
-    label.add_css_class(f"avatar-{size}")
-    label.add_css_class(f"color-{kid.get('color', 'sky')}")
-    label.set_halign(Gtk.Align.CENTER)
-    label.set_valign(Gtk.Align.CENTER)
-    return label
+    return Gtk.Label(
+        label=kid.get("avatar", "🙂"),
+        css_classes=["avatar", f"avatar-{size}", f"color-{kid.get('color', 'sky')}"],
+        halign=Gtk.Align.CENTER,
+        valign=Gtk.Align.CENTER,
+    )
 
 
 # Zip's poses: waving hello on resting screens, flying for when something starts.
@@ -113,6 +112,8 @@ POSES = {"rest": "zip.svg", "fly": "zip-flying.svg"}
 
 
 def mascot_frames(path, height):
+    # Rendered at the wanted height: a Picture of the SVG itself would ask
+    # for the SVG's large natural size and squeeze everything around it.
     textures = []
     for data in art.svg_frames(path):
         stream = Gio.MemoryInputStream.new_from_bytes(GLib.Bytes.new(data))
@@ -165,15 +166,8 @@ class Mascot(Gtk.Picture):
             self.timer = None
 
 
-def mascot(config, size, pose="rest"):
-    # Rendered at the wanted height: a Picture of the SVG itself would ask
-    # for the SVG's large natural size and squeeze everything around it.
-    return Mascot(config, size, pose)
-
-
 def clock():
-    label = Gtk.Label(valign=Gtk.Align.CENTER)
-    label.add_css_class("clock")
+    label = Gtk.Label(valign=Gtk.Align.CENTER, css_classes=["clock"])
 
     def tick():
         label.set_label(datetime.datetime.now().strftime("%H:%M"))
@@ -188,9 +182,7 @@ def big_button(text, css=None, emoji=None):
     button = Gtk.Button()
     box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
     if emoji:
-        icon = Gtk.Label(label=emoji)
-        icon.add_css_class("button-emoji")
-        box.append(icon)
+        box.append(Gtk.Label(label=emoji, css_classes=["button-emoji"]))
     if text:
         box.append(Gtk.Label(label=text))
     button.set_child(box)
@@ -387,9 +379,13 @@ class Overlay(Gtk.Overlay):
 
     def confirm(self, question, emoji, on_yes):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)
-        title = Gtk.Label(label=f"{emoji}\n{question}", justify=Gtk.Justification.CENTER)
-        title.add_css_class("dialog-title")
-        box.append(title)
+        box.append(
+            Gtk.Label(
+                label=f"{emoji}\n{question}",
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
+        )
         row = Gtk.Box(spacing=24, halign=Gtk.Align.CENTER, homogeneous=True)
         no = big_button(_("No"), "no", "✖")
         yes = big_button(_("Yes"), "yes", "✔")
@@ -514,7 +510,6 @@ class KidForm(Gtk.Box):
         for emoji in state.AVATARS:
             button = Gtk.ToggleButton(label=emoji, active=emoji == self.avatar)
             button.add_css_class("avatar-choice")
-            button.connect("toggled", self._pick_avatar, emoji)
             self.avatar_buttons[emoji] = button
             avatars.append(button)
         self.append(avatars)
@@ -526,7 +521,6 @@ class KidForm(Gtk.Box):
             button.add_css_class("color-choice")
             button.add_css_class(f"color-{color}")
             button.set_tooltip_text(color)
-            button.connect("toggled", self._pick_color, color)
             self.color_buttons[color] = button
             colors.append(button)
         self.append(colors)
@@ -538,37 +532,32 @@ class KidForm(Gtk.Box):
                 continue
             button = Gtk.ToggleButton(active=kind == self.kind)
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-            label = Gtk.Label(label=f"{emoji} {title}")
-            label.add_css_class("kind-title")
-            box.append(label)
+            box.append(Gtk.Label(label=f"{emoji} {title}", css_classes=["kind-title"]))
             box.append(Gtk.Label(label=hint))
             button.set_child(box)
             button.add_css_class("kind-choice")
-            button.connect("toggled", self._pick_kind, kind)
             self.kind_buttons[kind] = button
             kinds.append(button)
         self.append(kinds)
 
-    def _pick(self, buttons, value, attribute):
-        if not buttons[value].get_active():
-            # Keep one choice selected: clicking the active one again
-            # should not leave nothing chosen.
-            if getattr(self, attribute) == value:
-                buttons[value].set_active(True)
-            return
-        setattr(self, attribute, value)
-        for other, button in buttons.items():
-            if other != value and button.get_active():
-                button.set_active(False)
+        self._choices("avatar", self.avatar_buttons)
+        self._choices("color", self.color_buttons)
+        self._choices("kind", self.kind_buttons)
 
-    def _pick_avatar(self, _button, emoji):
-        self._pick(self.avatar_buttons, emoji, "avatar")
+    def _choices(self, attribute, buttons):
+        first, *rest = buttons.values()
+        for button in rest:
+            button.set_group(first)
+        for value, button in buttons.items():
+            button.connect("toggled", self._chosen, attribute, value, not rest)
 
-    def _pick_color(self, _button, color):
-        self._pick(self.color_buttons, color, "color")
-
-    def _pick_kind(self, _button, kind):
-        self._pick(self.kind_buttons, kind, "kind")
+    def _chosen(self, button, attribute, value, lone):
+        if button.get_active():
+            setattr(self, attribute, value)
+        elif lone:
+            # A group keeps one of its buttons chosen, but GTK cannot group
+            # a lone button, as when only one kind of kid is allowed.
+            button.set_active(True)
 
     def values(self):
         return {
@@ -588,6 +577,4 @@ def pin_entry(placeholder):
 
 
 def message_label():
-    label = Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER)
-    label.add_css_class("pin-message")
-    return label
+    return Gtk.Label(wrap=True, justify=Gtk.Justification.CENTER, css_classes=["pin-message"])
