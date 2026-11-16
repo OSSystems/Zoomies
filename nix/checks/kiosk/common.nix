@@ -59,10 +59,45 @@ let
     exec runuser -u "$user" -- env -i "''${vars[@]}" "$@"
   '';
 
-  manual = flake.nixosConfigurations.zoomies.config.system.build.manual.manualHTML;
+  # As heavy as a page of the NixOS manual, over 1 MB and 20,000 elements
+  # that scripts then highlight and link; generated, so the check does not
+  # need the systems to carry documentation.
+  longDocument = pkgs.runCommand "long-document" { } ''
+    mkdir $out
+    awk 'BEGIN {
+      print "<!doctype html><title>long document</title>"
+      print "<style>body { font: 16px/1.5 serif; margin: 2em auto; max-width: 50em }"
+      print "pre { background: #eee; padding: 1em } td { border: 1px solid #999 }</style>"
+      text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+      for (s = 1; s <= 700; s++) {
+        printf "<section id=\"s%d\"><h2>Section %d</h2>\n", s, s
+        for (p = 1; p <= 3; p++)
+          printf "<p>%s <a href=\"#s%d\">See %d</a>, <code>option.%d.%d</code> and <em>%s</em></p>\n", text, s + p, s + p, s, p, text
+        print "<ul>"
+        for (i = 1; i <= 5; i++) printf "<li>Item %d of section %d</li>\n", i, s
+        print "</ul><table>"
+        for (r = 1; r <= 4; r++) printf "<tr><td>row %d</td><td>%d</td><td>%s</td></tr>\n", r, s * r, substr(text, 1, 40)
+        print "</table><pre><code>"
+        for (l = 1; l <= 8; l++) printf "  services.example%d.setting%d = \"value %d\";\n", s, l, l
+        print "</code></pre></section>"
+      }
+    }' > $out/document.html
+    cat >> $out/document.html <<'EOF'
+    <script>
+      for (const code of document.querySelectorAll("pre code"))
+        code.innerHTML = code.textContent.replace(/[\w.]+|"[^"]*"/g, (t) => `<span class="t">''${t}</span>`);
+      for (const heading of document.querySelectorAll("h2")) {
+        const anchor = document.createElement("a");
+        anchor.href = `#''${heading.parentNode.id}`;
+        anchor.textContent = "#";
+        heading.append(anchor);
+      }
+    </script>
+    EOF
+  '';
 
-  # Static manuals are lighter than the sites kids use; these stand in for a
-  # video or document app: a large JS heap and a page that keeps repainting.
+  # Static documents are lighter than the sites kids use; these stand in for
+  # a video or document app: a large JS heap and a page that keeps repainting.
   webApp = pkgs.writeTextDir "app.html" ''
     <!doctype html>
     <title>web app</title>
@@ -81,8 +116,8 @@ let
   '';
 
   pages = [
-    "file://${manual}/share/doc/nixos/index.html"
-    "file://${manual}/share/doc/nixos/release-notes.html"
+    "file://${longDocument}/document.html"
+    "file://${longDocument}/document.html?2"
     "file://${webApp}/app.html"
     "file://${webApp}/app.html?2"
   ];
