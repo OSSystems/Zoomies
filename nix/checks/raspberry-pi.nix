@@ -101,13 +101,14 @@ let
             logfile=sys.stdout,
             timeout=3600,
         )
-        vm.expect(r"\[root@zoomies-pi:~\]#")
+        # Bash sets the terminal title inside the prompt's brackets.
+        vm.expect(r"root@zoomies-pi:~\]#")
         vm.timeout = 600
 
 
         def succeed(command):
             vm.sendline(f"{command}; echo __rc=$?")
-            vm.expect(r"__rc=(\d+)\r?\n")
+            vm.expect(r"__rc=(\d+)\r*\n")
             rc = int(vm.match.group(1))
             output = vm.before
             assert rc == 0, f"{command!r} failed with {rc}"
