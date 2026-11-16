@@ -545,14 +545,14 @@ class Shelf(Gtk.Window):
 
     def tick(self):
         self.clock.set_label(GLib.DateTime.new_now_local().format("%H:%M"))
-        status = state.read_status().get(self.kid["user"])
-        remaining = status and status.get("remaining")
-        if remaining is None:
+        left = state.time_left(state.read_status().get(self.kid["user"]))
+        if left is None:
             self.time_left.hide()
         else:
-            self.time_left.set_label(f"⏳ {state.format_duration(remaining)}")
+            text, low = left
+            self.time_left.set_label(text)
             style = self.time_left.get_style_context()
-            if remaining <= 300:
+            if low:
                 style.add_class("low")
             else:
                 style.remove_class("low")

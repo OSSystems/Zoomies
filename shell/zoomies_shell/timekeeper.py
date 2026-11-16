@@ -89,8 +89,7 @@ def daemon(_args):
         # the cap only keeps one stalled tick from counting as minutes.
         elapsed = min(now - last, TICK * 4)
         last = now
-        if usage.get("date") != state.today():
-            usage = {"date": state.today(), "seconds": {}}
+        usage = state.roll_usage(usage)
         config = state.load_config()
         policy = state.load_policy()
 

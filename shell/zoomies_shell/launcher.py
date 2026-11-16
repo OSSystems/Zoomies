@@ -213,14 +213,11 @@ class Launcher(Gtk.ApplicationWindow):
         self.get_application().quit()
 
     def refresh(self):
-        status = state.read_status().get(self.kid["user"])
-        remaining = status and status.get("remaining")
-        if remaining is None:
-            self.time_left.set_visible(False)
-        else:
-            self.time_left.set_visible(True)
-            self.time_left.set_label(f"⏳ {state.format_duration(remaining)}")
-            low = remaining <= 300
+        left = state.time_left(state.read_status().get(self.kid["user"]))
+        self.time_left.set_visible(left is not None)
+        if left is not None:
+            text, low = left
+            self.time_left.set_label(text)
             if low:
                 self.time_left.add_css_class("low")
             else:

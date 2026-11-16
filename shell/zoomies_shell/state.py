@@ -125,17 +125,21 @@ def grant_bonus(user, minutes):
     policy = load_policy()
     bonus = policy.setdefault("bonus", {})
     # Old days are dropped so the file does not grow forever.
-    day = {k: v for k, v in bonus.get(today(), {}).items()}
+    day = dict(bonus.get(today(), {}))
     day[user] = max(0, day.get(user, 0) + minutes)
     policy["bonus"] = {today(): day}
     save_policy(policy)
 
 
-def load_usage():
-    usage = read_json(USAGE, {})
+def roll_usage(usage):
+    """The usage itself, or a fresh count once its day is over."""
     if usage.get("date") != today():
-        usage = {"date": today(), "seconds": {}}
+        return {"date": today(), "seconds": {}}
     return usage
+
+
+def load_usage():
+    return roll_usage(read_json(USAGE, {}))
 
 
 def effective_rules(kid, policy):
@@ -196,6 +200,17 @@ def kid_status(kid, policy, usage, now=None):
 
 def read_status():
     return read_json(STATUS, {})
+
+
+LOW_SECONDS = 300
+
+
+def time_left(status):
+    """The time-left text and whether it runs low, or None without a limit."""
+    remaining = (status or {}).get("remaining")
+    if remaining is None:
+        return None
+    return f"⏳ {format_duration(remaining)}", remaining <= LOW_SECONDS
 
 
 def format_duration(seconds):
