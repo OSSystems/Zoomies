@@ -18,8 +18,14 @@ let
 
   # Cage clears to black until its window draws, a flash between the boot
   # splash and the greeter and whenever a game starts; it paints the sky.
+  # It also lights the screen up black and draws one frame later, which on a
+  # busy machine without a GPU leaves a second of black after the splash; it
+  # lights the screen up with the sky already drawn.
   cage = pkgs.cage.overrideAttrs (old: {
-    patches = (old.patches or [ ]) ++ [ ./cage-sky.patch ];
+    patches = (old.patches or [ ]) ++ [
+      ./cage-sky.patch
+      ./cage-first-frame.patch
+    ];
   });
 
   kiosk =
