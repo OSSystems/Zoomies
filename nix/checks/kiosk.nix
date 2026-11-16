@@ -149,10 +149,7 @@ pkgs.testers.runNixOSTest {
         # The test VM has no GPU: the screens draw with GTK's cheaper
         # renderer there.
         machine.succeed("test -e /run/zoomies-gpu/software")
-        machine.succeed(
-            "tr '\\0' '\\n' </proc/$(pgrep -u greeter -n -f zoomies-greeter)/environ"
-            " | grep -qx GSK_RENDERER=cairo"
-        )
+        machine.succeed(f"grep -qzx GSK_RENDERER=cairo {greeter_environ()}")
         machine.succeed("swapon --show | grep -q zram")
         sample_memory("greeter")
 
@@ -161,10 +158,7 @@ pkgs.testers.runNixOSTest {
             "printf 'LANG=pt_BR.UTF-8\\nXKB_DEFAULT_LAYOUT=br\\n' > /var/lib/zoomies/locale.conf"
         )
         restart_greeter()
-        # The greeter writes its own PID once it takes input.
-        # grep -z reads the file itself: piping through tr lets grep -q exit
-        # early, and the test shell turns tr's broken pipe into a failure.
-        environ = "/proc/$(cat /run/user/$(id -u greeter)/zoomies-greeter-ready)/environ"
+        environ = greeter_environ()
         print(machine.succeed(f"grep -zE '^(LANG|LC_|XKB)' {environ} | tr '\\0' '\\n'"))
         machine.succeed(f"grep -qzx LANG=pt_BR.UTF-8 {environ}")
         machine.succeed(f"grep -qzx XKB_DEFAULT_LAYOUT=br {environ}")

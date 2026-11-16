@@ -156,6 +156,11 @@ in
         wait_for_ready("zoomies-greeter", "greeter", node)
 
 
+    def greeter_environ():
+        # The ready PID identifies the greeter itself, rather than its logger or cage.
+        return "/proc/$(cat /run/user/$(id -u greeter)/zoomies-greeter-ready)/environ"
+
+
     def restart_greeter(node=machine):
         node.succeed("systemctl restart greetd")
         wait_for_greeter(node)
