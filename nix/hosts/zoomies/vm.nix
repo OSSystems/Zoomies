@@ -1,11 +1,7 @@
 # `nix run .#nixosConfigurations.zoomies.config.system.build.vm` for trying
 # the kiosk. Sample profiles cover every screen time state; the known PIN and
-# open root login exist only here, never in the published image.
-#
-# Hacking on the shell: start the VM with ZOOMIES_SHELL=$PWD/shell and the
-# Python code and CSS load from the checkout, so after an edit
-#   ssh -p 2222 root@localhost systemctl restart greetd
-# shows it without rebuilding.
+# open root login exist only here, never in the published image. The shared
+# shell folder and SSH serve hacking on the shell; see the README.
 { lib, pkgs, ... }:
 
 let

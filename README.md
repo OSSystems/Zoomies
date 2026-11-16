@@ -24,7 +24,8 @@ press Ctrl+Alt+P, then enter the PIN `1234`.
 ### Hacking on the shell
 
 Start the VM with `ZOOMIES_SHELL=$PWD/shell` set, and it runs the Python code
-straight from your checkout. After each edit, restart the greeter to see it:
+and CSS straight from your checkout. After each edit, restart the greeter to
+see it, without a rebuild:
 
 ```sh
 ssh -p 2222 root@localhost systemctl restart greetd
@@ -71,11 +72,13 @@ sudo dd if=result/iso/zoomies-installer.iso of=/dev/sdX bs=4M status=progress of
 Boot the PC from the stick. It starts quietly behind Zip, into a graphical
 installer (Calamares) that asks for:
 
-1. the language of the installer;
+1. the language;
 2. the time zone, guessed from the network when one is connected and
    confirmed on a map;
-3. the disk: erase a whole disk, or partition it by hand.
+3. the keyboard layout;
+4. the disk: erase a whole disk, or partition it by hand.
 
+Every Zoomies session starts in the chosen language and keyboard layout.
 Zoomies asks for the grown-ups PIN on first start. No network is needed: the
 whole system is on the stick.
 
@@ -178,7 +181,7 @@ All Nix code lives under `nix/` and is wired by
 | Path | Output |
 |---|---|
 | `nix/modules/nixos/zoomies/` | `nixosModules.zoomies` (the kiosk desktop) |
-| `nix/modules/nixos/platform/` | `nixosModules.platform` (disk layout, hybrid boot, hardware) |
+| `nix/modules/nixos/platform/` | `nixosModules.platform` (disk layout, hybrid boot, boot splash, GRUB theme and menu, hardware) |
 | `nix/modules/nixos/raspberry-pi/` | `nixosModules.raspberry-pi` (SD image, firmware boot, Pi hardware) |
 | `nix/modules/nixos/installer/` | `nixosModules.installer` |
 | `nix/lib/` | `lib.mkInstallerIso` |
@@ -189,8 +192,9 @@ All Nix code lives under `nix/` and is wired by
 | `nix/checks/installer.nix` | `checks.installer` (BIOS/UEFI install and boot in QEMU) |
 | `nix/checks/raspberry-pi.nix` | `checks.raspberry-pi` (Pi image boot and update in QEMU) |
 | `nix/checks/kiosk.nix` | `checks.kiosk` (logins, PIN, screen time, network block, home reset) |
+| `nix/checks/kiosk-memory.nix` | `checks.kiosk-memory` (games, Firefox and Writer settle within the minimum supported RAM) |
+| `nix/checks/translations.nix` | `checks.translations` (every string the screens show is translatable; each translation compiles) |
 | `nix/checks/splash.nix` | `checks.splash` (records the boot; fails if the screen goes dark before the greeter) |
-| `nix/checks/translations.nix` | `checks.translations` (the template lists every string; each translation compiles) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |
 | `nix/hosts/zoomies-pi/` | `nixosConfigurations.zoomies-pi` |
 | `nix/devshell.nix` | `devShells.default` |
