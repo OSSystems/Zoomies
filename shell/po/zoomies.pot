@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-15 03:53-0300\n"
+"POT-Creation-Date: 2026-11-15 22:34-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -258,6 +258,59 @@ msgstr ""
 msgid "🔑 Change the PIN"
 msgstr ""
 
+msgid "Write and study"
+msgstr ""
+
+msgid "Create"
+msgstr ""
+
+msgid "Apps"
+msgstr ""
+
+msgid "What do you want to do?"
+msgstr ""
+
+msgid "Internet, files and games"
+msgstr ""
+
+msgid "Internet and files"
+msgstr ""
+
+#, python-brace-format
+msgid "{count} game inside"
+msgid_plural "{count} games inside"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Games ›"
+msgstr ""
+
+msgid ""
+"No apps here yet.\n"
+"Ask a grown-up to add some!"
+msgstr ""
+
+msgid "← All apps"
+msgstr ""
+
+msgid "Games"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "Press Apps to start something!"
+msgstr ""
+
+msgid "Turn off"
+msgstr ""
+
+msgid "Stop and switch player?"
+msgstr ""
+
+msgid "Switch"
+msgstr ""
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -265,9 +318,6 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Save your work, time is almost up for today."
-msgstr ""
-
-msgid "No"
 msgstr ""
 
 msgid "Yes"

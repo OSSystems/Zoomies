@@ -72,14 +72,22 @@ msgstr "Mantén pulsado 🔒 para abrir"
 msgid "Turn the computer off?"
 msgstr "¿Apagar el ordenador?"
 
-msgid "No kids yet.\nGrown-ups can add them with the 🔒 button."
-msgstr "Todavía no hay niños.\nLos adultos pueden añadirlos con el botón 🔒."
+msgid ""
+"No kids yet.\n"
+"Grown-ups can add them with the 🔒 button."
+msgstr ""
+"Todavía no hay niños.\n"
+"Los adultos pueden añadirlos con el botón 🔒."
 
 msgid "OK"
 msgstr "Aceptar"
 
-msgid "🔒\nGrown-ups only"
-msgstr "🔒\nSolo para adultos"
+msgid ""
+"🔒\n"
+"Grown-ups only"
+msgstr ""
+"🔒\n"
+"Solo para adultos"
 
 msgid "PIN"
 msgstr "PIN"
@@ -93,8 +101,12 @@ msgstr "Demasiados intentos. Espera un poco."
 msgid "That is not the PIN."
 msgstr "Ese no es el PIN."
 
-msgid "👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN."
-msgstr "👋 ¡Te damos la bienvenida a Zoomies!\nPrimero, un adulto elige un PIN secreto."
+msgid ""
+"👋 Welcome to Zoomies!\n"
+"First, a grown-up picks a secret PIN."
+msgstr ""
+"👋 ¡Te damos la bienvenida a Zoomies!\n"
+"Primero, un adulto elige un PIN secreto."
 
 msgid "4 to 12 digits. Kids should not see it!"
 msgstr "De 4 a 12 dígitos. ¡Que no lo vean los niños!"
@@ -247,6 +259,61 @@ msgstr "los PIN nuevos son distintos"
 msgid "🔑 Change the PIN"
 msgstr "🔑 Cambiar el PIN"
 
+msgid "Write and study"
+msgstr "Escribir y estudiar"
+
+msgid "Create"
+msgstr "Crear"
+
+msgid "Apps"
+msgstr "Apps"
+
+msgid "What do you want to do?"
+msgstr "¿Qué quieres hacer?"
+
+msgid "Internet, files and games"
+msgstr "Internet, archivos y juegos"
+
+msgid "Internet and files"
+msgstr "Internet y archivos"
+
+#, python-brace-format
+msgid "{count} game inside"
+msgid_plural "{count} games inside"
+msgstr[0] "{count} juego dentro"
+msgstr[1] "{count} juegos dentro"
+
+msgid "Games ›"
+msgstr "Juegos ›"
+
+msgid ""
+"No apps here yet.\n"
+"Ask a grown-up to add some!"
+msgstr ""
+"Todavía no hay apps aquí.\n"
+"¡Pide a un adulto que ponga algunas!"
+
+msgid "← All apps"
+msgstr "← Todas las apps"
+
+msgid "Games"
+msgstr "Juegos"
+
+msgid "No"
+msgstr "No"
+
+msgid "Press Apps to start something!"
+msgstr "¡Pulsa Apps para empezar algo!"
+
+msgid "Turn off"
+msgstr "Apagar"
+
+msgid "Stop and switch player?"
+msgstr "¿Parar y cambiar de jugador?"
+
+msgid "Switch"
+msgstr "Cambiar"
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -255,9 +322,6 @@ msgstr[1] "Quedan {minutes} minutos"
 
 msgid "Save your work, time is almost up for today."
 msgstr "Guarda lo que estés haciendo, el tiempo de hoy casi se acaba."
-
-msgid "No"
-msgstr "No"
 
 msgid "Yes"
 msgstr "Sí"

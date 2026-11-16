@@ -17,6 +17,7 @@ import sys
 import gi
 
 from . import apps, art, state
+from .i18n import N_, _, ngettext
 
 gi.require_version("Gdk", "3.0")
 gi.require_version("GdkPixbuf", "2.0")
@@ -35,8 +36,8 @@ GAP = 16
 # Desktop entry categories, in the order the panel shows them; apps in none
 # of them land in the last group.
 GROUPS = (
-    ("Write and study", {"Office", "Education", "Science", "Math", "Languages", "Geography"}),
-    ("Create", {"Graphics", "AudioVideo", "Audio", "Video"}),
+    (N_("Write and study"), {"Office", "Education", "Science", "Math", "Languages", "Geography"}),
+    (N_("Create"), {"Graphics", "AudioVideo", "Audio", "Video"}),
 )
 
 
@@ -167,7 +168,7 @@ class Popup(Gtk.Window):
 
 class AppsPanel(Popup):
     def __init__(self, shelf, entries, games):
-        super().__init__(shelf, "Apps")
+        super().__init__(shelf, _("Apps"))
         self.stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.SLIDE_LEFT_RIGHT)
         # Small screens scroll the card rather than lose its bottom.
         scroller = Gtk.ScrolledWindow(
@@ -179,14 +180,14 @@ class AppsPanel(Popup):
         self.card.pack_start(scroller, True, True, 0)
 
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        page.pack_start(label("What do you want to do?", "card-title", xalign=0), False, False, 0)
-        groups = [(name, cats, []) for name, cats in GROUPS]
+        page.pack_start(label(_("What do you want to do?"), "card-title", xalign=0), False, False, 0)
+        groups = [(_(name), cats, []) for name, cats in GROUPS]
         rest = []
         for info in entries:
             categories = set(filter(None, (info.get_categories() or "").split(";")))
             target = next((g for _name, cats, g in groups if categories & cats), rest)
             target.append(info)
-        last = "Internet, files and games" if games else "Internet and files"
+        last = _("Internet, files and games") if games else _("Internet and files")
         self.first = None
         for name, _cats, members in [*groups, (last, None, rest)]:
             extra = name == last and games
@@ -200,8 +201,8 @@ class AppsPanel(Popup):
                 flow.add(button)
                 self.first = self.first or button
             if extra:
-                inside = f"{len(games)} games inside" if len(games) > 1 else "1 game inside"
-                button = tile(None, TILE_ICON, "Games ›", inside, "applications-games")
+                inside = ngettext("{count} game inside", "{count} games inside", len(games)).format(count=len(games))
+                button = tile(None, TILE_ICON, _("Games ›"), inside, "applications-games")
                 button.get_style_context().add_class("games")
                 button.connect("clicked", lambda *_args: self.show_games())
                 flow.add(button)
@@ -217,18 +218,18 @@ class AppsPanel(Popup):
             flow.set_max_children_per_line(columns)
         if self.first is None:
             page.pack_start(
-                label("No apps here yet.\nAsk a grown-up to add some!", "group-title"), False, False, 0
+                label(_("No apps here yet.\nAsk a grown-up to add some!"), "group-title"), False, False, 0
             )
         self.stack.add_named(page, "apps")
 
         if games:
             page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
             top = Gtk.Box(spacing=16)
-            back = Gtk.Button(label="← All apps")
+            back = Gtk.Button(label=_("← All apps"))
             back.get_style_context().add_class("back")
             back.connect("clicked", lambda *_args: self.show_apps())
             top.pack_start(back, False, False, 0)
-            top.pack_start(label("Games", "card-title", xalign=0), False, False, 0)
+            top.pack_start(label(_("Games"), "card-title", xalign=0), False, False, 0)
             page.pack_start(top, False, False, 0)
             flow = tiles()
             flow.set_min_children_per_line(min(4, max(3, len(games))))
@@ -279,7 +280,7 @@ class Ask(Popup):
         super().__init__(shelf, question)
         self.card.pack_start(label(question, "card-title"), False, False, 0)
         buttons = Gtk.Box(spacing=GAP, halign=Gtk.Align.CENTER)
-        no = Gtk.Button(label="No")
+        no = Gtk.Button(label=_("No"))
         no.get_style_context().add_class("answer")
         no.connect("clicked", lambda *_args: self.close_card())
         button = Gtk.Button(label=yes)
@@ -388,7 +389,7 @@ class Shelf(Gtk.Window):
             loader.write(art.svg_frames(zip_art)[0])
             loader.close()
             inside.pack_start(Gtk.Image.new_from_pixbuf(loader.get_pixbuf()), False, False, 0)
-        inside.pack_start(label("Apps", "apps-label"), False, False, 0)
+        inside.pack_start(label(_("Apps"), "apps-label"), False, False, 0)
         self.apps_button.add(inside)
         self.apps_button.connect("clicked", self._toggle_apps)
         bar.pack_start(self.apps_button, False, False, 0)
@@ -396,7 +397,7 @@ class Shelf(Gtk.Window):
 
         self.running = Gtk.Box(spacing=10)
         bar.pack_start(self.running, True, True, 0)
-        self.hint = label("Press Apps to start something!", "hint", xalign=0)
+        self.hint = label(_("Press Apps to start something!"), "hint", xalign=0)
         self.running.pack_start(self.hint, False, False, 0)
 
         self.time_left = label("", "time-pill", valign=Gtk.Align.CENTER)
@@ -404,13 +405,13 @@ class Shelf(Gtk.Window):
         bar.pack_start(self.time_left, False, False, 0)
         self.clock = label("", "clock")
         bar.pack_start(self.clock, False, False, 0)
-        switch = Gtk.Button(label="👋", tooltip_text="Switch player")
-        power = Gtk.Button(label="⏻", tooltip_text="Turn off")
+        switch = Gtk.Button(label="👋", tooltip_text=_("Switch player"))
+        power = Gtk.Button(label="⏻", tooltip_text=_("Turn off"))
         for button in (switch, power):
             button.get_style_context().add_class("round")
             bar.pack_start(button, False, False, 0)
-        self.switch = Ask(self, "Stop and switch player?", "Switch", lambda: self._session("--logout"))
-        self.power = Ask(self, "Turn the computer off?", "Turn off", lambda: self._session("--halt"))
+        self.switch = Ask(self, _("Stop and switch player?"), _("Switch"), lambda: self._session("--logout"))
+        self.power = Ask(self, _("Turn the computer off?"), _("Turn off"), lambda: self._session("--halt"))
         switch.connect("clicked", lambda *_args: self._ask(self.switch))
         power.connect("clicked", lambda *_args: self._ask(self.power))
 
