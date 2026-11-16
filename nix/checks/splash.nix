@@ -36,7 +36,11 @@ pkgs.testers.runNixOSTest {
     };
     zoomies = {
       enable = true;
+      # This node never logs in, so application closures cannot affect the
+      # splash-to-greeter handover it exercises.
+      games = lib.mkForce [ ];
       kids.ana.name = "Ana";
+      older.apps = lib.mkForce [ ];
     };
   };
   testScript = ''
