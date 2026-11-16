@@ -5,6 +5,7 @@ other buttons are never shown and are left blank.
 Usage: window-theme.py DIRECTORY
 """
 
+import math
 import os
 import sys
 
@@ -14,7 +15,6 @@ TITLE = 48
 BORDER = 4
 CLOSE_WIDTH = 52
 BUTTONS = ("hide", "maximize", "maximize-toggled", "menu", "shade", "shade-toggled", "stick", "stick-toggled")
-STATES = ("active", "inactive", "pressed", "prelight")
 CLOSE = {
     "active": "#ff8a80",
     "prelight": "#ff6b5f",
@@ -35,7 +35,8 @@ def save(directory, name, width, height, draw):
 
 
 def strip(state):
-    top, bottom = STRIP[state]
+    # Pressed and hovered buttons only show on the window in front.
+    top, bottom = STRIP["inactive" if state == "inactive" else "active"]
 
     def draw(cr):
         gradient = cairo.LinearGradient(0, 0, 0, TITLE)
@@ -61,13 +62,13 @@ def solid(color):
 
 def close(state):
     def draw(cr):
-        strip("inactive" if state == "inactive" else "active")(cr)
+        strip(state)(cr)
         x, y, w, h, r = 6, 6, CLOSE_WIDTH - 12, TITLE - 15, 12
         cr.new_sub_path()
-        cr.arc(x + w - r, y + r, r, -1.5708, 0)
-        cr.arc(x + w - r, y + h - r, r, 0, 1.5708)
-        cr.arc(x + r, y + h - r, r, 1.5708, 3.1416)
-        cr.arc(x + r, y + r, r, 3.1416, 4.7124)
+        cr.arc(x + w - r, y + r, r, -math.pi / 2, 0)
+        cr.arc(x + w - r, y + h - r, r, 0, math.pi / 2)
+        cr.arc(x + r, y + h - r, r, math.pi / 2, math.pi)
+        cr.arc(x + r, y + r, r, math.pi, math.pi * 3 / 2)
         cr.close_path()
         cr.set_source_rgb(*rgb(CLOSE[state]))
         cr.fill()
@@ -96,10 +97,10 @@ def main():
         save(directory, f"bottom-{state}", 8, BORDER, solid(edge))
         save(directory, f"bottom-left-{state}", BORDER, BORDER, solid(edge))
         save(directory, f"bottom-right-{state}", BORDER, BORDER, solid(edge))
-    for state in STATES:
+    for state in CLOSE:
         save(directory, f"close-{state}", CLOSE_WIDTH, TITLE, close(state))
         for button in BUTTONS:
-            save(directory, f"{button}-{state}", 1, TITLE, strip("inactive" if state == "inactive" else "active"))
+            save(directory, f"{button}-{state}", 1, TITLE, strip(state))
     with open(os.path.join(directory, "themerc"), "w") as themerc:
         themerc.write(
             "active_text_color=#1d3557\n"
