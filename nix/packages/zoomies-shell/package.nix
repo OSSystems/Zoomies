@@ -4,6 +4,7 @@
   gtk4,
   libmanette,
   libnotify,
+  libwnck,
   libxcrypt,
   python3Packages,
   wrapGAppsHook4,
@@ -13,15 +14,18 @@
 python3Packages.buildPythonApplication {
   build-system = [ python3Packages.setuptools ];
   buildInputs = [
-    # GTK 3 and Xfconf are for the Zip on the older kids' X11 desktop.
+    # GTK 3, Wnck and Xfconf are for the shelf and the Zip on the older
+    # kids' X11 desktop.
     gtk3
     gtk4
     libmanette
+    libwnck
     xfconf
   ];
   dependencies = [
     python3Packages.pycairo
     python3Packages.pygobject3
+    python3Packages.xlib
   ];
   # The admin service checks the PIN against /etc/shadow with crypt().
   makeWrapperArgs = [

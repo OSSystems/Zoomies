@@ -119,6 +119,7 @@ in
           inherit (k) kind;
           games = map (game: toString (fixGame game)) k.games;
         }) cfg.kids;
+        olderApps = lib.optionals cfg.older.enable cfg.older.startable;
         olderEnabled = cfg.older.enable;
         olderSession = if cfg.older.enable then cfg.sessions.older else null;
         parent = if cfg.parent.user == null then null else { inherit (cfg.parent) user; };

@@ -428,7 +428,9 @@ pkgs.testers.runNixOSTest {
         )
         # The Zoomies look is set up, and the wallpaper comes alive.
         machine.succeed("grep -q Andika /home/max/.config/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml")
-        machine.succeed("grep -q xfce4-panel /home/max/.config/gtk-3.0/gtk.css")
+        # The shelf stands in for the grown-ups' panel.
+        machine.wait_until_succeeds("pgrep -u max -f zoomies-shelf")
+        machine.fail("pgrep -u max xfce4-panel")
         machine.wait_until_succeeds("pgrep -u max -f zoomies-desktop-zip")
         # Clouds drift over the whole desktop, with no icons on top.
         machine.succeed(
@@ -489,6 +491,53 @@ pkgs.testers.runNixOSTest {
         nothing_killed()
         machine.succeed(f"printf '%s\\n' {shlex.join(memory_report)} > /tmp/memory-report.txt")
         machine.copy_from_vm("/tmp/memory-report.txt")
+
+    with subtest("the shelf keeps apps full screen and offers the apps"):
+        shelf = machine.succeed(in_max_x('xdotool search --name "^Zoomies shelf$"')).split()[0]
+        box = dict(
+            line.split("=")
+            for line in machine.succeed(in_max_x(f"xdotool getwindowgeometry --shell {shelf}")).split()
+        )
+        screen_width, screen_height = map(
+            int, machine.succeed(in_max_x("xdotool getdisplaygeometry")).split()
+        )
+        top = int(box["Y"])
+        assert top + int(box["HEIGHT"]) == screen_height, f"the shelf sits at {box}"
+        writer = machine.succeed(
+            in_max_x("xdotool search --onlyvisible --name \"LibreOffice Writer\"")
+        ).split()[0]
+
+        def writer_box():
+            return dict(
+                line.split("=")
+                for line in machine.succeed(
+                    in_max_x(f"xdotool getwindowgeometry --shell {writer}")
+                ).split()
+            )
+
+        # Maximized above the shelf, under a title strip of its own.
+        app = writer_box()
+        assert int(app["WIDTH"]) == screen_width, f"Writer is {app}"
+        assert int(app["Y"]) > 0, f"Writer has no title strip: {app}"
+        assert int(app["Y"]) + int(app["HEIGHT"]) <= top, f"Writer runs under the shelf: {app}"
+        # Shrinking or minimizing an app does not stick.
+        machine.succeed(in_max_x(f"xdotool windowsize {writer} 400 300"))
+        machine.wait_until_succeeds(
+            in_max_x(f"[ \"$(xdotool getwindowgeometry --shell {writer} | grep WIDTH)\" = WIDTH={screen_width} ]")
+        )
+        machine.succeed(in_max_x(f"xdotool windowminimize {writer}"))
+        machine.sleep(3)
+        machine.succeed(in_max_x("xdotool search --onlyvisible --name \"LibreOffice Writer\""))
+        machine.succeed(in_max_x(f"xdotool windowactivate --sync {writer}"))
+        machine.sleep(2)
+        machine.screenshot("older-shelf")
+        # The Apps button opens the card of apps and games; Escape closes it.
+        machine.succeed(in_max_x(f"xdotool mousemove 60 {top + int(box['HEIGHT']) // 2} click 1"))
+        machine.wait_until_succeeds(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))
+        machine.sleep(2)
+        machine.screenshot("older-apps-card")
+        machine.succeed(in_max_x("xdotool key Escape"))
+        machine.wait_until_fails(in_max_x('xdotool search --onlyvisible --name "^Apps$"'))
 
     with subtest("older kids are online through the family filter only"):
         machine.succeed("getent hosts blocked.test | grep -q '0.0.0.0'")
