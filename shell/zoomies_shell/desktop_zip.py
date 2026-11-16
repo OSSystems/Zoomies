@@ -29,6 +29,7 @@ gi.require_version("Xfconf", "0")
 from gi.repository import Gdk, GdkPixbuf, GLib, Gtk, Xfconf  # noqa: E402
 
 SVG = art.SVG
+NS = {"svg": SVG}
 FRAME_MS = 100
 # Each wind line blows this far left, fading, then starts again at the cape;
 # a gust takes WIND_STEPS steps of STEP_MS.
@@ -92,13 +93,9 @@ class Wallpaper:
         self.root = ET.parse(path).getroot()
         self.width = float(self.root.get("width"))
         self.height = float(self.root.get("height"))
-        self.clouds = [g for g in self.root.iter(f"{{{SVG}}}g") if g.get("class") == "cloud"]
-        self.zip = next(
-            (g for g in self.root.iter(f"{{{SVG}}}g") if g.get("id") == "zip"), None
-        )
-        self.wind = next(
-            (g for g in self.root.iter(f"{{{SVG}}}g") if g.get("id") == "wind"), None
-        )
+        self.clouds = self.root.findall(".//svg:g[@class='cloud']", NS)
+        self.zip = self.root.find(".//svg:g[@id='zip']", NS)
+        self.wind = self.root.find(".//svg:g[@id='wind']", NS)
 
     @staticmethod
     def moving(element):
@@ -121,11 +118,15 @@ class Wallpaper:
         return ET.tostring(root)
 
     def zip_frames(self):
+        if self.zip is None:
+            return []
         return art.tree_frames(ET.ElementTree(self.alone("zip")))
 
     def wind_frames(self):
         """The wind lines blowing left from where the still wallpaper has
         them, each fading in and out, staggered so a gust never stops."""
+        if self.wind is None:
+            return []
         root = self.alone("wind")
         lines = [e for e in root.iter() if e.tag in (f"{{{SVG}}}line", f"{{{SVG}}}path")]
         frames = []
@@ -202,27 +203,23 @@ class Sky(Gtk.Window):
             image = art.pixbuf(svg, max(1, round(bw * scale)), max(1, round(bh * scale)))
             speed = CLOUD_SPEED * size * scale * STEP_MS / 1000
             self.clouds.append(Cloud(self._surface(image), ox + bx * scale, oy + by * scale, speed))
-        self.zip = []
-        self.zip_area = None
-        if paper.zip is not None:
-            frames = [zoomed(data, w, h, paper.width, paper.height) for data in paper.zip_frames()]
-            self.zip_area = opaque_area(frames)
-            if self.zip_area is not None:
-                x, y, zw, zh = self.zip_area
-                self.zip = [self._surface(f.new_subpixbuf(x, y, zw, zh)) for f in frames]
-        self.wind = []
-        self.wind_area = None
-        if paper.wind is not None:
-            frames = [zoomed(data, w, h, paper.width, paper.height) for data in paper.wind_frames()]
-            self.wind_area = opaque_area(frames)
-            if self.wind_area is not None:
-                x, y, ww, wh = self.wind_area
-                self.wind = [self._surface(f.new_subpixbuf(x, y, ww, wh)) for f in frames]
+        self.zip, self.zip_area = self._layer(paper.zip_frames())
+        self.wind, self.wind_area = self._layer(paper.wind_frames())
         self.frame = 0
         self.gust = 0
         self.timers.append(GLib.timeout_add(STEP_MS, self._step))
         if len(self.zip) > 1:
             self.timers.append(GLib.timeout_add(FRAME_MS, self._flap))
+
+    def _layer(self, frames):
+        """The frames of a moving layer, cut to where any of them draws."""
+        paper = self.wallpaper
+        frames = [zoomed(data, self.width, self.height, paper.width, paper.height) for data in frames]
+        area = opaque_area(frames) if frames else None
+        if area is None:
+            return [], None
+        x, y, width, height = area
+        return [self._surface(f.new_subpixbuf(x, y, width, height)) for f in frames], area
 
     def _pass_clicks(self, *_):
         # An empty input shape sends clicks to the desktop underneath.
