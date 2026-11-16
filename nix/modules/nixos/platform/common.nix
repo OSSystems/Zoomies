@@ -8,6 +8,12 @@
     "vm.watermark_boost_factor" = 0;
     "vm.watermark_scale_factor" = 125;
   };
+  # Nobody reads manuals on a family's Zoomies, and they would fill the
+  # image. man-db follows man.enable, not enable.
+  documentation = {
+    enable = false;
+    man.enable = false;
+  };
   # The languages Zoomies' screens are translated to; the installer offers
   # only these.
   i18n.supportedLocales = [
@@ -17,6 +23,8 @@
   ];
   networking.networkmanager.enable = true;
   services.fstrim.enable = true;
+  # Reads the options' documentation and brings man-db back.
+  system.tools.nixos-option.enable = false;
   zramSwap = {
     algorithm = "zstd";
     enable = true;
