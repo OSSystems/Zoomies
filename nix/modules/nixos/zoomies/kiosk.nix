@@ -171,6 +171,30 @@ in
           after = [ "display-manager.service" ];
           serviceConfig.ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
         };
+        # Between two sessions, nobody holds the screen and the kernel shows
+        # the greeter's text console: black, with any kernel message on it.
+        # The console's black is made the sky's colour, and so is its text,
+        # so that moment looks like the sky the next screen opens on. Done
+        # once the greeter has drawn: text on the console earlier wakes it
+        # while the splash hands over.
+        zoomies-console-sky = {
+          after = [ "display-manager.service" ];
+          description = "Paint the greeter's console as the sky";
+          script = ''
+            until ls /run/user/*/zoomies-greeter-ready >/dev/null 2>&1; do sleep 0.1; done
+            # Palette entry 0 is the sky; the colour pair 0 on 0 becomes the
+            # default, so later kernel messages draw invisibly too. No
+            # cursor, and no blanking, which would turn it black again.
+            printf '\033]P0B8ECFF\033[30;40m\033[8]\033[9;0]\033[?25l\033[H\033[2J' \
+              > /dev/tty${toString config.services.greetd.settings.terminal.vt}
+          '';
+          serviceConfig = {
+            RemainAfterExit = true;
+            TimeoutStartSec = 60;
+            Type = "oneshot";
+          };
+          wantedBy = [ "display-manager.service" ];
+        };
         # Asking Mesa takes half a second, too long for every login, so it is
         # asked once, early in the boot, while the rest of the system starts.
         zoomies-gpu = {
