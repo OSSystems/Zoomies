@@ -24,11 +24,61 @@ pkgs.testers.runNixOSTest {
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk";
   nodes = {
-    # A fresh install that skipped the installer's PIN question. It also
-    # covers the nftables firewall and a system without older kids.
+    # A fresh install, whose first boot asks for Wi-Fi and the PIN. It also
+    # covers the nftables firewall and a system without older kids. A
+    # simulated radio plays the home Wi-Fi.
     fresh = {
+      boot = {
+        extraModprobeConfig = "options mac80211_hwsim radios=2";
+        kernelModules = [ "mac80211_hwsim" ];
+      };
       imports = [ common.node ];
-      networking.nftables.enable = true;
+      networking = {
+        # The access point hands out addresses, like a home router.
+        firewall.interfaces.wlan1.allowedUDPPorts = [ 67 ];
+        interfaces.wlan1.ipv4.addresses = [
+          {
+            address = "192.168.77.1";
+            prefixLength = 24;
+          }
+        ];
+        networkmanager = {
+          enable = true;
+          # The test network keeps its own addresses, and the second radio
+          # is the access point's.
+          unmanaged = [
+            "eth0"
+            "eth1"
+            "wlan1"
+          ];
+        };
+        nftables.enable = true;
+        # Test VMs turn wpa_supplicant off, which NetworkManager needs for
+        # Wi-Fi.
+        wireless.enable = lib.mkOverride 9 true;
+      };
+      services.dnsmasq = {
+        enable = true;
+        settings = {
+          bind-interfaces = true;
+          dhcp-range = "192.168.77.10,192.168.77.50";
+          interface = "wlan1";
+          port = 0;
+        };
+      };
+      services.hostapd = {
+        enable = true;
+        radios.wlan1 = {
+          countryCode = "US";
+          networks.wlan1 = {
+            authentication = {
+              mode = "wpa2-sha1";
+              wpaPassword = "zoomies-home";
+            };
+            ssid = "Zoomies Home";
+          };
+        };
+      };
       zoomies.games = lib.mkForce [ ];
       zoomies.older.enable = false;
     };
@@ -109,6 +159,18 @@ pkgs.testers.runNixOSTest {
 
     def hour():
         return int(machine.succeed("date +%H"))
+
+
+    def online(node, kid):
+        node.wait_until_succeeds(f"runuser -u {kid} -- curl -sf --max-time 5 http://server/", timeout=60)
+
+
+    def offline_now(node, kid):
+        node.wait_until_fails(f"runuser -u {kid} -- curl -sf --max-time 5 http://server/", timeout=60)
+
+
+    def weekday():
+        return int(machine.succeed("date +%u")) - 1
 
 
     def hours_from_now(start, end):
@@ -211,6 +273,36 @@ pkgs.testers.runNixOSTest {
     with subtest("little kids cannot reach the network"):
         offline(machine, "ana")
 
+    with subtest("grown-ups let a kid online on some days or for a while"):
+        every_day = {"on": True, "days": [True] * 7}
+        write_state("policy", {"kids": {"ana": {"internet": every_day}}})
+        online(machine, "ana")
+        # A firewall reload keeps who is online.
+        machine.succeed("systemctl reload firewall")
+        machine.succeed("iptables -S zoomies-online | grep -q REJECT")
+        online(machine, "ana")
+        not_today = [day != weekday() for day in range(7)]
+        write_state("policy", {"kids": {"ana": {"internet": {"on": True, "days": not_today}}}})
+        offline_now(machine, "ana")
+        machine.succeed("zoomies-time internet ana 30")
+        online(machine, "ana")
+        machine.wait_until_succeeds("zoomies-time status | grep -q '^ana: .*, online'")
+        machine.succeed("zoomies-time internet ana 0")
+        offline_now(machine, "ana")
+        # Only while the kid may play: not after a stop for today.
+        write_state("policy", {"kids": {"ana": {"internet": every_day}}})
+        online(machine, "ana")
+        machine.succeed("zoomies-time stop ana")
+        offline_now(machine, "ana")
+        machine.succeed("zoomies-time stop --undo ana")
+        online(machine, "ana")
+        # Whenever the timekeeper stops, however it stops, kids go offline.
+        machine.succeed("systemctl stop zoomies-timekeeper")
+        offline_now(machine, "ana")
+        machine.succeed("systemctl start zoomies-timekeeper")
+        online(machine, "ana")
+        write_state("policy", {})
+
     with subtest("kids have no other group to switch to"):
         machine.succeed('[ "$(id -G ana)" = 2700 ]')
         machine.fail("timeout 10 runuser -u ana -- sg audio -c true </dev/null")
@@ -262,6 +354,29 @@ pkgs.testers.runNixOSTest {
         }}}})
         machine.succeed("greetd-try ben")
         write_state("policy", {})
+
+    with subtest("the week decides who plays: days off, special days, stop for today"):
+        today = weekday()
+        all_day = {"blocks": [["00:00", "24:00"]], "minutes": None}
+        week = [None if day == today else all_day for day in range(7)]
+        write_state("policy", {"kids": {"lia": {"schedule": {"days": week}}}})
+        machine.fail("greetd-try lia")
+        machine.wait_until_succeeds("zoomies-time status | grep -q '^lia: day, .*opens in 1 days at 00:00'")
+        # A special day today plays like tomorrow.
+        date = machine.succeed("date +%F").strip()
+        special = {date: (today + 1) % 7}
+        write_state("policy", {"kids": {"lia": {"schedule": {"days": week}, "special": special}}})
+        machine.succeed("greetd-try lia")
+        machine.succeed("zoomies-time stop lia")
+        machine.fail("greetd-try lia")
+        machine.succeed("zoomies-time stop --undo lia")
+        machine.succeed("greetd-try lia")
+        # Rules a grown-up broke by hand keep the kid out, they do not
+        # let them play without limits.
+        write_state("policy", {"kids": {"lia": {"schedule": {"days": [all_day]}}}})
+        machine.fail("greetd-try lia")
+        write_state("policy", {})
+        machine.succeed("greetd-try lia")
 
     with subtest("grown-ups add, edit and remove kids"):
         machine.succeed(as_parent("zoomies-profile add --name Zoé --avatar 🐱 --color pink"))
@@ -429,8 +544,31 @@ pkgs.testers.runNixOSTest {
         machine.fail("timeout 10 runuser -u max -- sg audio -c true </dev/null")
         machine.succeed("grep -q BlockAboutConfig /etc/firefox/policies/policies.json")
 
-    with subtest("screen time fails closed when it cannot be saved"):
+    with subtest("grown-ups can take older kids offline"):
+        policy = json.loads(machine.succeed("cat /var/lib/zoomies/policy.json"))
+        off = {"on": False, "days": [True] * 7}
+        write_state("policy", {**policy, "kids": {"max": {"internet": off}}})
+        offline_now(machine, "max")
+        write_state("policy", policy)
+        online(machine, "max")
+
+    with subtest("rules that cannot be read end a running session"):
         log_out("max")
+        policy = machine.succeed("cat /var/lib/zoomies/policy.json")
+        for broken in ('{"kids": {"ben": {"schedule": []}}}', "{broken"):
+            machine.send_key("right")
+            machine.sleep(1)
+            machine.send_key("ret")
+            wait_for_ready("zoomies-launcher", "ben")
+            machine.succeed(f"echo '{broken}' > /var/lib/zoomies/policy.json")
+            machine.wait_until_fails("pgrep -u ben cage", timeout=60)
+            machine.fail("greetd-try ben")
+            machine.succeed(f"echo '{policy.strip()}' > /var/lib/zoomies/policy.json")
+            wait_for_greeter()
+            # The greeter would send a kid still marked as resting outside.
+            machine.wait_until_succeeds("zoomies-time status | grep -q '^ben: ok'")
+
+    with subtest("screen time fails closed when it cannot be saved"):
         machine.send_key("right")
         machine.sleep(1)
         machine.send_key("ret")
@@ -461,11 +599,44 @@ pkgs.testers.runNixOSTest {
     machine.shutdown()
     fresh.start()
 
-    with subtest("the first boot asks for a PIN, then for the kids"):
+    with subtest("the first boot offers Wi-Fi before any PIN exists"):
         fresh.wait_for_unit("greetd.service")
+        fresh.wait_for_unit("hostapd.service")
         wait_for_greeter(fresh)
+        fresh.wait_for_text("online first", timeout=90)
+        # Only the greeter and the grown-up reach the admin service.
+        fresh.fail("runuser -u nobody -- zoomies-profile wifi scan")
+        fresh.wait_until_succeeds(
+            "runuser -u greeter -- zoomies-profile wifi scan | grep -q 'Zoomies Home'", timeout=90
+        )
+        scan = json.loads(fresh.succeed("runuser -u greeter -- zoomies-profile wifi scan"))
+        assert any(n["ssid"] == "Zoomies Home" and n["secure"] for n in scan["networks"]), scan
+        # The list looks again by itself while it finds nothing.
+        fresh.wait_for_text("Zoomies Home", timeout=90)
+        fresh.screenshot("wizard-wifi")
+        # A wrong password fails and is not kept to be retried at every boot.
+        wrong = fresh.execute(
+            "printf 'not-the-password\\n' | runuser -u greeter --"
+            " zoomies-profile wifi connect 'Zoomies Home' --password-stdin 2>&1"
+        )
+        assert wrong[0] != 0 and "check the password" in wrong[1], wrong
+        fresh.fail("nmcli -t -f NAME connection show | grep -qx 'Zoomies Home'")
+        fresh.succeed(
+            "printf 'zoomies-home\\n' | runuser -u greeter --"
+            " zoomies-profile wifi connect 'Zoomies Home' --password-stdin"
+        )
+        fresh.succeed("nmcli -t -f GENERAL.STATE device show wlan0 | grep -q '(connected)'")
+        # Saved for the whole computer, with the password out of any
+        # keyring, so it comes back at every boot for everyone.
+        fresh.succeed("[ -z \"$(nmcli -g connection.permissions connection show 'Zoomies Home')\" ]")
+        fresh.succeed("[ \"$(nmcli -g 802-11-wireless-security.psk-flags connection show 'Zoomies Home')\" = 0 ]")
+
+    with subtest("the first boot asks for a PIN, then for the kids"):
         fresh.succeed("zoomies-profile status | grep -q '\"pinSet\": false'")
         fresh.fail('greetd-try parent ""')
+        # Skip has the focus on the Wi-Fi step.
+        fresh.send_key("ret")
+        fresh.wait_for_text("secret PIN", timeout=60)
         fresh.screenshot("wizard-pin")
         # It cannot be dismissed: nobody could log in without it.
         fresh.send_key("esc")
@@ -483,12 +654,104 @@ pkgs.testers.runNixOSTest {
         fresh.succeed("greetd-try kim")
         fresh.succeed("greetd-try parent 2468")
 
+    with subtest("once a PIN exists, Wi-Fi changes need it"):
+        fresh.fail("runuser -u greeter -- zoomies-profile wifi scan")
+        fresh.fail("printf '1111\\n' | runuser -u greeter -- zoomies-profile wifi scan --pin-stdin")
+        fresh.succeed("printf '2468\\n' | runuser -u greeter -- zoomies-profile wifi scan --pin-stdin")
+        fresh.succeed(as_parent("zoomies-profile wifi status") + " | grep -q '\"connected\": \"Zoomies Home\"'")
+
+    with subtest("the grown-ups panel shows the week, the internet and Wi-Fi"):
+        date = fresh.succeed("date -d '+3 days' +%F").strip()
+        school = {"blocks": [["07:00", "07:30"], ["17:00", "19:30"]], "minutes": 60}
+        weekend = {"blocks": [["09:00", "12:00"], ["14:00", "20:00"]], "minutes": 180}
+        fresh.succeed(
+            "echo '" + json.dumps({"kids": {"kim": {
+                "schedule": {"days": [school] * 5 + [weekend, None]},
+                "internet": {"on": True, "days": [False] * 4 + [True] * 3},
+                "special": {date: "off"},
+            }}}) + "' > /var/lib/zoomies/policy.json"
+        )
+        fresh.send_key("ctrl-alt-p")
+        fresh.sleep(2)
+        fresh.send_chars("2468\n")
+        wait_for_ready("zoomies-parent", "parent", fresh)
+        fresh.wait_for_text("Max a day", timeout=60)
+        fresh.screenshot("parent-week")
+        # The focus starts on the Kids tab; Wi-Fi and System follow.
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("Zoomies Home", timeout=90)
+        fresh.screenshot("parent-wifi")
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("Calm screen", timeout=60)
+        fresh.screenshot("parent-system")
+        fresh.send_key("shift-tab")
+        fresh.send_key("shift-tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("Max a day", timeout=60)
+        # Moving the focus down the week scrolls the page to the internet
+        # and the special days.
+        for _ in range(36):
+            fresh.send_key("tab")
+        for _ in range(6):
+            if "Special days" in fresh.get_screen_text():
+                break
+            fresh.send_key("tab")
+            fresh.send_key("tab")
+        fresh.wait_for_text("Special days", timeout=30)
+        fresh.screenshot("parent-internet")
+        log_out("parent", fresh)
+
+    with subtest("a template replaces the week and the internet days, not special days"):
+        fresh.send_key("ctrl-alt-p")
+        fresh.sleep(2)
+        fresh.send_chars("2468\n")
+        wait_for_ready("zoomies-parent", "parent", fresh)
+        fresh.wait_for_text("Max a day", timeout=60)
+        # From the Kids tab: Wi-Fi, System, Add a kid, then Kim's +15 min,
+        # Stop, Edit and Remove come before the week's template button.
+        for _ in range(8):
+            fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("week for Kim", timeout=60)
+        # The first template has the focus.
+        fresh.send_key("spc")
+        fresh.wait_for_text("Use School week", timeout=30)
+        fresh.screenshot("parent-templates")
+        # Past the four other templates and Cancel.
+        for _ in range(6):
+            fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_until_succeeds("grep -q '\"19:00\"' /var/lib/zoomies/policy.json", timeout=30)
+        kim = json.loads(fresh.succeed("cat /var/lib/zoomies/policy.json"))["kids"]["kim"]
+        school = {"blocks": [["17:00", "19:00"]], "minutes": 60}
+        weekend = {"blocks": [["09:00", "12:00"], ["15:00", "19:00"]], "minutes": 120}
+        assert kim["schedule"]["days"] == [school] * 5 + [weekend] * 2, kim
+        assert kim["internet"] == {"on": True, "days": [False] * 5 + [True] * 2}, kim
+        assert kim["special"] == {date: "off"}, kim
+        fresh.wait_for_text("Start from a template", timeout=30)
+        fresh.screenshot("parent-template-applied")
+        log_out("parent", fresh)
+
     with subtest("once set, the first-boot PIN cannot be replaced without it"):
         fresh.fail("printf '\\n1111\\n' | runuser -u greeter -- zoomies-profile set-pin --stdin")
         fresh.succeed("greetd-try parent 2468")
 
     with subtest("the nftables rules keep little kids offline too"):
         offline(fresh, "kim")
+
+    with subtest("with nftables, kids online drop out unless renewed"):
+        fresh.succeed(
+            "echo '" + json.dumps({"kids": {"kim": {"internet": {"on": True, "days": [True] * 7}}}})
+            + "' > /var/lib/zoomies/policy.json"
+        )
+        online(fresh, "kim")
+        fresh.succeed("nft list set inet zoomies online | grep -q 'expires'")
+        fresh.succeed("systemctl stop zoomies-timekeeper")
+        offline_now(fresh, "kim")
+        fresh.succeed("systemctl start zoomies-timekeeper")
+        online(fresh, "kim")
 
     with subtest("without older kids, none can be added"):
         fresh.fail("zoomies-profile add --name Teen --kind older")

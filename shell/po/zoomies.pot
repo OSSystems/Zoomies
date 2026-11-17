@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-16 09:40-0300\n"
+"POT-Creation-Date: 2026-11-17 08:45-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,14 +55,22 @@ msgid "Let's play!"
 msgstr ""
 
 #, python-brace-format
-msgid "Back at {time}"
-msgstr ""
-
-msgid "All done for today"
+msgid "{time} to play"
 msgstr ""
 
 #, python-brace-format
-msgid "{time} to play"
+msgid "Back at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back on {day}"
+msgstr ""
+
+msgid "All done for today"
 msgstr ""
 
 msgid "Who's playing?"
@@ -108,6 +116,17 @@ msgid "Too many tries. Ask a grown-up, or wait a little and try again."
 msgstr ""
 
 msgid "That is not the PIN."
+msgstr ""
+
+msgid ""
+"👋 Welcome to Zoomies!\n"
+"Let's get online first."
+msgstr ""
+
+msgid "Pick your Wi-Fi. You can also do this later."
+msgstr ""
+
+msgid "Skip"
 msgstr ""
 
 msgid ""
@@ -177,23 +196,17 @@ msgstr ""
 msgid "+15 min"
 msgstr ""
 
+msgid "Stop for today"
+msgstr ""
+
 msgid "Edit"
 msgstr ""
 
 msgid "Remove"
 msgstr ""
 
-msgid "Minutes a day"
-msgstr ""
-
-msgid "Only from"
-msgstr ""
-
-#. Translators: between the start and the end of the hours a kid may play.
-msgid "to"
-msgstr ""
-
-msgid "Pick different start and end times."
+#, python-brace-format
+msgid "The rules of {name} cannot be read: {reason}."
 msgstr ""
 
 #, python-brace-format
@@ -218,7 +231,22 @@ msgstr ""
 msgid " (resting)"
 msgstr ""
 
+msgid "Let play today"
+msgstr ""
+
 msgid "Zoomies grown-ups"
+msgstr ""
+
+msgid "Kids"
+msgstr ""
+
+msgid "Wi-Fi"
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "Back to the kids"
 msgstr ""
 
 msgid "Add a kid"
@@ -227,13 +255,16 @@ msgstr ""
 msgid "Change PIN"
 msgstr ""
 
-msgid "Back to the kids"
+msgid "Calm screen"
+msgstr ""
+
+msgid "Open"
 msgstr ""
 
 msgid "Terminal"
 msgstr ""
 
-msgid "Calm screen"
+msgid "Computer"
 msgstr ""
 
 msgid "Restart"
@@ -243,6 +274,9 @@ msgid "Power off"
 msgstr ""
 
 msgid "No kids yet. Press ➕ Add a kid."
+msgstr ""
+
+msgid "Close"
 msgstr ""
 
 #, python-brace-format
@@ -358,6 +392,64 @@ msgstr ""
 msgid "Turn the computer off?"
 msgstr ""
 
+msgid "Monday"
+msgstr ""
+
+msgid "Tuesday"
+msgstr ""
+
+msgid "Wednesday"
+msgstr ""
+
+msgid "Thursday"
+msgstr ""
+
+msgid "Friday"
+msgstr ""
+
+msgid "Saturday"
+msgstr ""
+
+msgid "Sunday"
+msgstr ""
+
+#. Translators: short weekday names, for the grown-ups' week grid.
+msgid "Mon"
+msgstr ""
+
+msgid "Tue"
+msgstr ""
+
+msgid "Wed"
+msgstr ""
+
+msgid "Thu"
+msgstr ""
+
+msgid "Fri"
+msgstr ""
+
+msgid "Sat"
+msgstr ""
+
+msgid "Sun"
+msgstr ""
+
+msgid "School week"
+msgstr ""
+
+msgid "Weekends only"
+msgstr ""
+
+msgid "Little ones"
+msgstr ""
+
+msgid "Older kid"
+msgstr ""
+
+msgid "Holidays"
+msgstr ""
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -379,11 +471,256 @@ msgstr ""
 msgid "Just the games"
 msgstr ""
 
-msgid "Older kid"
-msgstr ""
-
 msgid "A desktop for study and play"
 msgstr ""
 
 msgid "Name"
+msgstr ""
+
+msgid "No play"
+msgstr ""
+
+#, python-brace-format
+msgid "{hours}, no limit"
+msgstr ""
+
+msgid "Offline"
+msgstr ""
+
+msgid "Every day"
+msgstr ""
+
+msgid "🚫 No play · tap to allow"
+msgstr ""
+
+msgid "Mon–Fri"
+msgstr ""
+
+msgid "Sat–Sun"
+msgstr ""
+
+msgid "The same"
+msgstr ""
+
+msgid "🌐 Internet"
+msgstr ""
+
+#, python-brace-format
+msgid "✨ A week for {name}"
+msgstr ""
+
+msgid "Pick one to start from. You can change any day afterwards."
+msgstr ""
+
+msgid "Use it"
+msgstr ""
+
+#, python-brace-format
+msgid "Use {template}"
+msgstr ""
+
+#, python-brace-format
+msgid ""
+"Replaces {name}'s week and internet days.\n"
+"Special days stay as they are."
+msgstr ""
+
+msgid "📅 Week"
+msgstr ""
+
+msgid "Start from a template…"
+msgstr ""
+
+msgid "Max a day"
+msgstr ""
+
+#, python-brace-format
+msgid "Every weekday {time}?"
+msgstr ""
+
+#, python-brace-format
+msgid "Every weekend day {time}?"
+msgstr ""
+
+#, python-brace-format
+msgid "Only {day}"
+msgstr ""
+
+msgid "Add play time"
+msgstr ""
+
+msgid "Copy to Monday–Friday"
+msgstr ""
+
+msgid "Copy to every day"
+msgstr ""
+
+msgid "Allow play this day"
+msgstr ""
+
+msgid "No play this day"
+msgstr ""
+
+#. Translators: between the start and the end of a time to play.
+msgid "to"
+msgstr ""
+
+msgid "Same on every weekday"
+msgstr ""
+
+msgid "Same on every weekend day"
+msgstr ""
+
+msgid "The end must come after the start."
+msgstr ""
+
+msgid "30 min"
+msgstr ""
+
+msgid "1 hour"
+msgstr ""
+
+msgid "Rest of today"
+msgstr ""
+
+msgid "Turn off now"
+msgstr ""
+
+msgid "Online during play time on these days:"
+msgstr ""
+
+msgid "Off: only what is on this computer"
+msgstr ""
+
+#, python-brace-format
+msgid "🌐 Open for {time} more"
+msgstr ""
+
+msgid "🌐 Online today"
+msgstr ""
+
+msgid "🎮 Offline today"
+msgstr ""
+
+msgid "📅 Special days"
+msgstr ""
+
+msgid "Holidays or trips: a special day replaces its weekday once."
+msgstr ""
+
+msgid "🚫 No play"
+msgstr ""
+
+#, python-brace-format
+msgid "Like a {day}"
+msgstr ""
+
+#, python-brace-format
+msgid "📅 A special day for {name}"
+msgstr ""
+
+msgid "Plays like:"
+msgstr ""
+
+msgid "Pick today or a day to come."
+msgstr ""
+
+msgid "the network service is not running"
+msgstr ""
+
+msgid "the network service did not answer"
+msgstr ""
+
+msgid "this computer has no Wi-Fi"
+msgstr ""
+
+msgid "could not connect: check the password"
+msgstr ""
+
+msgid "could not connect to this network"
+msgstr ""
+
+msgid "pick a network"
+msgstr ""
+
+msgid "Wi-Fi passwords have 8 to 63 characters"
+msgstr ""
+
+msgid "Networks nearby"
+msgstr ""
+
+msgid "Look again"
+msgstr ""
+
+msgid "➕ Other network…"
+msgstr ""
+
+msgid "Looking for networks…"
+msgstr ""
+
+msgid "connected"
+msgstr ""
+
+msgid "saved"
+msgstr ""
+
+msgid "No networks found."
+msgstr ""
+
+msgid "Set this network up with More settings."
+msgstr ""
+
+msgid "Forget"
+msgstr ""
+
+msgid "Connect"
+msgstr ""
+
+msgid "📶 Other network"
+msgstr ""
+
+msgid "Network name"
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "Leave the password empty for an open network."
+msgstr ""
+
+msgid "Type the network's name."
+msgstr ""
+
+msgid "Wi-Fi passwords have 8 to 63 characters."
+msgstr ""
+
+msgid "Connecting…"
+msgstr ""
+
+msgid "Cable"
+msgstr ""
+
+msgid "More settings"
+msgstr ""
+
+msgid "IP address, proxy, VPN"
+msgstr ""
+
+msgid "This computer has no Wi-Fi."
+msgstr ""
+
+msgid "Off"
+msgstr ""
+
+#, python-brace-format
+msgid "Connected to {network}"
+msgstr ""
+
+msgid "Not connected"
+msgstr ""
+
+msgid "Connected"
+msgstr ""
+
+msgid "Not plugged in"
 msgstr ""

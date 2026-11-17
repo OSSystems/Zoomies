@@ -107,6 +107,7 @@ in
       etc."zoomies/config.json".text = builtins.toJSON {
         assets = "${cfg.package}/share/zoomies";
         defaultGames = gamePaths cfg.games;
+        internet.backend = cfg.internetBackend;
         kidSession = cfg.sessions.kid;
         kids = lib.mapAttrsToList (user: k: {
           inherit user;
@@ -120,6 +121,12 @@ in
             ;
           games = gamePaths k.games;
         }) cfg.kids;
+        # The full editor, for what the grown-ups' Wi-Fi page leaves out.
+        networkEditor =
+          if config.networking.networkmanager.enable then
+            lib.getExe' pkgs.networkmanagerapplet "nm-connection-editor"
+          else
+            null;
         olderApps = lib.optionals cfg.older.enable cfg.older.startable;
         olderEnabled = cfg.older.enable;
         olderHiddenApps = cfg.older.hiddenApps;

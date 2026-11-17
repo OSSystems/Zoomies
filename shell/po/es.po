@@ -50,15 +50,23 @@ msgid "Let's play!"
 msgstr "¡A jugar!"
 
 #, python-brace-format
+msgid "{time} to play"
+msgstr "{time} para jugar"
+
+#, python-brace-format
 msgid "Back at {time}"
 msgstr "Vuelve a las {time}"
 
-msgid "All done for today"
-msgstr "Se acabó por hoy"
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr "Vuelve mañana a las {time}"
 
 #, python-brace-format
-msgid "{time} to play"
-msgstr "{time} para jugar"
+msgid "Back on {day}"
+msgstr "Vuelve el {day}"
+
+msgid "All done for today"
+msgstr "Se acabó por hoy"
 
 msgid "Who's playing?"
 msgstr "¿Quién va a jugar?"
@@ -68,9 +76,6 @@ msgstr "Adultos"
 
 msgid "Keep holding 🔒 to open"
 msgstr "Mantén pulsado 🔒 para abrir"
-
-msgid "Turn the computer off?"
-msgstr "¿Apagar el ordenador?"
 
 msgid ""
 "No kids yet.\n"
@@ -111,10 +116,23 @@ msgid "Cancel"
 msgstr "Cancelar"
 
 msgid "Too many tries. Ask a grown-up, or wait a little and try again."
-msgstr "Demasiados intentos. Pide ayuda a un adulto o espera un poco y vuelve a intentarlo."
+msgstr ""
+"Demasiados intentos. Pide ayuda a un adulto o espera un poco y vuelve a "
+"intentarlo."
 
 msgid "That is not the PIN."
 msgstr "Ese no es el PIN."
+
+msgid ""
+"👋 Welcome to Zoomies!\n"
+"Let's get online first."
+msgstr "👋 ¡Bienvenido a Zoomies!\nPrimero, conectémonos a internet."
+
+msgid "Pick your Wi-Fi. You can also do this later."
+msgstr "Elige tu Wi-Fi. También puedes hacerlo después."
+
+msgid "Skip"
+msgstr "Omitir"
 
 msgid ""
 "👋 Welcome to Zoomies!\n"
@@ -187,24 +205,18 @@ msgstr "Ya casi hay que parar. ¡Elige algo rápido!"
 msgid "+15 min"
 msgstr "+15 min"
 
+msgid "Stop for today"
+msgstr "Parar por hoy"
+
 msgid "Edit"
 msgstr "Editar"
 
 msgid "Remove"
 msgstr "Quitar"
 
-msgid "Minutes a day"
-msgstr "Minutos al día"
-
-msgid "Only from"
-msgstr "Solo de"
-
-#. Translators: between the start and the end of the hours a kid may play.
-msgid "to"
-msgstr "a"
-
-msgid "Pick different start and end times."
-msgstr "Elige horas de inicio y fin distintas."
+#, python-brace-format
+msgid "The rules of {name} cannot be read: {reason}."
+msgstr "No se pueden leer las reglas de {name}: {reason}."
 
 #, python-brace-format
 msgid "Could not save: {reason}."
@@ -228,8 +240,23 @@ msgstr ", sin límite"
 msgid " (resting)"
 msgstr " (descansando)"
 
+msgid "Let play today"
+msgstr "Dejar jugar hoy"
+
 msgid "Zoomies grown-ups"
 msgstr "Zoomies para adultos"
+
+msgid "Kids"
+msgstr "Niños"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "System"
+msgstr "Sistema"
+
+msgid "Back to the kids"
+msgstr "Volver a los niños"
 
 msgid "Add a kid"
 msgstr "Añadir un niño"
@@ -237,26 +264,29 @@ msgstr "Añadir un niño"
 msgid "Change PIN"
 msgstr "Cambiar PIN"
 
-msgid "Back to the kids"
-msgstr "Volver a los niños"
+msgid "Calm screen"
+msgstr "Pantalla tranquila"
+
+msgid "Open"
+msgstr "Abrir"
 
 msgid "Terminal"
 msgstr "Terminal"
 
-msgid "Calm screen"
-msgstr "Pantalla tranquila"
+msgid "Computer"
+msgstr "Ordenador"
 
 msgid "Restart"
 msgstr "Reiniciar"
-
-msgid "Restart the computer?"
-msgstr "¿Reiniciar el ordenador?"
 
 msgid "Power off"
 msgstr "Apagar"
 
 msgid "No kids yet. Press ➕ Add a kid."
 msgstr "Todavía no hay niños. Pulsa ➕ Añadir un niño."
+
+msgid "Close"
+msgstr "Cerrar"
 
 #, python-brace-format
 msgid "Edit {name}"
@@ -370,6 +400,67 @@ msgstr "¿Parar y cambiar de jugador?"
 msgid "Switch"
 msgstr "Cambiar"
 
+msgid "Turn the computer off?"
+msgstr "¿Apagar el ordenador?"
+
+msgid "Monday"
+msgstr "lunes"
+
+msgid "Tuesday"
+msgstr "martes"
+
+msgid "Wednesday"
+msgstr "miércoles"
+
+msgid "Thursday"
+msgstr "jueves"
+
+msgid "Friday"
+msgstr "viernes"
+
+msgid "Saturday"
+msgstr "sábado"
+
+msgid "Sunday"
+msgstr "domingo"
+
+#. Translators: short weekday names, for the grown-ups' week grid.
+msgid "Mon"
+msgstr "Lun"
+
+msgid "Tue"
+msgstr "Mar"
+
+msgid "Wed"
+msgstr "Mié"
+
+msgid "Thu"
+msgstr "Jue"
+
+msgid "Fri"
+msgstr "Vie"
+
+msgid "Sat"
+msgstr "Sáb"
+
+msgid "Sun"
+msgstr "Dom"
+
+msgid "School week"
+msgstr "Semana de clases"
+
+msgid "Weekends only"
+msgstr "Solo fines de semana"
+
+msgid "Little ones"
+msgstr "Pequeños"
+
+msgid "Older kid"
+msgstr "Niño mayor"
+
+msgid "Holidays"
+msgstr "Vacaciones"
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -378,6 +469,9 @@ msgstr[1] "Quedan {minutes} minutos"
 
 msgid "Save your work, time is almost up for today."
 msgstr "Guarda lo que estés haciendo, el tiempo de hoy casi se acaba."
+
+msgid "Restart the computer?"
+msgstr "¿Reiniciar el ordenador?"
 
 msgid "Yes"
 msgstr "Sí"
@@ -388,11 +482,256 @@ msgstr "Niño pequeño"
 msgid "Just the games"
 msgstr "Solo los juegos"
 
-msgid "Older kid"
-msgstr "Niño mayor"
-
 msgid "A desktop for study and play"
 msgstr "Un escritorio para estudiar y jugar"
 
 msgid "Name"
 msgstr "Nombre"
+
+msgid "No play"
+msgstr "Sin jugar"
+
+#, python-brace-format
+msgid "{hours}, no limit"
+msgstr "{hours}, sin límite"
+
+msgid "Offline"
+msgstr "Apagada"
+
+msgid "Every day"
+msgstr "Todos los días"
+
+msgid "🚫 No play · tap to allow"
+msgstr "🚫 Sin jugar · toca para permitir"
+
+msgid "Mon–Fri"
+msgstr "Lun–Vie"
+
+msgid "Sat–Sun"
+msgstr "Sáb–Dom"
+
+msgid "The same"
+msgstr "Igual"
+
+msgid "🌐 Internet"
+msgstr "🌐 Internet"
+
+#, python-brace-format
+msgid "✨ A week for {name}"
+msgstr "✨ Una semana para {name}"
+
+msgid "Pick one to start from. You can change any day afterwards."
+msgstr "Elige una para empezar. Puedes cambiar cualquier día después."
+
+msgid "Use it"
+msgstr "Usar"
+
+#, python-brace-format
+msgid "Use {template}"
+msgstr "Usar {template}"
+
+#, python-brace-format
+msgid ""
+"Replaces {name}'s week and internet days.\n"
+"Special days stay as they are."
+msgstr "Reemplaza la semana y los días de internet de {name}.\nLos días especiales se quedan como están."
+
+msgid "📅 Week"
+msgstr "📅 Semana"
+
+msgid "Start from a template…"
+msgstr "Empezar desde una plantilla…"
+
+msgid "Max a day"
+msgstr "Máx. al día"
+
+#, python-brace-format
+msgid "Every weekday {time}?"
+msgstr "¿Todos los días entre semana {time}?"
+
+#, python-brace-format
+msgid "Every weekend day {time}?"
+msgstr "¿Todos los días del fin de semana {time}?"
+
+#, python-brace-format
+msgid "Only {day}"
+msgstr "Solo {day}"
+
+msgid "Add play time"
+msgstr "Añadir tiempo"
+
+msgid "Copy to Monday–Friday"
+msgstr "Copiar de lunes a viernes"
+
+msgid "Copy to every day"
+msgstr "Copiar a todos los días"
+
+msgid "Allow play this day"
+msgstr "Permitir jugar este día"
+
+msgid "No play this day"
+msgstr "Sin jugar este día"
+
+#. Translators: between the start and the end of a time to play.
+msgid "to"
+msgstr "a"
+
+msgid "Same on every weekday"
+msgstr "Igual todos los días laborables"
+
+msgid "Same on every weekend day"
+msgstr "Igual todo el fin de semana"
+
+msgid "The end must come after the start."
+msgstr "El final debe ser después del inicio."
+
+msgid "30 min"
+msgstr "30 min"
+
+msgid "1 hour"
+msgstr "1 hora"
+
+msgid "Rest of today"
+msgstr "El resto del día"
+
+msgid "Turn off now"
+msgstr "Apagar ahora"
+
+msgid "Online during play time on these days:"
+msgstr "Con internet en el tiempo de juego estos días:"
+
+msgid "Off: only what is on this computer"
+msgstr "Apagada: solo lo que hay en este ordenador"
+
+#, python-brace-format
+msgid "🌐 Open for {time} more"
+msgstr "🌐 Abierta {time} más"
+
+msgid "🌐 Online today"
+msgstr "🌐 Con internet hoy"
+
+msgid "🎮 Offline today"
+msgstr "🎮 Sin internet hoy"
+
+msgid "📅 Special days"
+msgstr "📅 Días especiales"
+
+msgid "Holidays or trips: a special day replaces its weekday once."
+msgstr "Festivos o viajes: un día especial sustituye a su día de la semana una vez."
+
+msgid "🚫 No play"
+msgstr "🚫 Sin jugar"
+
+#, python-brace-format
+msgid "Like a {day}"
+msgstr "Como un {day}"
+
+#, python-brace-format
+msgid "📅 A special day for {name}"
+msgstr "📅 Un día especial para {name}"
+
+msgid "Plays like:"
+msgstr "Juega como:"
+
+msgid "Pick today or a day to come."
+msgstr "Elige hoy o un día futuro."
+
+msgid "the network service is not running"
+msgstr "el servicio de red no está funcionando"
+
+msgid "the network service did not answer"
+msgstr "el servicio de red no respondió"
+
+msgid "this computer has no Wi-Fi"
+msgstr "este ordenador no tiene Wi-Fi"
+
+msgid "could not connect: check the password"
+msgstr "no se pudo conectar: revisa la contraseña"
+
+msgid "could not connect to this network"
+msgstr "no se pudo conectar a esta red"
+
+msgid "pick a network"
+msgstr "elige una red"
+
+msgid "Wi-Fi passwords have 8 to 63 characters"
+msgstr "las contraseñas de Wi-Fi tienen de 8 a 63 caracteres"
+
+msgid "Networks nearby"
+msgstr "Redes cercanas"
+
+msgid "Look again"
+msgstr "Buscar de nuevo"
+
+msgid "➕ Other network…"
+msgstr "➕ Otra red…"
+
+msgid "Looking for networks…"
+msgstr "Buscando redes…"
+
+msgid "connected"
+msgstr "conectada"
+
+msgid "saved"
+msgstr "guardada"
+
+msgid "No networks found."
+msgstr "No se encontraron redes."
+
+msgid "Set this network up with More settings."
+msgstr "Configura esta red en Más ajustes."
+
+msgid "Forget"
+msgstr "Olvidar"
+
+msgid "Connect"
+msgstr "Conectar"
+
+msgid "📶 Other network"
+msgstr "📶 Otra red"
+
+msgid "Network name"
+msgstr "Nombre de la red"
+
+msgid "Password"
+msgstr "Contraseña"
+
+msgid "Leave the password empty for an open network."
+msgstr "Deja la contraseña vacía para una red abierta."
+
+msgid "Type the network's name."
+msgstr "Escribe el nombre de la red."
+
+msgid "Wi-Fi passwords have 8 to 63 characters."
+msgstr "Las contraseñas de Wi-Fi tienen de 8 a 63 caracteres."
+
+msgid "Connecting…"
+msgstr "Conectando…"
+
+msgid "Cable"
+msgstr "Cable"
+
+msgid "More settings"
+msgstr "Más ajustes"
+
+msgid "IP address, proxy, VPN"
+msgstr "Dirección IP, proxy, VPN"
+
+msgid "This computer has no Wi-Fi."
+msgstr "Este ordenador no tiene Wi-Fi."
+
+msgid "Off"
+msgstr "Apagado"
+
+#, python-brace-format
+msgid "Connected to {network}"
+msgstr "Conectado a {network}"
+
+msgid "Not connected"
+msgstr "No conectado"
+
+msgid "Connected"
+msgstr "Conectado"
+
+msgid "Not plugged in"
+msgstr "Desconectado"
