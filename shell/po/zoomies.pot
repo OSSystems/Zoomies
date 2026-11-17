@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-16 23:17-0300\n"
+"POT-Creation-Date: 2026-11-16 23:19-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -185,23 +185,17 @@ msgstr ""
 msgid "+15 min"
 msgstr ""
 
+msgid "Stop for today"
+msgstr ""
+
 msgid "Edit"
 msgstr ""
 
 msgid "Remove"
 msgstr ""
 
-msgid "Minutes a day"
-msgstr ""
-
-msgid "Only from"
-msgstr ""
-
-#. Translators: between the start and the end of the hours a kid may play.
-msgid "to"
-msgstr ""
-
-msgid "Pick different start and end times."
+#, python-brace-format
+msgid "The rules of {name} cannot be read: {reason}."
 msgstr ""
 
 #, python-brace-format
@@ -226,7 +220,19 @@ msgstr ""
 msgid " (resting)"
 msgstr ""
 
+msgid "Let play today"
+msgstr ""
+
 msgid "Zoomies grown-ups"
+msgstr ""
+
+msgid "Kids"
+msgstr ""
+
+msgid "System"
+msgstr ""
+
+msgid "Back to the kids"
 msgstr ""
 
 msgid "Add a kid"
@@ -235,13 +241,16 @@ msgstr ""
 msgid "Change PIN"
 msgstr ""
 
-msgid "Back to the kids"
+msgid "Calm screen"
+msgstr ""
+
+msgid "Open"
 msgstr ""
 
 msgid "Terminal"
 msgstr ""
 
-msgid "Calm screen"
+msgid "Computer"
 msgstr ""
 
 msgid "Restart"
@@ -251,6 +260,9 @@ msgid "Power off"
 msgstr ""
 
 msgid "No kids yet. Press ➕ Add a kid."
+msgstr ""
+
+msgid "Close"
 msgstr ""
 
 #, python-brace-format
@@ -437,4 +449,89 @@ msgid "A desktop for study and play"
 msgstr ""
 
 msgid "Name"
+msgstr ""
+
+msgid "🚫 No play"
+msgstr ""
+
+msgid "Max a day"
+msgstr ""
+
+msgid "Add play time"
+msgstr ""
+
+msgid "Copy to Monday–Friday"
+msgstr ""
+
+msgid "Copy to every day"
+msgstr ""
+
+msgid "Allow play this day"
+msgstr ""
+
+msgid "No play this day"
+msgstr ""
+
+#. Translators: between the start and the end of a time to play.
+msgid "to"
+msgstr ""
+
+msgid "Same on every weekday"
+msgstr ""
+
+msgid "Same on every weekend day"
+msgstr ""
+
+msgid "The end must come after the start."
+msgstr ""
+
+msgid "🌐 Internet"
+msgstr ""
+
+msgid "30 min"
+msgstr ""
+
+msgid "1 hour"
+msgstr ""
+
+msgid "Rest of today"
+msgstr ""
+
+msgid "Turn off now"
+msgstr ""
+
+msgid "Online during play time on these days:"
+msgstr ""
+
+msgid "Off: only what is on this computer"
+msgstr ""
+
+#, python-brace-format
+msgid "🌐 Open for {time} more"
+msgstr ""
+
+msgid "🌐 Online today"
+msgstr ""
+
+msgid "🎮 Offline today"
+msgstr ""
+
+msgid "📅 Special days"
+msgstr ""
+
+msgid "Holidays or trips: a special day replaces its weekday once."
+msgstr ""
+
+#, python-brace-format
+msgid "Like a {day}"
+msgstr ""
+
+#, python-brace-format
+msgid "📅 A special day for {name}"
+msgstr ""
+
+msgid "Plays like:"
+msgstr ""
+
+msgid "Pick today or a day to come."
 msgstr ""

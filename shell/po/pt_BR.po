@@ -193,24 +193,18 @@ msgstr "Está quase na hora de parar. Escolha algo rápido!"
 msgid "+15 min"
 msgstr "+15 min"
 
+msgid "Stop for today"
+msgstr "Parar por hoje"
+
 msgid "Edit"
 msgstr "Editar"
 
 msgid "Remove"
 msgstr "Remover"
 
-msgid "Minutes a day"
-msgstr "Minutos por dia"
-
-msgid "Only from"
-msgstr "Somente das"
-
-#. Translators: between the start and the end of the hours a kid may play.
-msgid "to"
-msgstr "às"
-
-msgid "Pick different start and end times."
-msgstr "Escolha horários de início e fim diferentes."
+#, python-brace-format
+msgid "The rules of {name} cannot be read: {reason}."
+msgstr "As regras de {name} não podem ser lidas: {reason}."
 
 #, python-brace-format
 msgid "Could not save: {reason}."
@@ -234,8 +228,20 @@ msgstr ", sem limite"
 msgid " (resting)"
 msgstr " (descansando)"
 
+msgid "Let play today"
+msgstr "Deixar jogar hoje"
+
 msgid "Zoomies grown-ups"
 msgstr "Zoomies para adultos"
+
+msgid "Kids"
+msgstr "Crianças"
+
+msgid "System"
+msgstr "Sistema"
+
+msgid "Back to the kids"
+msgstr "Voltar para as crianças"
 
 msgid "Add a kid"
 msgstr "Adicionar criança"
@@ -243,14 +249,17 @@ msgstr "Adicionar criança"
 msgid "Change PIN"
 msgstr "Trocar PIN"
 
-msgid "Back to the kids"
-msgstr "Voltar para as crianças"
+msgid "Calm screen"
+msgstr "Tela calma"
+
+msgid "Open"
+msgstr "Abrir"
 
 msgid "Terminal"
 msgstr "Terminal"
 
-msgid "Calm screen"
-msgstr "Tela calma"
+msgid "Computer"
+msgstr "Computador"
 
 msgid "Restart"
 msgstr "Reiniciar"
@@ -260,6 +269,9 @@ msgstr "Desligar"
 
 msgid "No kids yet. Press ➕ Add a kid."
 msgstr "Ainda não há crianças. Toque em ➕ Adicionar criança."
+
+msgid "Close"
+msgstr "Fechar"
 
 #, python-brace-format
 msgid "Edit {name}"
@@ -448,3 +460,88 @@ msgstr "Uma área de trabalho para estudar e brincar"
 
 msgid "Name"
 msgstr "Nome"
+
+msgid "🚫 No play"
+msgstr "🚫 Sem jogar"
+
+msgid "Max a day"
+msgstr "Máx. por dia"
+
+msgid "Add play time"
+msgstr "Adicionar tempo"
+
+msgid "Copy to Monday–Friday"
+msgstr "Copiar para segunda a sexta"
+
+msgid "Copy to every day"
+msgstr "Copiar para todos os dias"
+
+msgid "Allow play this day"
+msgstr "Permitir jogar neste dia"
+
+msgid "No play this day"
+msgstr "Sem jogar neste dia"
+
+#. Translators: between the start and the end of a time to play.
+msgid "to"
+msgstr "às"
+
+msgid "Same on every weekday"
+msgstr "Igual em todos os dias úteis"
+
+msgid "Same on every weekend day"
+msgstr "Igual no fim de semana todo"
+
+msgid "The end must come after the start."
+msgstr "O fim precisa vir depois do início."
+
+msgid "🌐 Internet"
+msgstr "🌐 Internet"
+
+msgid "30 min"
+msgstr "30 min"
+
+msgid "1 hour"
+msgstr "1 hora"
+
+msgid "Rest of today"
+msgstr "Até o fim do dia"
+
+msgid "Turn off now"
+msgstr "Desligar agora"
+
+msgid "Online during play time on these days:"
+msgstr "Com internet no tempo de jogo nestes dias:"
+
+msgid "Off: only what is on this computer"
+msgstr "Desligada: só o que está neste computador"
+
+#, python-brace-format
+msgid "🌐 Open for {time} more"
+msgstr "🌐 Liberada por mais {time}"
+
+msgid "🌐 Online today"
+msgstr "🌐 Com internet hoje"
+
+msgid "🎮 Offline today"
+msgstr "🎮 Sem internet hoje"
+
+msgid "📅 Special days"
+msgstr "📅 Dias especiais"
+
+msgid "Holidays or trips: a special day replaces its weekday once."
+msgstr "Feriados ou viagens: um dia especial substitui seu dia da semana uma vez."
+
+#, python-brace-format
+msgid "Like a {day}"
+msgstr "Mesmo plano de {day}"
+
+#, python-brace-format
+msgid "📅 A special day for {name}"
+msgstr "📅 Um dia especial para {name}"
+
+msgid "Plays like:"
+msgstr "Joga como:"
+
+msgid "Pick today or a day to come."
+msgstr "Escolha hoje ou um dia futuro."
