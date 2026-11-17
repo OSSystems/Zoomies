@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-16 09:40-0300\n"
+"POT-Creation-Date: 2026-11-16 23:17-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -55,14 +55,22 @@ msgid "Let's play!"
 msgstr ""
 
 #, python-brace-format
-msgid "Back at {time}"
-msgstr ""
-
-msgid "All done for today"
+msgid "{time} to play"
 msgstr ""
 
 #, python-brace-format
-msgid "{time} to play"
+msgid "Back at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back on {day}"
+msgstr ""
+
+msgid "All done for today"
 msgstr ""
 
 msgid "Who's playing?"
@@ -356,6 +364,49 @@ msgid "Switch"
 msgstr ""
 
 msgid "Turn the computer off?"
+msgstr ""
+
+msgid "Monday"
+msgstr ""
+
+msgid "Tuesday"
+msgstr ""
+
+msgid "Wednesday"
+msgstr ""
+
+msgid "Thursday"
+msgstr ""
+
+msgid "Friday"
+msgstr ""
+
+msgid "Saturday"
+msgstr ""
+
+msgid "Sunday"
+msgstr ""
+
+#. Translators: short weekday names, for the grown-ups' week grid.
+msgid "Mon"
+msgstr ""
+
+msgid "Tue"
+msgstr ""
+
+msgid "Wed"
+msgstr ""
+
+msgid "Thu"
+msgstr ""
+
+msgid "Fri"
+msgstr ""
+
+msgid "Sat"
+msgstr ""
+
+msgid "Sun"
 msgstr ""
 
 #, python-brace-format

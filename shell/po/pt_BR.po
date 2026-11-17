@@ -50,15 +50,23 @@ msgid "Let's play!"
 msgstr "Vamos jogar!"
 
 #, python-brace-format
+msgid "{time} to play"
+msgstr "{time} para jogar"
+
+#, python-brace-format
 msgid "Back at {time}"
 msgstr "Volta às {time}"
 
-msgid "All done for today"
-msgstr "Chega por hoje"
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr "Volta amanhã às {time}"
 
 #, python-brace-format
-msgid "{time} to play"
-msgstr "{time} para jogar"
+msgid "Back on {day}"
+msgstr "Volta {day}"
+
+msgid "All done for today"
+msgstr "Chega por hoje"
 
 msgid "Who's playing?"
 msgstr "Quem vai jogar?"
@@ -68,9 +76,6 @@ msgstr "Adultos"
 
 msgid "Keep holding 🔒 to open"
 msgstr "Continue segurando 🔒 para abrir"
-
-msgid "Turn the computer off?"
-msgstr "Desligar o computador?"
 
 msgid ""
 "No kids yet.\n"
@@ -111,7 +116,8 @@ msgid "Cancel"
 msgstr "Cancelar"
 
 msgid "Too many tries. Ask a grown-up, or wait a little and try again."
-msgstr "Tentativas demais. Peça ajuda a um adulto ou espere um pouco e tente de novo."
+msgstr ""
+"Tentativas demais. Peça ajuda a um adulto ou espere um pouco e tente de novo."
 
 msgid "That is not the PIN."
 msgstr "Esse não é o PIN."
@@ -249,9 +255,6 @@ msgstr "Tela calma"
 msgid "Restart"
 msgstr "Reiniciar"
 
-msgid "Restart the computer?"
-msgstr "Reiniciar o computador?"
-
 msgid "Power off"
 msgstr "Desligar"
 
@@ -370,6 +373,52 @@ msgstr "Parar e trocar de jogador?"
 msgid "Switch"
 msgstr "Trocar"
 
+msgid "Turn the computer off?"
+msgstr "Desligar o computador?"
+
+msgid "Monday"
+msgstr "segunda-feira"
+
+msgid "Tuesday"
+msgstr "terça-feira"
+
+msgid "Wednesday"
+msgstr "quarta-feira"
+
+msgid "Thursday"
+msgstr "quinta-feira"
+
+msgid "Friday"
+msgstr "sexta-feira"
+
+msgid "Saturday"
+msgstr "sábado"
+
+msgid "Sunday"
+msgstr "domingo"
+
+#. Translators: short weekday names, for the grown-ups' week grid.
+msgid "Mon"
+msgstr "Seg"
+
+msgid "Tue"
+msgstr "Ter"
+
+msgid "Wed"
+msgstr "Qua"
+
+msgid "Thu"
+msgstr "Qui"
+
+msgid "Fri"
+msgstr "Sex"
+
+msgid "Sat"
+msgstr "Sáb"
+
+msgid "Sun"
+msgstr "Dom"
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -378,6 +427,9 @@ msgstr[1] "{minutes} minutos restantes"
 
 msgid "Save your work, time is almost up for today."
 msgstr "Salve o que estiver fazendo, o tempo de hoje está acabando."
+
+msgid "Restart the computer?"
+msgstr "Reiniciar o computador?"
 
 msgid "Yes"
 msgstr "Sim"

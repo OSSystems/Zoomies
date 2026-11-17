@@ -5,6 +5,7 @@ without a password). The parent tile needs a long press, then the parent
 account's password typed on a PIN pad, so the PIN is never part of the image.
 """
 
+import datetime
 import json
 import os
 import socket
@@ -84,12 +85,22 @@ def describe(status):
     if not status:
         return _("Let's play!")
     if not status["allowed"]:
-        if status["reason"] == "hours":
-            return _("Back at {time}").format(time=status["opensAt"])
-        return _("All done for today")
+        return when_back(status)
     if status["remaining"] is None:
         return _("Let's play!")
     return _("{time} to play").format(time=state.format_duration(status["remaining"]))
+
+
+def when_back(status):
+    days, time = status.get("opensIn"), status.get("opensAt")
+    if status["reason"] == "hours" and days == 0:
+        return _("Back at {time}").format(time=time)
+    if days == 1:
+        return _("Back tomorrow at {time}").format(time=time)
+    if days is not None and days < 7:
+        weekday = (datetime.date.today() + datetime.timedelta(days=days)).weekday()
+        return _("Back on {day}").format(day=_(state.WEEKDAY_NAMES[weekday]))
+    return _("All done for today")
 
 
 class Greeter(Gtk.ApplicationWindow):
@@ -261,7 +272,11 @@ class Greeter(Gtk.ApplicationWindow):
             return
         # PAM may know better than the last status the timekeeper wrote,
         # for example right as the allowed hours end.
-        status = state.kid_status(kid, state.load_policy(), state.load_usage())
+        try:
+            status = state.kid_status(kid, state.load_policy(), state.load_usage())
+        except ValueError:
+            # Rules that cannot be read keep everyone resting.
+            status = {"allowed": False, "reason": "broken", "opensIn": None, "opensAt": None}
         if not status["allowed"]:
             self.send_outside(kid, status)
             self.refresh()

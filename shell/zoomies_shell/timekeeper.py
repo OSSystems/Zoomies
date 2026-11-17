@@ -9,6 +9,7 @@ again, whatever the greeter shows.
 import argparse
 import os
 import pwd
+import socket
 import subprocess
 import sys
 import time
@@ -73,6 +74,29 @@ def end_session(user, reason):
     subprocess.run(["loginctl", "terminate-user", user])
 
 
+def notify(message):
+    """Tell systemd the daemon is alive; its watchdog restarts a stuck one."""
+    path = os.environ.get("NOTIFY_SOCKET")
+    if not path:
+        return
+    if path.startswith("@"):
+        path = "\0" + path[1:]
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
+        try:
+            sock.sendto(message.encode(), path)
+        except OSError as error:
+            log(f"cannot notify systemd: {error}")
+
+
+BROKEN = {
+    "allowed": False,
+    "opensAt": None,
+    "opensIn": None,
+    "reason": "broken",
+    "remaining": None,
+}
+
+
 def daemon(_args):
     os.makedirs(state.RUN_DIR, exist_ok=True)
     # Usage lives in memory and is only saved from here, so a failed save
@@ -89,7 +113,11 @@ def daemon(_args):
         last = now
         usage = state.roll_usage(usage)
         config = state.load_config()
-        policy = state.load_policy()
+        try:
+            policy = state.load_policy()
+        except state.BrokenPolicy as error:
+            log(f"broken rules: {error}")
+            policy = None
 
         statuses = {}
         active = []
@@ -102,7 +130,14 @@ def daemon(_args):
                     active.append(user)
                     seconds = usage["seconds"]
                     seconds[user] = seconds.get(user, 0) + elapsed
-                status = state.kid_status(kid, policy, usage)
+                try:
+                    if policy is None:
+                        raise state.BrokenPolicy("the rules cannot be read")
+                    status = state.kid_status(kid, policy, usage)
+                except Exception as error:  # noqa: BLE001 - whatever breaks, fail closed
+                    # Rules that cannot be read allow nothing, as in PAM.
+                    log(f"{user}: broken rules: {error!r}")
+                    status = {**BROKEN, "used": int(usage["seconds"].get(user, 0))}
                 statuses[user] = status
 
                 remaining = status["remaining"]
@@ -137,6 +172,7 @@ def daemon(_args):
             state.write_json(state.STATUS, statuses)
         except OSError as error:
             log(f"cannot save status: {error}")
+        notify("READY=1\nWATCHDOG=1")
         time.sleep(TICK)
 
 
@@ -145,7 +181,11 @@ def check(args):
     kid = state.kids_by_user().get(user)
     if kid is None:
         return 0
-    status = state.kid_status(kid, state.load_policy(), state.load_usage())
+    try:
+        status = state.kid_status(kid, state.load_policy(), state.load_usage())
+    except Exception as error:  # noqa: BLE001 - whatever breaks, fail closed
+        print(f"{user}: broken rules: {error!r}", file=sys.stderr)
+        return 1
     if status["allowed"]:
         return 0
     print(f"{user}: {status['reason']}", file=sys.stderr)
@@ -164,7 +204,17 @@ def show(_args):
         remaining = status["remaining"]
         left = "unlimited" if remaining is None else state.format_duration(remaining)
         verdict = "ok" if status["allowed"] else status["reason"]
-        print(f"{user}: {verdict}, {left} left, {status['used'] // 60} min played")
+        line = f"{user}: {verdict}, {left} left, {status['used'] // 60} min played"
+        if status.get("opensAt"):
+            line += f", opens in {status['opensIn']} days at {status['opensAt']}"
+        print(line)
+    return 0
+
+
+def stop(args):
+    if args.user not in state.kids_by_user():
+        sys.exit(f"unknown kid: {args.user}")
+    state.stop_today(args.user, not args.undo)
     return 0
 
 
@@ -179,6 +229,10 @@ def main():
     command.add_argument("user")
     command.add_argument("minutes", type=int)
     command.set_defaults(run=grant)
+    command = commands.add_parser("stop", help="no more play today")
+    command.add_argument("user")
+    command.add_argument("--undo", action="store_true", help="let the kid play again today")
+    command.set_defaults(run=stop)
     commands.add_parser("status").set_defaults(run=show)
     args = parser.parse_args()
     sys.exit(args.run(args))

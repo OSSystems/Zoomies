@@ -40,6 +40,10 @@ in
           RestartSec = 2;
           RuntimeDirectory = "zoomies";
           RuntimeDirectoryPreserve = true;
+          # The daemon says it is alive on every tick; the watchdog stops
+          # one that hangs, and the restart brings it back.
+          Type = "notify";
+          WatchdogSec = 60;
         };
         startLimitIntervalSec = 0;
         wantedBy = [ "multi-user.target" ];

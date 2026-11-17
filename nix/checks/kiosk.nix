@@ -111,6 +111,10 @@ pkgs.testers.runNixOSTest {
         return int(machine.succeed("date +%H"))
 
 
+    def weekday():
+        return int(machine.succeed("date +%u")) - 1
+
+
     def hours_from_now(start, end):
         current = hour()
         return {
@@ -262,6 +266,29 @@ pkgs.testers.runNixOSTest {
         }}}})
         machine.succeed("greetd-try ben")
         write_state("policy", {})
+
+    with subtest("the week decides who plays: days off, special days, stop for today"):
+        today = weekday()
+        all_day = {"blocks": [["00:00", "24:00"]], "minutes": None}
+        week = [None if day == today else all_day for day in range(7)]
+        write_state("policy", {"kids": {"lia": {"schedule": {"days": week}}}})
+        machine.fail("greetd-try lia")
+        machine.wait_until_succeeds("zoomies-time status | grep -q '^lia: day, .*opens in 1 days at 00:00'")
+        # A special day today plays like tomorrow.
+        date = machine.succeed("date +%F").strip()
+        special = {date: (today + 1) % 7}
+        write_state("policy", {"kids": {"lia": {"schedule": {"days": week}, "special": special}}})
+        machine.succeed("greetd-try lia")
+        machine.succeed("zoomies-time stop lia")
+        machine.fail("greetd-try lia")
+        machine.succeed("zoomies-time stop --undo lia")
+        machine.succeed("greetd-try lia")
+        # Rules a grown-up broke by hand keep the kid out, they do not
+        # let them play without limits.
+        write_state("policy", {"kids": {"lia": {"schedule": {"days": [all_day]}}}})
+        machine.fail("greetd-try lia")
+        write_state("policy", {})
+        machine.succeed("greetd-try lia")
 
     with subtest("grown-ups add, edit and remove kids"):
         machine.succeed(as_parent("zoomies-profile add --name Zoé --avatar 🐱 --color pink"))
@@ -429,8 +456,23 @@ pkgs.testers.runNixOSTest {
         machine.fail("timeout 10 runuser -u max -- sg audio -c true </dev/null")
         machine.succeed("grep -q BlockAboutConfig /etc/firefox/policies/policies.json")
 
-    with subtest("screen time fails closed when it cannot be saved"):
+    with subtest("rules that cannot be read end a running session"):
         log_out("max")
+        policy = machine.succeed("cat /var/lib/zoomies/policy.json")
+        for broken in ('{"kids": {"ben": {"schedule": []}}}', "{broken"):
+            machine.send_key("right")
+            machine.sleep(1)
+            machine.send_key("ret")
+            wait_for_ready("zoomies-launcher", "ben")
+            machine.succeed(f"echo '{broken}' > /var/lib/zoomies/policy.json")
+            machine.wait_until_fails("pgrep -u ben cage", timeout=60)
+            machine.fail("greetd-try ben")
+            machine.succeed(f"echo '{policy.strip()}' > /var/lib/zoomies/policy.json")
+            wait_for_greeter()
+            # The greeter would send a kid still marked as resting outside.
+            machine.wait_until_succeeds("zoomies-time status | grep -q '^ben: ok'")
+
+    with subtest("screen time fails closed when it cannot be saved"):
         machine.send_key("right")
         machine.sleep(1)
         machine.send_key("ret")

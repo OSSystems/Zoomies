@@ -245,8 +245,9 @@ class Admin:
         state.write_json(state.PROFILES, profiles)
         policy = state.load_policy()
         policy.get("kids", {}).pop(user, None)
-        for day in policy.get("bonus", {}).values():
-            day.pop(user, None)
+        for key in ("bonus", "stopped"):
+            for day in policy.get(key, {}).values():
+                day.pop(user, None)
         state.save_policy(policy)
         return {}
 
