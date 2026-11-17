@@ -24,11 +24,61 @@ pkgs.testers.runNixOSTest {
   meta.platforms = [ "x86_64-linux" ];
   name = "zoomies-kiosk";
   nodes = {
-    # A fresh install that skipped the installer's PIN question. It also
-    # covers the nftables firewall and a system without older kids.
+    # A fresh install, whose first boot asks for Wi-Fi and the PIN. It also
+    # covers the nftables firewall and a system without older kids. A
+    # simulated radio plays the home Wi-Fi.
     fresh = {
+      boot = {
+        extraModprobeConfig = "options mac80211_hwsim radios=2";
+        kernelModules = [ "mac80211_hwsim" ];
+      };
       imports = [ common.node ];
-      networking.nftables.enable = true;
+      networking = {
+        # The access point hands out addresses, like a home router.
+        firewall.interfaces.wlan1.allowedUDPPorts = [ 67 ];
+        interfaces.wlan1.ipv4.addresses = [
+          {
+            address = "192.168.77.1";
+            prefixLength = 24;
+          }
+        ];
+        networkmanager = {
+          enable = true;
+          # The test network keeps its own addresses, and the second radio
+          # is the access point's.
+          unmanaged = [
+            "eth0"
+            "eth1"
+            "wlan1"
+          ];
+        };
+        nftables.enable = true;
+        # Test VMs turn wpa_supplicant off, which NetworkManager needs for
+        # Wi-Fi.
+        wireless.enable = lib.mkOverride 9 true;
+      };
+      services.dnsmasq = {
+        enable = true;
+        settings = {
+          bind-interfaces = true;
+          dhcp-range = "192.168.77.10,192.168.77.50";
+          interface = "wlan1";
+          port = 0;
+        };
+      };
+      services.hostapd = {
+        enable = true;
+        radios.wlan1 = {
+          countryCode = "US";
+          networks.wlan1 = {
+            authentication = {
+              mode = "wpa2-sha1";
+              wpaPassword = "zoomies-home";
+            };
+            ssid = "Zoomies Home";
+          };
+        };
+      };
       zoomies.games = lib.mkForce [ ];
       zoomies.older.enable = false;
     };
@@ -549,11 +599,44 @@ pkgs.testers.runNixOSTest {
     machine.shutdown()
     fresh.start()
 
-    with subtest("the first boot asks for a PIN, then for the kids"):
+    with subtest("the first boot offers Wi-Fi before any PIN exists"):
         fresh.wait_for_unit("greetd.service")
+        fresh.wait_for_unit("hostapd.service")
         wait_for_greeter(fresh)
+        fresh.wait_for_text("online first", timeout=90)
+        # Only the greeter and the grown-up reach the admin service.
+        fresh.fail("runuser -u nobody -- zoomies-profile wifi scan")
+        fresh.wait_until_succeeds(
+            "runuser -u greeter -- zoomies-profile wifi scan | grep -q 'Zoomies Home'", timeout=90
+        )
+        scan = json.loads(fresh.succeed("runuser -u greeter -- zoomies-profile wifi scan"))
+        assert any(n["ssid"] == "Zoomies Home" and n["secure"] for n in scan["networks"]), scan
+        # The list looks again by itself while it finds nothing.
+        fresh.wait_for_text("Zoomies Home", timeout=90)
+        fresh.screenshot("wizard-wifi")
+        # A wrong password fails and is not kept to be retried at every boot.
+        wrong = fresh.execute(
+            "printf 'not-the-password\\n' | runuser -u greeter --"
+            " zoomies-profile wifi connect 'Zoomies Home' --password-stdin 2>&1"
+        )
+        assert wrong[0] != 0 and "check the password" in wrong[1], wrong
+        fresh.fail("nmcli -t -f NAME connection show | grep -qx 'Zoomies Home'")
+        fresh.succeed(
+            "printf 'zoomies-home\\n' | runuser -u greeter --"
+            " zoomies-profile wifi connect 'Zoomies Home' --password-stdin"
+        )
+        fresh.succeed("nmcli -t -f GENERAL.STATE device show wlan0 | grep -q '(connected)'")
+        # Saved for the whole computer, with the password out of any
+        # keyring, so it comes back at every boot for everyone.
+        fresh.succeed("[ -z \"$(nmcli -g connection.permissions connection show 'Zoomies Home')\" ]")
+        fresh.succeed("[ \"$(nmcli -g 802-11-wireless-security.psk-flags connection show 'Zoomies Home')\" = 0 ]")
+
+    with subtest("the first boot asks for a PIN, then for the kids"):
         fresh.succeed("zoomies-profile status | grep -q '\"pinSet\": false'")
         fresh.fail('greetd-try parent ""')
+        # Skip has the focus on the Wi-Fi step.
+        fresh.send_key("ret")
+        fresh.wait_for_text("secret PIN", timeout=60)
         fresh.screenshot("wizard-pin")
         # It cannot be dismissed: nobody could log in without it.
         fresh.send_key("esc")
@@ -570,6 +653,55 @@ pkgs.testers.runNixOSTest {
         fresh.screenshot("wizard-done")
         fresh.succeed("greetd-try kim")
         fresh.succeed("greetd-try parent 2468")
+
+    with subtest("once a PIN exists, Wi-Fi changes need it"):
+        fresh.fail("runuser -u greeter -- zoomies-profile wifi scan")
+        fresh.fail("printf '1111\\n' | runuser -u greeter -- zoomies-profile wifi scan --pin-stdin")
+        fresh.succeed("printf '2468\\n' | runuser -u greeter -- zoomies-profile wifi scan --pin-stdin")
+        fresh.succeed(as_parent("zoomies-profile wifi status") + " | grep -q '\"connected\": \"Zoomies Home\"'")
+
+    with subtest("the grown-ups panel shows the week, the internet and Wi-Fi"):
+        date = fresh.succeed("date -d '+3 days' +%F").strip()
+        school = {"blocks": [["07:00", "07:30"], ["17:00", "19:30"]], "minutes": 60}
+        weekend = {"blocks": [["09:00", "12:00"], ["14:00", "20:00"]], "minutes": 180}
+        fresh.succeed(
+            "echo '" + json.dumps({"kids": {"kim": {
+                "schedule": {"days": [school] * 5 + [weekend, None]},
+                "internet": {"on": True, "days": [False] * 4 + [True] * 3},
+                "special": {date: "off"},
+            }}}) + "' > /var/lib/zoomies/policy.json"
+        )
+        fresh.send_key("ctrl-alt-p")
+        fresh.sleep(2)
+        fresh.send_chars("2468\n")
+        wait_for_ready("zoomies-parent", "parent", fresh)
+        fresh.wait_for_text("Max a day", timeout=60)
+        fresh.screenshot("parent-week")
+        # The focus starts on the Kids tab; Wi-Fi and System follow.
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("Zoomies Home", timeout=90)
+        fresh.screenshot("parent-wifi")
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("Calm screen", timeout=60)
+        fresh.screenshot("parent-system")
+        fresh.send_key("shift-tab")
+        fresh.send_key("shift-tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("Max a day", timeout=60)
+        # Moving the focus down the week scrolls the page to the internet
+        # and the special days.
+        for _ in range(36):
+            fresh.send_key("tab")
+        for _ in range(6):
+            if "Special days" in fresh.get_screen_text():
+                break
+            fresh.send_key("tab")
+            fresh.send_key("tab")
+        fresh.wait_for_text("Special days", timeout=30)
+        fresh.screenshot("parent-internet")
+        log_out("parent", fresh)
 
     with subtest("once set, the first-boot PIN cannot be replaced without it"):
         fresh.fail("printf '\\n1111\\n' | runuser -u greeter -- zoomies-profile set-pin --stdin")

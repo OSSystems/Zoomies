@@ -8,6 +8,7 @@
   libnotify,
   libwnck,
   libxcrypt,
+  networkmanager,
   python3Packages,
   wrapGAppsHook4,
   xfconf,
@@ -22,6 +23,8 @@ python3Packages.buildPythonApplication {
     gtk4
     libmanette
     libwnck
+    # libnm, for the admin service's Wi-Fi.
+    networkmanager
     xfconf
   ];
   dependencies = [

@@ -28,6 +28,7 @@ SOCKET = os.environ.get("ZOOMIES_ADMIN_SOCKET", "/run/zoomies-admin.sock")
 GROUPS = {"little": "zoomies-kids", "older": "zoomies-older"}
 PIN = re.compile(r"[0-9]{4,12}")
 MAX_FAILURES = 5
+WIFI_ACTIONS = ("wifi-status", "wifi-scan", "wifi-connect", "wifi-forget", "wifi-enable")
 LOCKOUT = 60
 
 
@@ -126,6 +127,19 @@ class Admin:
             return {"locked": self.pin_locked()}
         if action == "set-pin":
             return self.set_pin(uid, message)
+        if action in WIFI_ACTIONS:
+            # Before the first PIN, the wizard sets up Wi-Fi with nothing
+            # to protect yet, like the PIN itself.
+            if self.pin_set():
+                self.authorize(uid, message)
+            # Only this service talks to NetworkManager; the screens that
+            # import this module for request() need not load it.
+            from . import wifi
+
+            try:
+                return wifi.run(action, message)
+            except wifi.Failed as error:
+                raise Refused(str(error)) from error
         if action in ("add-kid", "edit-kid", "remove-kid"):
             if not self.pin_set():
                 raise Refused(N_("set the grown-ups PIN first"))
@@ -306,6 +320,14 @@ def main():
         command.add_argument("--kind", choices=state.KINDS)
     remove = commands.add_parser("remove")
     remove.add_argument("user")
+    wifi = commands.add_parser("wifi")
+    wifi.add_argument("action", choices=["status", "scan", "connect", "forget", "on", "off"])
+    wifi.add_argument("ssid", nargs="?")
+    wifi.add_argument("--hidden", action="store_true")
+    wifi.add_argument("--pin-stdin", action="store_true", help="read the PIN as the first line")
+    wifi.add_argument(
+        "--password-stdin", action="store_true", help="read the password as the next line"
+    )
     pin = commands.add_parser("set-pin")
     pin.add_argument("--stdin", action="store_true", help="read old and new PIN as two lines")
     args = parser.parse_args()
@@ -329,6 +351,22 @@ def main():
             print(reply.get("user", getattr(args, "user", None)))
         elif args.command == "remove":
             request("remove-kid", user=args.user)
+        elif args.command == "wifi":
+            lines = sys.stdin.read().splitlines() if args.pin_stdin or args.password_stdin else []
+            fields = {}
+            if args.pin_stdin:
+                fields["pin"] = lines.pop(0) if lines else ""
+            if args.password_stdin:
+                fields["password"] = lines.pop(0) if lines else ""
+            if args.action in ("on", "off"):
+                fields["on"] = args.action == "on"
+                action = "wifi-enable"
+            else:
+                action = f"wifi-{args.action}"
+            if args.ssid is not None:
+                fields["ssid"] = args.ssid
+            reply = request(action, hidden=args.hidden, **fields)
+            print(json.dumps(reply))
         elif args.command == "set-pin":
             if args.stdin:
                 # First line the current PIN (empty when none), then the new one.

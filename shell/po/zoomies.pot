@@ -120,6 +120,17 @@ msgstr ""
 
 msgid ""
 "👋 Welcome to Zoomies!\n"
+"Let's get online first."
+msgstr ""
+
+msgid "Pick your Wi-Fi. You can also do this later."
+msgstr ""
+
+msgid "Skip"
+msgstr ""
+
+msgid ""
+"👋 Welcome to Zoomies!\n"
 "First, a grown-up picks a secret PIN."
 msgstr ""
 
@@ -227,6 +238,9 @@ msgid "Zoomies grown-ups"
 msgstr ""
 
 msgid "Kids"
+msgstr ""
+
+msgid "Wi-Fi"
 msgstr ""
 
 msgid "System"
@@ -534,4 +548,104 @@ msgid "Plays like:"
 msgstr ""
 
 msgid "Pick today or a day to come."
+msgstr ""
+
+msgid "the network service is not running"
+msgstr ""
+
+msgid "the network service did not answer"
+msgstr ""
+
+msgid "this computer has no Wi-Fi"
+msgstr ""
+
+msgid "could not connect: check the password"
+msgstr ""
+
+msgid "could not connect to this network"
+msgstr ""
+
+msgid "pick a network"
+msgstr ""
+
+msgid "Wi-Fi passwords have 8 to 63 characters"
+msgstr ""
+
+msgid "Networks nearby"
+msgstr ""
+
+msgid "Look again"
+msgstr ""
+
+msgid "➕ Other network…"
+msgstr ""
+
+msgid "Looking for networks…"
+msgstr ""
+
+msgid "connected"
+msgstr ""
+
+msgid "saved"
+msgstr ""
+
+msgid "No networks found."
+msgstr ""
+
+msgid "Set this network up with More settings."
+msgstr ""
+
+msgid "Forget"
+msgstr ""
+
+msgid "Connect"
+msgstr ""
+
+msgid "📶 Other network"
+msgstr ""
+
+msgid "Network name"
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "Leave the password empty for an open network."
+msgstr ""
+
+msgid "Type the network's name."
+msgstr ""
+
+msgid "Wi-Fi passwords have 8 to 63 characters."
+msgstr ""
+
+msgid "Connecting…"
+msgstr ""
+
+msgid "Cable"
+msgstr ""
+
+msgid "More settings"
+msgstr ""
+
+msgid "IP address, proxy, VPN"
+msgstr ""
+
+msgid "This computer has no Wi-Fi."
+msgstr ""
+
+msgid "Off"
+msgstr ""
+
+#, python-brace-format
+msgid "Connected to {network}"
+msgstr ""
+
+msgid "Not connected"
+msgstr ""
+
+msgid "Connected"
+msgstr ""
+
+msgid "Not plugged in"
 msgstr ""

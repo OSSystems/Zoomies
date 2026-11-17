@@ -1,9 +1,9 @@
-"""Grown-ups' panel: kids and their week, the internet, the PIN, and the
-way out."""
+"""Grown-ups' panel: kids and their week, the internet, Wi-Fi, the PIN,
+and the way out."""
 
 import subprocess
 
-from . import admin, state, ui, week
+from . import admin, state, ui, wifi_page, week
 from .i18n import _
 from .ui import GLib, Gtk
 
@@ -144,6 +144,7 @@ class Parent(Gtk.ApplicationWindow):
         first = None
         for name, emoji, title in (
             ("kids", "🧒", _("Kids")),
+            ("wifi", "📶", _("Wi-Fi")),
             ("system", "⚙️", _("System")),
         ):
             tab = Gtk.ToggleButton(active=first is None)
@@ -164,6 +165,8 @@ class Parent(Gtk.ApplicationWindow):
         page.append(self.pages)
 
         self.pages.add_named(self.kids_page(), "kids")
+        self.wifi = wifi_page.WifiPage(self.overlay, config)
+        self.pages.add_named(self.wifi, "wifi")
         self.pages.add_named(self.system_page(), "system")
 
         bottom = Gtk.Box(spacing=16)
@@ -181,6 +184,8 @@ class Parent(Gtk.ApplicationWindow):
     def switch_page(self, tab, name):
         if tab.get_active():
             self.pages.set_visible_child_name(name)
+            if name == "wifi":
+                self.wifi.refresh()
 
     def kids_page(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)

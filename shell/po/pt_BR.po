@@ -124,6 +124,17 @@ msgstr "Esse não é o PIN."
 
 msgid ""
 "👋 Welcome to Zoomies!\n"
+"Let's get online first."
+msgstr "👋 Bem-vindo ao Zoomies!\nPrimeiro, vamos conectar à internet."
+
+msgid "Pick your Wi-Fi. You can also do this later."
+msgstr "Escolha o seu Wi-Fi. Dá para fazer isso depois também."
+
+msgid "Skip"
+msgstr "Pular"
+
+msgid ""
+"👋 Welcome to Zoomies!\n"
 "First, a grown-up picks a secret PIN."
 msgstr ""
 "👋 Boas-vindas ao Zoomies!\n"
@@ -236,6 +247,9 @@ msgstr "Zoomies para adultos"
 
 msgid "Kids"
 msgstr "Crianças"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
 
 msgid "System"
 msgstr "Sistema"
@@ -545,3 +559,103 @@ msgstr "Joga como:"
 
 msgid "Pick today or a day to come."
 msgstr "Escolha hoje ou um dia futuro."
+
+msgid "the network service is not running"
+msgstr "o serviço de rede não está rodando"
+
+msgid "the network service did not answer"
+msgstr "o serviço de rede não respondeu"
+
+msgid "this computer has no Wi-Fi"
+msgstr "este computador não tem Wi-Fi"
+
+msgid "could not connect: check the password"
+msgstr "não foi possível conectar: confira a senha"
+
+msgid "could not connect to this network"
+msgstr "não foi possível conectar a esta rede"
+
+msgid "pick a network"
+msgstr "escolha uma rede"
+
+msgid "Wi-Fi passwords have 8 to 63 characters"
+msgstr "senhas de Wi-Fi têm de 8 a 63 caracteres"
+
+msgid "Networks nearby"
+msgstr "Redes por perto"
+
+msgid "Look again"
+msgstr "Procurar de novo"
+
+msgid "➕ Other network…"
+msgstr "➕ Outra rede…"
+
+msgid "Looking for networks…"
+msgstr "Procurando redes…"
+
+msgid "connected"
+msgstr "conectada"
+
+msgid "saved"
+msgstr "salva"
+
+msgid "No networks found."
+msgstr "Nenhuma rede encontrada."
+
+msgid "Set this network up with More settings."
+msgstr "Configure esta rede em Mais configurações."
+
+msgid "Forget"
+msgstr "Esquecer"
+
+msgid "Connect"
+msgstr "Conectar"
+
+msgid "📶 Other network"
+msgstr "📶 Outra rede"
+
+msgid "Network name"
+msgstr "Nome da rede"
+
+msgid "Password"
+msgstr "Senha"
+
+msgid "Leave the password empty for an open network."
+msgstr "Deixe a senha vazia para uma rede aberta."
+
+msgid "Type the network's name."
+msgstr "Digite o nome da rede."
+
+msgid "Wi-Fi passwords have 8 to 63 characters."
+msgstr "Senhas de Wi-Fi têm de 8 a 63 caracteres."
+
+msgid "Connecting…"
+msgstr "Conectando…"
+
+msgid "Cable"
+msgstr "Cabo"
+
+msgid "More settings"
+msgstr "Mais configurações"
+
+msgid "IP address, proxy, VPN"
+msgstr "Endereço IP, proxy, VPN"
+
+msgid "This computer has no Wi-Fi."
+msgstr "Este computador não tem Wi-Fi."
+
+msgid "Off"
+msgstr "Desligado"
+
+#, python-brace-format
+msgid "Connected to {network}"
+msgstr "Conectado a {network}"
+
+msgid "Not connected"
+msgstr "Não conectado"
+
+msgid "Connected"
+msgstr "Conectado"
+
+msgid "Not plugged in"
+msgstr "Não conectado"

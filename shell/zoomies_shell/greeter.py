@@ -12,7 +12,7 @@ import socket
 import struct
 import sys
 
-from . import admin, state, ui
+from . import admin, state, ui, wifi_page
 from .i18n import _
 from .ui import GLib, Gtk
 
@@ -373,10 +373,11 @@ class Greeter(Gtk.ApplicationWindow):
 
 
 class Setup:
-    """First boot: create the grown-ups PIN, then add the kids.
+    """First boot: get online, create the grown-ups PIN, then add the kids.
 
     Runs in the greeter because nobody can log in yet; the admin service
-    accepts the PIN only while none is set, and kids only with that PIN.
+    accepts Wi-Fi and the PIN without a PIN only while none is set, and
+    kids only with that PIN.
     """
 
     def __init__(self, greeter):
@@ -386,6 +387,44 @@ class Setup:
         self.added = []
 
     def start(self):
+        # Online already, from a cable or the installer's network, or no
+        # Wi-Fi to set up: straight to the PIN.
+        def checked(reply, error):
+            if error is None and reply["wifi"] and reply["enabled"] and not reply["online"]:
+                self.wifi()
+            else:
+                self.ask_pin()
+
+        wifi_page.in_background(lambda: admin.request("wifi-status"), checked)
+
+    def wifi(self):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        box.append(
+            Gtk.Label(
+                label=_("👋 Welcome to Zoomies!\nLet's get online first."),
+                justify=Gtk.Justification.CENTER,
+                css_classes=["dialog-title"],
+            )
+        )
+        box.append(
+            Gtk.Label(
+                label=_("Pick your Wi-Fi. You can also do this later."),
+                justify=Gtk.Justification.CENTER,
+            )
+        )
+        networks = wifi_page.NetworkList(self.overlay, on_connected=self.ask_pin, back=self.wifi)
+        networks.set_size_request(560, -1)
+        box.append(networks)
+        skip = ui.big_button(_("Skip"), "subtle", "➜")
+        skip.set_halign(Gtk.Align.CENTER)
+        # A connection still on its way must not move the wizard on later.
+        skip.connect("clicked", lambda *_args: (networks.abandon(), self.ask_pin()))
+        box.append(skip)
+        self.overlay.show(box, modal=True)
+        networks.scan()
+        skip.grab_focus()
+
+    def ask_pin(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         title = Gtk.Label(
             label=_("👋 Welcome to Zoomies!\nFirst, a grown-up picks a secret PIN."),
