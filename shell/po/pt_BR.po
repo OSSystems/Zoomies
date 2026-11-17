@@ -445,6 +445,21 @@ msgstr "Sáb"
 msgid "Sun"
 msgstr "Dom"
 
+msgid "School week"
+msgstr "Semana de aula"
+
+msgid "Weekends only"
+msgstr "Só fins de semana"
+
+msgid "Little ones"
+msgstr "Pequenos"
+
+msgid "Older kid"
+msgstr "Criança maior"
+
+msgid "Holidays"
+msgstr "Férias"
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -466,17 +481,65 @@ msgstr "Criança pequena"
 msgid "Just the games"
 msgstr "Só os jogos"
 
-msgid "Older kid"
-msgstr "Criança maior"
-
 msgid "A desktop for study and play"
 msgstr "Uma área de trabalho para estudar e brincar"
 
 msgid "Name"
 msgstr "Nome"
 
+msgid "No play"
+msgstr "Sem jogar"
+
+#, python-brace-format
+msgid "{hours}, no limit"
+msgstr "{hours}, sem limite"
+
+msgid "Offline"
+msgstr "Desligada"
+
+msgid "Every day"
+msgstr "Todo dia"
+
 msgid "🚫 No play · tap to allow"
 msgstr "🚫 Sem jogar · toque para permitir"
+
+msgid "Mon–Fri"
+msgstr "Seg–Sex"
+
+msgid "Sat–Sun"
+msgstr "Sáb–Dom"
+
+msgid "The same"
+msgstr "Igual"
+
+msgid "🌐 Internet"
+msgstr "🌐 Internet"
+
+#, python-brace-format
+msgid "✨ A week for {name}"
+msgstr "✨ Uma semana para {name}"
+
+msgid "Pick one to start from. You can change any day afterwards."
+msgstr "Escolha uma para começar. Dá para mudar qualquer dia depois."
+
+msgid "Use it"
+msgstr "Usar"
+
+#, python-brace-format
+msgid "Use {template}"
+msgstr "Usar {template}"
+
+#, python-brace-format
+msgid ""
+"Replaces {name}'s week and internet days.\n"
+"Special days stay as they are."
+msgstr "Substitui a semana e os dias de internet de {name}.\nOs dias especiais continuam como estão."
+
+msgid "📅 Week"
+msgstr "📅 Semana"
+
+msgid "Start from a template…"
+msgstr "Começar de um modelo…"
 
 msgid "Max a day"
 msgstr "Máx. por dia"
@@ -520,9 +583,6 @@ msgstr "Igual no fim de semana todo"
 
 msgid "The end must come after the start."
 msgstr "O fim precisa vir depois do início."
-
-msgid "🌐 Internet"
-msgstr "🌐 Internet"
 
 msgid "30 min"
 msgstr "30 min"

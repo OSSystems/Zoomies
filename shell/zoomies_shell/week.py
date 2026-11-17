@@ -35,6 +35,8 @@ NOW = (0xE6 / 255, 0x39 / 255, 0x46 / 255)
 
 # How long the offer to change the other days too stays up.
 OFFER_SECONDS = 8
+# Wide enough for the templates side by side; narrower screens stack them.
+WIDE = 1200
 
 
 def weekday_name(index):
@@ -61,6 +63,31 @@ def next_cap(minutes, direction):
     if direction > 0:
         return later[0] if later else None
     return earlier[-1] if earlier else 0
+
+
+def hour_label(minute):
+    return str(minute // 60) if minute % 60 == 0 else state.format_minutes_of_day(minute)
+
+
+def day_summary(day):
+    """A day in a few words, as in "1 h, 17–19"."""
+    if day is None:
+        return _("No play")
+    hours = " / ".join(f"{hour_label(s)}–{hour_label(e)}" for s, e in day["blocks"])
+    if day["minutes"] is None:
+        return _("{hours}, no limit").format(hours=hours)
+    return f"{cap_label(day['minutes'])}, {hours}"
+
+
+def internet_summary(rules):
+    days = rules["days"]
+    if not rules["on"] or not any(days):
+        return _("Offline")
+    if all(days):
+        return _("Every day")
+    if days == [i in WEEKEND for i in range(state.WEEKDAYS)]:
+        return _("Weekends only")
+    return ", ".join(short_weekday(i) for i, on in enumerate(days) if on)
 
 
 def time_spin(value, low=0, high=48):
@@ -252,6 +279,187 @@ class DayTrack(Gtk.DrawingArea):
             cr.fill()
 
 
+class MiniWeek(Gtk.DrawingArea):
+    """A template's week at a glance, from 6h to 22h."""
+
+    FIRST = 6 * 60
+    LAST = 22 * 60
+    ROW = 13
+    TOP = 14
+    LETTERS = 22
+
+    def __init__(self, days):
+        super().__init__(content_width=150, content_height=self.TOP + 7 * self.ROW)
+        self.days = days
+        self.set_draw_func(self.draw)
+
+    def x_of(self, minute, width):
+        span = width - self.LETTERS
+        return self.LETTERS + (minute - self.FIRST) / (self.LAST - self.FIRST) * span
+
+    def draw(self, _area, cr, width, _height):
+        soft = (0.24, 0.35, 0.5)
+        for hour in (6, 12, 18):
+            x = self.x_of(hour * 60, width)
+            text(cr, f"{hour}h", x - 15, 0, 30, self.TOP - 2, 8, bold=False, color=soft)
+        for index, day in enumerate(self.days):
+            y = self.TOP + index * self.ROW
+            text(cr, short_weekday(index)[:1], 0, y, 18, self.ROW, 8, color=soft)
+            left, right = self.x_of(self.FIRST, width), self.x_of(self.LAST, width)
+            rounded(cr, left, y + 2, right - left, self.ROW - 4, 4)
+            if day is None:
+                cr.set_source_rgba(*NO_PLAY, 0.35)
+                cr.fill()
+                continue
+            cr.set_source_rgba(*INK, 0.07)
+            cr.fill()
+            cr.set_source_rgb(*PLAY)
+            for start, end in day["blocks"]:
+                start, end = max(start, self.FIRST), min(end, self.LAST)
+                if end > start:
+                    a, b = self.x_of(start, width), self.x_of(end, width)
+                    rounded(cr, a, y + 2, b - a, self.ROW - 4, 4)
+                    cr.fill()
+
+
+def template_facts(name):
+    """What a template means, as (what, how) pairs."""
+    days, internet = state.TEMPLATES[name][2]["days"], state.TEMPLATES[name][2]["internet"]
+    weekdays, weekend = days[WORKDAYS[0]], days[WEEKEND[0]]
+    return [
+        (_("Mon–Fri"), day_summary(weekdays)),
+        (_("Sat–Sun"), _("The same") if weekend == weekdays else day_summary(weekend)),
+        (_("🌐 Internet"), internet_summary(internet)),
+    ]
+
+
+def template_card(name, wide, group=None):
+    """A button that shows a template: its name, its week and what it means."""
+    emoji, title, template = state.TEMPLATES[name]
+    days = template["days"]
+    button = Gtk.ToggleButton(css_classes=["template"])
+    if group is not None:
+        button.set_group(group)
+    layout = Gtk.Box(
+        orientation=Gtk.Orientation.VERTICAL if wide else Gtk.Orientation.HORIZONTAL,
+        spacing=10 if wide else 22,
+    )
+    heading = Gtk.Label(label=f"{emoji} {_(title)}", xalign=0, css_classes=["template-name"])
+    if not wide:
+        heading.set_size_request(200, -1)
+    layout.append(heading)
+    layout.append(MiniWeek(days))
+    facts = Gtk.Grid(column_spacing=8, row_spacing=2, valign=Gtk.Align.CENTER)
+    # Side by side, the cards are narrow: each value goes under its name.
+    across = 0 if wide else 1
+    for row, (label, value) in enumerate(template_facts(name)):
+        line = row * (2 - across)
+        facts.attach(Gtk.Label(label=label, xalign=0, css_classes=["template-key"]), 0, line, 1, 1)
+        # Long translations wrap rather than widen the cards past the screen.
+        facts.attach(
+            Gtk.Label(label=value, xalign=0, wrap=wide, max_width_chars=22, css_classes=["hint"]),
+            across,
+            line + 1 - across,
+            1,
+            1,
+        )
+    layout.append(facts)
+    button.set_child(layout)
+    return button
+
+
+def template_picker(panel, kid, done, new=False):
+    """Ask which template a kid's week starts from, then apply it. A new
+    kid already has the one for their kind, which starts chosen."""
+    wide = panel.get_width() >= WIDE
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, css_classes=["templates"])
+    box.append(
+        Gtk.Label(
+            label=_("✨ A week for {name}").format(name=kid["name"]), css_classes=["dialog-title"]
+        )
+    )
+    box.append(
+        Gtk.Label(
+            label=_("Pick one to start from. You can change any day afterwards."),
+            css_classes=["hint"],
+        )
+    )
+    cards = Gtk.Box(
+        orientation=Gtk.Orientation.HORIZONTAL if wide else Gtk.Orientation.VERTICAL,
+        spacing=12,
+        homogeneous=wide,
+        # Room for the outline of the chosen card inside the scroller.
+        margin_top=6,
+        margin_bottom=10,
+        margin_start=6,
+        margin_end=6,
+    )
+    use = ui.big_button(_("Use it"), "yes", "✔")
+    use.set_sensitive(False)
+    chosen = {}
+    group = None
+    cards_by_name = {}
+    for name in state.TEMPLATES:
+        card = template_card(name, wide, group)
+        group = group or card
+        cards_by_name[name] = card
+
+        def toggled(card, name=name):
+            if card.get_active():
+                chosen["name"] = name
+                use.set_sensitive(True)
+                use.get_child().get_last_child().set_label(
+                    _("Use {template}").format(template=_(state.TEMPLATES[name][1]))
+                )
+
+        card.connect("toggled", toggled)
+        cards.append(card)
+    # Short screens scroll the templates and keep the buttons in sight.
+    scroller = Gtk.ScrolledWindow(
+        child=cards,
+        hscrollbar_policy=Gtk.PolicyType.NEVER,
+        propagate_natural_height=True,
+        propagate_natural_width=True,
+        max_content_height=max(200, panel.get_height() - 380),
+    )
+    box.append(scroller)
+    row = Gtk.Box(spacing=16, halign=Gtk.Align.CENTER)
+    if not new:
+        box.append(
+            Gtk.Label(
+                label=_(
+                    "Replaces {name}'s week and internet days.\nSpecial days stay as they are."
+                ).format(name=kid["name"]),
+                justify=Gtk.Justification.CENTER,
+                css_classes=["hint"],
+            )
+        )
+        cancel = ui.big_button(_("Cancel"), "subtle", "✖")
+        cancel.connect("clicked", lambda *_args: panel.overlay.close())
+        row.append(cancel)
+
+    def apply(*_args):
+        try:
+            state.apply_template(kid["user"], chosen["name"])
+        except (OSError, ValueError) as error:
+            panel.overlay.close()
+            panel.show_error(error)
+            return
+        panel.overlay.close()
+        done()
+
+    use.connect("clicked", apply)
+    row.append(use)
+    box.append(row)
+    panel.overlay.show(box)
+    if new:
+        start = cards_by_name[state.default_template(kid.get("kind"))]
+        start.set_active(True)
+        start.grab_focus()
+    else:
+        group.grab_focus()
+
+
 class HourScale(Gtk.DrawingArea):
     def __init__(self):
         super().__init__(hexpand=True, content_height=20)
@@ -282,6 +490,18 @@ class WeekGrid(Gtk.Box):
         self.caps = []
         self.offers = []
         self.offer_timer = None
+        title = Gtk.Box(spacing=12)
+        title.append(
+            Gtk.Label(label=_("📅 Week"), xalign=0, hexpand=True, css_classes=["section-title"])
+        )
+        start = self.start = ui.big_button(_("Start from a template…"), "subtle", "✨")
+        start.add_css_class("small")
+        start.connect(
+            "clicked",
+            lambda *_args: template_picker(panel, kid, lambda: panel.schedule_changed(kid, True)),
+        )
+        title.append(start)
+        self.append(title)
         header = Gtk.Box(spacing=10)
         header.append(Gtk.Box(width_request=self.LABEL_WIDTH))
         header.append(HourScale())

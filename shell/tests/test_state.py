@@ -251,6 +251,43 @@ class Internet(unittest.TestCase):
         self.assertFalse(state.online(KID, policy, True, at(0, "11:00")))
 
 
+class Templates(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+
+        self.directory = tempfile.TemporaryDirectory()
+        self.path, state.POLICY = state.POLICY, f"{self.directory.name}/policy.json"
+
+    def tearDown(self):
+        state.POLICY = self.path
+        self.directory.cleanup()
+
+    def test_every_template_is_a_valid_week(self):
+        for name in state.TEMPLATES:
+            state.apply_template("ana", name)
+            policy = state.load_policy()
+            self.assertEqual(state.week(KID, policy), state.TEMPLATES[name][2]["days"], name)
+            state.internet_rules(KID, policy)
+
+    def test_a_template_keeps_special_days_and_todays_changes(self):
+        state.save_policy(
+            {
+                "kids": {"ana": {"special": {"2099-01-01": "off"}, "schedule": {"days": WEEK}}},
+                "bonus": {state.today(): {"ana": 15}},
+            }
+        )
+        state.apply_template("ana", "weekends")
+        policy = state.load_policy()
+        self.assertEqual(state.special_days(KID, policy), {"2099-01-01": "off"})
+        self.assertEqual(state.bonus_minutes(KID, policy), 15)
+        self.assertEqual(state.week(KID, policy)[:5], [None] * 5)
+        self.assertFalse(state.internet_rules(KID, policy)["on"])
+
+    def test_each_kind_starts_from_its_own(self):
+        self.assertEqual(state.default_template("little"), "little")
+        self.assertEqual(state.default_template("older"), "school")
+
+
 class SameKind(unittest.TestCase):
     def days(self):
         return state.week(KID, schedule(WEEK))

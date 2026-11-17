@@ -249,10 +249,23 @@ class Parent(Gtk.ApplicationWindow):
         text = _("Could not save: {reason}.").format(reason=why(error))
         self.ask(Gtk.Label(label=text, wrap=True, css_classes=["dialog-title"]), [], _("OK"))
 
-    def schedule_changed(self, kid):
-        for row in self.rows:
-            if row.kid["user"] == kid["user"]:
+    def schedule_changed(self, kid, rebuild=False):
+        """Show a kid's new rules; after a template, every section of the
+        kid's card is new, so the card is made again."""
+        for i, row in enumerate(self.rows):
+            if row.kid["user"] != kid["user"]:
+                continue
+            if not rebuild:
                 row.refresh()
+                continue
+            fresh = KidRow(self, row.kid)
+            self.list.insert_child_after(fresh, row)
+            self.list.remove(row)
+            self.rows[i] = fresh
+            # The old card had the focus; a stray key must not land on the
+            # new card's +15 min.
+            if fresh.grid is not None:
+                fresh.grid.start.grab_focus()
 
     def ask(self, body, actions, cancel=None):
         """A dialog with a Cancel button and actions that close it when
@@ -333,9 +346,19 @@ class Parent(Gtk.ApplicationWindow):
             used_avatars=[k["avatar"] for k in self.config["kids"] if k is not kid],
         )
         if kid is None:
-            run = self.dialog(
-                _("Add a kid"), form, _("Add"), lambda: admin.request("add-kid", **form.values())
-            )
+
+            def add():
+                user = admin.request("add-kid", **form.values())["user"]
+                # Every kid starts with the week for their kind; the
+                # grown-up then sees the others and can pick one.
+                try:
+                    state.apply_template(user, state.default_template(form.kind))
+                except (OSError, ValueError) as error:
+                    GLib.idle_add(lambda e=error: self.show_error(e) and False)
+                    return
+                GLib.idle_add(lambda: self.pick_week(user) and False)
+
+            run = self.dialog(_("Add a kid"), form, _("Add"), add)
         else:
             run = self.dialog(
                 _("Edit {name}").format(name=kid["name"]),
@@ -345,6 +368,11 @@ class Parent(Gtk.ApplicationWindow):
             )
         form.name.connect("activate", run)
         form.name.grab_focus()
+
+    def pick_week(self, user):
+        kid = next((k for k in self.config["kids"] if k["user"] == user), None)
+        if kid is not None:
+            week.template_picker(self, kid, lambda: self.schedule_changed(kid, True), new=True)
 
     def remove_kid(self, kid):
         warning = Gtk.Label(

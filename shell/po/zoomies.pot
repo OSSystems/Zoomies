@@ -435,6 +435,21 @@ msgstr ""
 msgid "Sun"
 msgstr ""
 
+msgid "School week"
+msgstr ""
+
+msgid "Weekends only"
+msgstr ""
+
+msgid "Little ones"
+msgstr ""
+
+msgid "Older kid"
+msgstr ""
+
+msgid "Holidays"
+msgstr ""
+
 #, python-brace-format
 msgid "{minutes} minute left"
 msgid_plural "{minutes} minutes left"
@@ -456,16 +471,64 @@ msgstr ""
 msgid "Just the games"
 msgstr ""
 
-msgid "Older kid"
-msgstr ""
-
 msgid "A desktop for study and play"
 msgstr ""
 
 msgid "Name"
 msgstr ""
 
+msgid "No play"
+msgstr ""
+
+#, python-brace-format
+msgid "{hours}, no limit"
+msgstr ""
+
+msgid "Offline"
+msgstr ""
+
+msgid "Every day"
+msgstr ""
+
 msgid "🚫 No play · tap to allow"
+msgstr ""
+
+msgid "Mon–Fri"
+msgstr ""
+
+msgid "Sat–Sun"
+msgstr ""
+
+msgid "The same"
+msgstr ""
+
+msgid "🌐 Internet"
+msgstr ""
+
+#, python-brace-format
+msgid "✨ A week for {name}"
+msgstr ""
+
+msgid "Pick one to start from. You can change any day afterwards."
+msgstr ""
+
+msgid "Use it"
+msgstr ""
+
+#, python-brace-format
+msgid "Use {template}"
+msgstr ""
+
+#, python-brace-format
+msgid ""
+"Replaces {name}'s week and internet days.\n"
+"Special days stay as they are."
+msgstr ""
+
+msgid "📅 Week"
+msgstr ""
+
+msgid "Start from a template…"
 msgstr ""
 
 msgid "Max a day"
@@ -509,9 +572,6 @@ msgid "Same on every weekend day"
 msgstr ""
 
 msgid "The end must come after the start."
-msgstr ""
-
-msgid "🌐 Internet"
 msgstr ""
 
 msgid "30 min"

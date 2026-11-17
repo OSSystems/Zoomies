@@ -703,6 +703,37 @@ pkgs.testers.runNixOSTest {
         fresh.screenshot("parent-internet")
         log_out("parent", fresh)
 
+    with subtest("a template replaces the week and the internet days, not special days"):
+        fresh.send_key("ctrl-alt-p")
+        fresh.sleep(2)
+        fresh.send_chars("2468\n")
+        wait_for_ready("zoomies-parent", "parent", fresh)
+        fresh.wait_for_text("Max a day", timeout=60)
+        # From the Kids tab: Wi-Fi, System, Add a kid, then Kim's +15 min,
+        # Stop, Edit and Remove come before the week's template button.
+        for _ in range(8):
+            fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("week for Kim", timeout=60)
+        # The first template has the focus.
+        fresh.send_key("spc")
+        fresh.wait_for_text("Use School week", timeout=30)
+        fresh.screenshot("parent-templates")
+        # Past the four other templates and Cancel.
+        for _ in range(6):
+            fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_until_succeeds("grep -q '\"19:00\"' /var/lib/zoomies/policy.json", timeout=30)
+        kim = json.loads(fresh.succeed("cat /var/lib/zoomies/policy.json"))["kids"]["kim"]
+        school = {"blocks": [["17:00", "19:00"]], "minutes": 60}
+        weekend = {"blocks": [["09:00", "12:00"], ["15:00", "19:00"]], "minutes": 120}
+        assert kim["schedule"]["days"] == [school] * 5 + [weekend] * 2, kim
+        assert kim["internet"] == {"on": True, "days": [False] * 5 + [True] * 2}, kim
+        assert kim["special"] == {date: "off"}, kim
+        fresh.wait_for_text("Start from a template", timeout=30)
+        fresh.screenshot("parent-template-applied")
+        log_out("parent", fresh)
+
     with subtest("once set, the first-boot PIN cannot be replaced without it"):
         fresh.fail("printf '\\n1111\\n' | runuser -u greeter -- zoomies-profile set-pin --stdin")
         fresh.succeed("greetd-try parent 2468")

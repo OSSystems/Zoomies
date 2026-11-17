@@ -501,8 +501,72 @@ def open_internet(user, until):
     save_policy(policy)
 
 
+
+# Week templates: a start that parents then change to fit. Applying one
+# writes an ordinary week and internet days; nothing remembers which.
+
 WORKDAYS = range(5)
 WEEKEND = range(5, WEEKDAYS)
+
+
+def _template_day(minutes, *blocks):
+    return {"blocks": [(minutes_of_day(s), minutes_of_day(e)) for s, e in blocks], "minutes": minutes}
+
+
+def _template(weekdays, weekend, internet_days):
+    return {
+        "days": [weekdays] * len(WORKDAYS) + [weekend] * len(WEEKEND),
+        "internet": {
+            "on": any(internet_days),
+            "days": list(internet_days) if any(internet_days) else [True] * WEEKDAYS,
+        },
+    }
+
+
+_TWO_HOURS = _template_day(120, ("09:00", "12:00"), ("15:00", "19:00"))
+_WEEKENDS = [False] * len(WORKDAYS) + [True] * len(WEEKEND)
+
+TEMPLATES = {
+    "school": ("🏫", N_("School week"), _template(_template_day(60, ("17:00", "19:00")), _TWO_HOURS, _WEEKENDS)),
+    "weekends": ("🎈", N_("Weekends only"), _template(None, _TWO_HOURS, [False] * WEEKDAYS)),
+    "little": (
+        "🧸",
+        N_("Little ones"),
+        _template(
+            _template_day(30, ("16:00", "18:00")),
+            _template_day(60, ("09:00", "11:00"), ("16:00", "18:00")),
+            [False] * WEEKDAYS,
+        ),
+    ),
+    "older": (
+        "🎒",
+        N_("Older kid"),
+        _template(
+            _template_day(90, ("16:00", "20:00")),
+            _template_day(180, ("09:00", "21:00")),
+            [True] * WEEKDAYS,
+        ),
+    ),
+    "holidays": ("🏖️", N_("Holidays"), _template(_TWO_HOURS, _TWO_HOURS, _WEEKENDS)),
+}
+
+
+def default_template(kind):
+    return "school" if kind == "older" else "little"
+
+
+def apply_template(user, name):
+    """Replace a kid's week and internet days with a template's; special
+    days and today's changes stay."""
+    _emoji, _title, template = TEMPLATES[name]
+    days = [day_to_json(day) for day in template["days"]]
+    for day in days:
+        day_from_json(day)
+    policy = load_policy()
+    rules = policy.setdefault("kids", {}).setdefault(user, {})
+    rules["schedule"] = {"days": days}
+    rules["internet"] = {"on": template["internet"]["on"], "days": list(template["internet"]["days"])}
+    save_policy(policy)
 
 
 def same_kind(index):

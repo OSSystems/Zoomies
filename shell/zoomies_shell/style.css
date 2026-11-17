@@ -360,6 +360,29 @@ button:focus {
   color: #1d3557;
 }
 
+.template {
+  color: #1d3557;
+  background: #f4fbff;
+  border-radius: 20px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 0 alpha(#1d3557, 0.12), inset 0 0 0 3px transparent;
+}
+
+.template:checked {
+  background: #fffbe6;
+  box-shadow: 0 4px 0 alpha(#1d3557, 0.12), inset 0 0 0 3px #ffd60a;
+}
+
+.template-name {
+  font-size: 19px;
+  font-weight: bold;
+}
+
+.template-key {
+  font-size: 15px;
+  font-weight: bold;
+}
+
 .offer {
   background: #fff3a0;
   border-radius: 14px;
@@ -370,4 +393,9 @@ button:focus {
 .offer-text {
   font-weight: bold;
   color: #1d3557;
+}
+
+/* Five templates side by side need the room a dialog's padding takes. */
+.dialog.templates {
+  padding: 24px 20px;
 }
