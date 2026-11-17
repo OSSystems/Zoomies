@@ -501,6 +501,48 @@ def open_internet(user, until):
     save_policy(policy)
 
 
+WORKDAYS = range(5)
+WEEKEND = range(5, WEEKDAYS)
+
+
+def same_kind(index):
+    """The weekdays or the weekend days, whichever `index` is one of."""
+    return WORKDAYS if index in WORKDAYS else WEEKEND
+
+
+def like_neighbour(days, index):
+    """A day allowed again starts like the nearest day of its kind that has
+    play, so it gets the hours and the time of its neighbours."""
+    near = sorted(
+        (other for other in same_kind(index) if other != index and days[other] is not None),
+        key=lambda other: abs(other - index),
+    )
+    if near:
+        day = days[near[0]]
+        return {"blocks": list(day["blocks"]), "minutes": day["minutes"]}
+    return {"blocks": [(16 * 60, 18 * 60)], "minutes": 60}
+
+
+def differing_minutes(days, index):
+    """Days of the same kind with play and another daily time than `index`."""
+    minutes = days[index]["minutes"]
+    return [
+        other
+        for other in same_kind(index)
+        if other != index and days[other] is not None and days[other]["minutes"] != minutes
+    ]
+
+
+def with_minutes(days, index):
+    """Days where every day of the kind of `index` that has play gets its
+    daily time; days with no play stay off."""
+    minutes = days[index]["minutes"]
+    return [
+        {**day, "minutes": minutes} if day is not None and other in same_kind(index) else day
+        for other, day in enumerate(days)
+    ]
+
+
 def read_status():
     return read_json(STATUS, {})
 

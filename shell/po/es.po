@@ -476,11 +476,23 @@ msgstr "Un escritorio para estudiar y jugar"
 msgid "Name"
 msgstr "Nombre"
 
-msgid "🚫 No play"
-msgstr "🚫 Sin jugar"
+msgid "🚫 No play · tap to allow"
+msgstr "🚫 Sin jugar · toca para permitir"
 
 msgid "Max a day"
 msgstr "Máx. al día"
+
+#, python-brace-format
+msgid "Every weekday {time}?"
+msgstr "¿Todos los días entre semana {time}?"
+
+#, python-brace-format
+msgid "Every weekend day {time}?"
+msgstr "¿Todos los días del fin de semana {time}?"
+
+#, python-brace-format
+msgid "Only {day}"
+msgstr "Solo {day}"
 
 msgid "Add play time"
 msgstr "Añadir tiempo"
@@ -546,6 +558,9 @@ msgstr "📅 Días especiales"
 
 msgid "Holidays or trips: a special day replaces its weekday once."
 msgstr "Festivos o viajes: un día especial sustituye a su día de la semana una vez."
+
+msgid "🚫 No play"
+msgstr "🚫 Sin jugar"
 
 #, python-brace-format
 msgid "Like a {day}"

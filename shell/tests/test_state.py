@@ -251,5 +251,32 @@ class Internet(unittest.TestCase):
         self.assertFalse(state.online(KID, policy, True, at(0, "11:00")))
 
 
+class SameKind(unittest.TestCase):
+    def days(self):
+        return state.week(KID, schedule(WEEK))
+
+    def test_a_day_allowed_again_starts_like_its_nearest_neighbour(self):
+        days = self.days()
+        days[2] = None
+        self.assertEqual(state.like_neighbour(days, 2), days[1])
+        # Sunday's only neighbour of its kind is Saturday.
+        self.assertEqual(state.like_neighbour(days, 6), days[5])
+
+    def test_without_a_neighbour_with_play_an_hour_in_the_afternoon(self):
+        days = [None] * 5 + self.days()[5:]
+        self.assertEqual(state.like_neighbour(days, 0), {"blocks": [(960, 1080)], "minutes": 60})
+
+    def test_the_time_goes_to_the_days_of_its_kind_with_play(self):
+        days = self.days()
+        days[3] = None
+        days[1] = {**days[1], "minutes": 90}
+        self.assertEqual(state.differing_minutes(days, 1), [0, 2, 4])
+        changed = state.with_minutes(days, 1)
+        self.assertEqual([d and d["minutes"] for d in changed], [90, 90, 90, None, 90, 180, None])
+        # The hours stay as they were.
+        self.assertEqual([d and d["blocks"] for d in changed], [d and d["blocks"] for d in days])
+        self.assertEqual(state.differing_minutes(changed, 1), [])
+
+
 if __name__ == "__main__":
     unittest.main()

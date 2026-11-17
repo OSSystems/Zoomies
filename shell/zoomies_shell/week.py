@@ -21,8 +21,8 @@ from gi.repository import Pango, PangoCairo  # noqa: E402
 
 STEP = state.STEP
 DAY = state.DAY
-WORKDAYS = range(5)
-WEEKEND = range(5, 7)
+WORKDAYS = state.WORKDAYS
+WEEKEND = state.WEEKEND
 
 # Daily minutes the − and + buttons step through; past the last one there
 # is no cap.
@@ -32,6 +32,9 @@ PLAY = (0x8B / 255, 0xE2 / 255, 0x8B / 255)
 INK = (0x1D / 255, 0x35 / 255, 0x57 / 255)
 NO_PLAY = (1.0, 0x8A / 255, 0x80 / 255)
 NOW = (0xE6 / 255, 0x39 / 255, 0x46 / 255)
+
+# How long the offer to change the other days too stays up.
+OFFER_SECONDS = 8
 
 
 def weekday_name(index):
@@ -214,7 +217,7 @@ class DayTrack(Gtk.DrawingArea):
         if self.day is None:
             cr.set_source_rgba(*NO_PLAY, 0.25)
             cr.fill()
-            text(cr, _("🚫 No play"), 0, 0, width, height, 12, color=(0.7, 0.23, 0.23))
+            text(cr, _("🚫 No play · tap to allow"), 0, 0, width, height, 12, color=(0.7, 0.23, 0.23))
             return
         cr.set_source_rgba(*INK, 0.06)
         cr.fill()
@@ -277,6 +280,8 @@ class WeekGrid(Gtk.Box):
         self.days = state.week(kid, state.load_policy())
         self.tracks = []
         self.caps = []
+        self.offers = []
+        self.offer_timer = None
         header = Gtk.Box(spacing=10)
         header.append(Gtk.Box(width_request=self.LABEL_WIDTH))
         header.append(HourScale())
@@ -315,6 +320,9 @@ class WeekGrid(Gtk.Box):
             self.caps.append((cap, value))
             row.append(cap)
             self.append(row)
+            offer = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
+            self.offers.append(offer)
+            self.append(offer)
         self.redraw()
 
     def redraw(self):
@@ -355,8 +363,51 @@ class WeekGrid(Gtk.Box):
         if day is not None:
             self.days[index] = {**day, "minutes": next_cap(day["minutes"], direction)}
             self.save()
+            self.offer_same(index)
+
+    def offer_same(self, index):
+        """After one day's time changes, offer it to the days of its kind:
+        days of a kind usually share their time, and changing five days one
+        by one is tedious."""
+        self.hide_offers()
+        if self.days[index] is None or not state.differing_minutes(self.days, index):
+            return
+        minutes = cap_label(self.days[index]["minutes"])
+        question = (
+            _("Every weekday {time}?") if index in WORKDAYS else _("Every weekend day {time}?")
+        ).format(time=minutes)
+        bar = Gtk.Box(spacing=12, css_classes=["offer"])
+        bar.set_margin_start(self.LABEL_WIDTH + 10)
+        bar.append(Gtk.Label(label=question, xalign=0, hexpand=True, css_classes=["offer-text"]))
+        yes = ui.big_button(_("Yes"), "yes", "✔")
+        yes.add_css_class("small")
+        yes.connect("clicked", lambda *_args: self.same_minutes(index))
+        bar.append(yes)
+        only = ui.big_button(_("Only {day}").format(day=short_weekday(index)), "subtle")
+        only.add_css_class("small")
+        only.connect("clicked", lambda *_args: self.hide_offers())
+        bar.append(only)
+        self.offers[index].set_child(bar)
+        self.offers[index].set_reveal_child(True)
+        self.offer_timer = GLib.timeout_add_seconds(OFFER_SECONDS, self.hide_offers)
+
+    def hide_offers(self):
+        if self.offer_timer is not None:
+            GLib.source_remove(self.offer_timer)
+            self.offer_timer = None
+        for offer in self.offers:
+            offer.set_reveal_child(False)
+        return GLib.SOURCE_REMOVE
+
+    def same_minutes(self, index):
+        self.hide_offers()
+        self.fresh()
+        if self.days[index] is not None:
+            self.days = state.with_minutes(self.days, index)
+            self.save()
 
     def copy_day(self, index, targets):
+        self.hide_offers()
         self.fresh()
         for target in targets:
             day = self.days[index]
@@ -387,7 +438,7 @@ class WeekGrid(Gtk.Box):
 
     def allow_day(self, index):
         self.fresh()
-        self.days[index] = {"blocks": [(16 * 60, 18 * 60)], "minutes": None}
+        self.days[index] = state.like_neighbour(self.days, index)
         self.save()
 
     def forbid_day(self, index):
@@ -418,7 +469,7 @@ class WeekGrid(Gtk.Box):
         times.append(Gtk.Label(label=_("to")))
         times.append(end_spin)
         box.append(times)
-        group = WORKDAYS if index in WORKDAYS else WEEKEND
+        group = state.same_kind(index)
         everywhere = Gtk.CheckButton(
             label=_("Same on every weekday")
             if index in WORKDAYS
