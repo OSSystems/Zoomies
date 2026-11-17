@@ -111,6 +111,14 @@ pkgs.testers.runNixOSTest {
         return int(machine.succeed("date +%H"))
 
 
+    def online(node, kid):
+        node.wait_until_succeeds(f"runuser -u {kid} -- curl -sf --max-time 5 http://server/", timeout=60)
+
+
+    def offline_now(node, kid):
+        node.wait_until_fails(f"runuser -u {kid} -- curl -sf --max-time 5 http://server/", timeout=60)
+
+
     def weekday():
         return int(machine.succeed("date +%u")) - 1
 
@@ -214,6 +222,36 @@ pkgs.testers.runNixOSTest {
 
     with subtest("little kids cannot reach the network"):
         offline(machine, "ana")
+
+    with subtest("grown-ups let a kid online on some days or for a while"):
+        every_day = {"on": True, "days": [True] * 7}
+        write_state("policy", {"kids": {"ana": {"internet": every_day}}})
+        online(machine, "ana")
+        # A firewall reload keeps who is online.
+        machine.succeed("systemctl reload firewall")
+        machine.succeed("iptables -S zoomies-online | grep -q REJECT")
+        online(machine, "ana")
+        not_today = [day != weekday() for day in range(7)]
+        write_state("policy", {"kids": {"ana": {"internet": {"on": True, "days": not_today}}}})
+        offline_now(machine, "ana")
+        machine.succeed("zoomies-time internet ana 30")
+        online(machine, "ana")
+        machine.wait_until_succeeds("zoomies-time status | grep -q '^ana: .*, online'")
+        machine.succeed("zoomies-time internet ana 0")
+        offline_now(machine, "ana")
+        # Only while the kid may play: not after a stop for today.
+        write_state("policy", {"kids": {"ana": {"internet": every_day}}})
+        online(machine, "ana")
+        machine.succeed("zoomies-time stop ana")
+        offline_now(machine, "ana")
+        machine.succeed("zoomies-time stop --undo ana")
+        online(machine, "ana")
+        # Whenever the timekeeper stops, however it stops, kids go offline.
+        machine.succeed("systemctl stop zoomies-timekeeper")
+        offline_now(machine, "ana")
+        machine.succeed("systemctl start zoomies-timekeeper")
+        online(machine, "ana")
+        write_state("policy", {})
 
     with subtest("kids have no other group to switch to"):
         machine.succeed('[ "$(id -G ana)" = 2700 ]')
@@ -456,6 +494,14 @@ pkgs.testers.runNixOSTest {
         machine.fail("timeout 10 runuser -u max -- sg audio -c true </dev/null")
         machine.succeed("grep -q BlockAboutConfig /etc/firefox/policies/policies.json")
 
+    with subtest("grown-ups can take older kids offline"):
+        policy = json.loads(machine.succeed("cat /var/lib/zoomies/policy.json"))
+        off = {"on": False, "days": [True] * 7}
+        write_state("policy", {**policy, "kids": {"max": {"internet": off}}})
+        offline_now(machine, "max")
+        write_state("policy", policy)
+        online(machine, "max")
+
     with subtest("rules that cannot be read end a running session"):
         log_out("max")
         policy = machine.succeed("cat /var/lib/zoomies/policy.json")
@@ -531,6 +577,18 @@ pkgs.testers.runNixOSTest {
 
     with subtest("the nftables rules keep little kids offline too"):
         offline(fresh, "kim")
+
+    with subtest("with nftables, kids online drop out unless renewed"):
+        fresh.succeed(
+            "echo '" + json.dumps({"kids": {"kim": {"internet": {"on": True, "days": [True] * 7}}}})
+            + "' > /var/lib/zoomies/policy.json"
+        )
+        online(fresh, "kim")
+        fresh.succeed("nft list set inet zoomies online | grep -q 'expires'")
+        fresh.succeed("systemctl stop zoomies-timekeeper")
+        offline_now(fresh, "kim")
+        fresh.succeed("systemctl start zoomies-timekeeper")
+        online(fresh, "kim")
 
     with subtest("without older kids, none can be added"):
         fresh.fail("zoomies-profile add --name Teen --kind older")

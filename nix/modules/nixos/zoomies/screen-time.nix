@@ -35,6 +35,9 @@ in
         ];
         serviceConfig = {
           ExecStart = "${cfg.package}/bin/zoomies-time daemon";
+          # Kids go offline whenever the timekeeper is not keeping watch,
+          # however it stopped; a stuck one is stopped by the watchdog.
+          ExecStopPost = "${cfg.package}/bin/zoomies-time offline";
           # Screen time must come back after any crash, however often.
           Restart = "always";
           RestartSec = 2;

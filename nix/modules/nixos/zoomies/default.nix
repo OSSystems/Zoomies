@@ -107,6 +107,7 @@ in
       etc."zoomies/config.json".text = builtins.toJSON {
         assets = "${cfg.package}/share/zoomies";
         defaultGames = gamePaths cfg.games;
+        internet.backend = cfg.internetBackend;
         kidSession = cfg.sessions.kid;
         kids = lib.mapAttrsToList (user: k: {
           inherit user;

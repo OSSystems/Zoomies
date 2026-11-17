@@ -439,6 +439,68 @@ def save_special_days(user, special):
     set_kid_rule(user, "special", {d: like for d, like in special.items() if d >= today()})
 
 
+# Internet: little kids are offline and older kids online unless a parent
+# says otherwise. A parent can also open it for a while, whatever the rules.
+
+
+def internet_rules(kid, policy):
+    rules = kid_rules(kid, policy).get("internet")
+    if rules is None:
+        return {"on": kid.get("kind") == "older", "days": [True] * WEEKDAYS}
+    need(isinstance(rules, dict), f"{kid['user']}: internet rules are not an object")
+    on, days = rules.get("on"), rules.get("days", [True] * WEEKDAYS)
+    # "false" is a true string: only real booleans count.
+    need(isinstance(on, bool), f"{kid['user']}: internet on is not true or false")
+    need(
+        isinstance(days, list) and len(days) == WEEKDAYS and all(isinstance(d, bool) for d in days),
+        f"{kid['user']}: internet days need {WEEKDAYS} true or false",
+    )
+    return {"on": on, "days": days}
+
+
+def internet_until(kid, policy):
+    """When the internet a parent opened for a while closes, or None."""
+    until = policy.get("internetUntil", {}).get(kid["user"])
+    need(until is None or isinstance(until, str), f"{kid['user']}: not a time: {until!r}")
+    return datetime.datetime.fromisoformat(until) if until else None
+
+
+def internet_today(kid, policy, now=None):
+    """Whether the rules put the kid online today, during their play."""
+    now = now or datetime.datetime.now()
+    rules = internet_rules(kid, policy)
+    if not rules["on"]:
+        return False
+    _plan, like = day_plan(kid, policy, now.date())
+    return rules["days"][like]
+
+
+def online(kid, policy, playing, now=None):
+    """Whether the kid may be online now: during play the rules decide,
+    and a grown-up may have opened it for a while whatever they say."""
+    now = now or datetime.datetime.now()
+    until = internet_until(kid, policy)
+    if until is not None and now < until:
+        return True
+    return playing and internet_today(kid, policy, now)
+
+
+def open_internet(user, until):
+    """Let a kid online until a time whatever the rules, or with None,
+    close what was opened."""
+    policy = load_policy()
+    now = datetime.datetime.now()
+    opened = {
+        u: t
+        for u, t in policy.get("internetUntil", {}).items()
+        if u != user and datetime.datetime.fromisoformat(t) > now
+    }
+    if until is not None:
+        opened[user] = until.isoformat(timespec="seconds")
+    policy["internetUntil"] = opened
+    save_policy(policy)
+
+
 def read_status():
     return read_json(STATUS, {})
 

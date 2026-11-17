@@ -176,6 +176,15 @@ class Broken(unittest.TestCase):
         with self.assertRaises(ValueError):
             state.kid_status(KID, {"kids": []}, usage(), at(0, "10:00"))
 
+    def test_internet_needs_real_booleans(self):
+        for rules in (
+            {"on": "false", "days": [True] * 7},
+            {"on": True, "days": ["false"] * 7},
+            {"on": True, "days": [True] * 6},
+        ):
+            with self.subTest(rules=rules), self.assertRaises(ValueError):
+                state.online(KID, {"kids": {"ana": {"internet": rules}}}, True, at(0, "10:00"))
+
     def test_a_damaged_policy_file_is_an_error_a_missing_one_is_not(self):
         import tempfile
 
@@ -215,6 +224,31 @@ class Grid(unittest.TestCase):
         days = [state.day_from_json(SCHOOL), {"blocks": [(60, 120)], "minutes": None}]
         moved = state.retime(days, 0, 1, (18 * 60, 19 * 60), [0, 1])
         self.assertEqual(moved[1]["blocks"], [(60, 120), (1080, 1140)])
+
+
+class Internet(unittest.TestCase):
+    def test_little_kids_are_offline_and_older_kids_online_by_default(self):
+        self.assertFalse(state.online(KID, {}, True, at(0, "10:00")))
+        self.assertTrue(state.online({**KID, "kind": "older"}, {}, True, at(0, "10:00")))
+
+    def test_only_while_playing(self):
+        self.assertFalse(state.online({**KID, "kind": "older"}, {}, False, at(0, "10:00")))
+
+    def test_only_on_the_chosen_days(self):
+        rules = {"on": True, "days": [False] * 5 + [True, True]}
+        policy = {"kids": {"ana": {"internet": rules}}}
+        self.assertFalse(state.online(KID, policy, True, at(0, "10:00")))
+        self.assertTrue(state.online(KID, policy, True, at(5, "10:00")))
+
+    def test_special_days_follow_the_day_they_play_like(self):
+        rules = {"on": True, "days": [False] * 5 + [True, True]}
+        policy = {"kids": {"ana": {"internet": rules, "special": {MONDAY.isoformat(): 6}}}}
+        self.assertTrue(state.online(KID, policy, True, at(0, "10:00")))
+
+    def test_opened_for_a_while_even_when_not_playing(self):
+        policy = {"internetUntil": {"ana": at(0, "11:00").isoformat()}}
+        self.assertTrue(state.online(KID, policy, False, at(0, "10:59")))
+        self.assertFalse(state.online(KID, policy, True, at(0, "11:00")))
 
 
 if __name__ == "__main__":
