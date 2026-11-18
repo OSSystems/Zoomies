@@ -253,7 +253,7 @@ class Greeter(Gtk.ApplicationWindow):
         else:
             error = self.greetd.login(kid["user"], self.config["kidSession"])
         if error is None:
-            self.get_application().quit()
+            self.overlay.fade_to_sky(self.get_application().quit)
             return
         # PAM may know better than the last status the timekeeper wrote,
         # for example right as the allowed hours end.
@@ -342,7 +342,7 @@ class Greeter(Gtk.ApplicationWindow):
             )
             entry.set_text("")
             if error is None:
-                self.get_application().quit()
+                self.overlay.fade_to_sky(self.get_application().quit)
                 return
             # greetd answers a locked account like a wrong PIN.
             if self.pin_locked():

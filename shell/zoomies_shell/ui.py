@@ -53,6 +53,12 @@ def when_ready(window, name, *conditions):
         with open(path + ".tmp", "w") as f:
             f.write(str(os.getpid()))
         os.replace(path + ".tmp", path)
+        # The session before keeps its last frame up until then.
+        if os.path.isdir(SPLASH_HANDOVER):
+            try:
+                os.utime(touch(os.path.join(SPLASH_HANDOVER, f"drawn-{os.getuid()}")))
+            except OSError:
+                pass
 
     def active(*_):
         if window.is_active():
@@ -226,11 +232,16 @@ SYSTEM_ACTIONS = {
 SPLASH_HANDOVER = "/run/zoomies-splash"
 
 
+def touch(path):
+    open(path, "a").close()
+    return path
+
+
 def power(action):
     """Runs systemctl's action, asking cage to hand the screen to the splash."""
     if os.path.isdir(SPLASH_HANDOVER):
         try:
-            open(os.path.join(SPLASH_HANDOVER, "requested"), "a").close()
+            touch(os.path.join(SPLASH_HANDOVER, "requested"))
         except OSError:
             pass
     subprocess.Popen(["systemctl", action])
