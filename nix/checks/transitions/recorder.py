@@ -109,6 +109,14 @@ class Recorder:
             stdin=subprocess.PIPE,
         )
         self.mark("power on")
+        self.serial = []
+        log_serial = self.node.log_serial
+
+        def timed(line):
+            self.serial.append((self.now(), line))
+            log_serial(line)
+
+        setattr(self.node, "log_serial", timed)
         self.node.start(**start_args)
         for target in (self.film, self.read_journal, self.sample):
             thread = threading.Thread(target=target, daemon=True)
@@ -332,6 +340,21 @@ class Recorder:
         self.chart(events, spans)
         self.filmstrips(windows, spans, events)
         return spans
+
+    def kernel_says(self, pattern, start):
+        """When the serial console next printed pattern, such as the kernel's
+        last words before a reset; the firmware blanks the screen right after."""
+        for t, line in self.serial:
+            if t >= start and pattern in line:
+                return t
+        raise AssertionError(f"{self.name}: the console never printed {pattern!r}")
+
+    def assert_never_dark(self, spans, start, end, what):
+        for dark_start, dark_end in spans:
+            assert dark_end <= start or dark_start >= end, (
+                f"{self.name}: the screen went dark for {dark_end - dark_start:.2f}s "
+                f"at {dark_start:.2f}s while {what}"
+            )
 
     def dark_spans(self):
         spans = []

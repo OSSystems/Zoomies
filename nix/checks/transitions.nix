@@ -109,10 +109,12 @@ pkgs.testers.runNixOSTest {
         time.sleep(1.5)
         node.screenshot(f"{rec.name}-{what}-question")
         rec.mark(f"{what}: yes")
+        asked = rec.now()
         node.send_key("right")
         node.send_key("ret")
         # A missed key would otherwise wait out the whole test's timeout.
         rec.wait_for_journal(r"The system will (reboot|power off) now|Reached target System Shutdown", timeout=60)
+        return asked
 
 
     def film(node, name):
@@ -139,8 +141,7 @@ pkgs.testers.runNixOSTest {
         node.send_key("spc")
         time.sleep(2)
         click(node, 900, 485)
-        answer_yes(node, rec, "restart")
-        yes = rec.now()
+        yes = restarting = answer_yes(node, rec, "restart")
         node.connected = False
         node.wait_until_succeeds(ready(node, "zoomies-greeter", "greeter"), timeout=180)
         rec.mark("greeter ready")
@@ -156,8 +157,7 @@ pkgs.testers.runNixOSTest {
         time.sleep(3)
         node.screenshot(f"{name}-launcher")
         click(node, 1200, 740)
-        answer_yes(node, rec, "power off")
-        yes = rec.now()
+        yes = powering_off = answer_yes(node, rec, "power off")
         rec.wait_for_power_off()
         spans = rec.finish([
             ("1-power-on", *boot),
@@ -166,7 +166,10 @@ pkgs.testers.runNixOSTest {
             ("4-kid-logs-in", *kid),
             ("5-power-off", yes - 1, rec.now()),
         ])
-        return spans
+        # From the question to the firmware, the screen goes from the
+        # desktop to the sky to Zip landing, never through black.
+        rec.assert_never_dark(spans, restarting, rec.kernel_says("reboot: Restarting system", restarting), "restarting")
+        rec.assert_never_dark(spans, powering_off, rec.kernel_says("reboot: Power down", powering_off), "powering off")
 
 
     for node, name in ((uefi, "uefi"), (bios, "bios")):
