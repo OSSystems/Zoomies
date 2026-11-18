@@ -15,8 +15,8 @@ pkgs.testers.runNixOSTest {
     boot.loader.efi.canTouchEfiVariables = false;
     boot.loader.grub = {
       device = "nodev";
-      efiSupport = true;
       efiInstallAsRemovable = true;
+      efiSupport = true;
       timeoutStyle = lib.mkForce "menu";
     };
     boot.loader.timeout = lib.mkOverride 5 8;
@@ -26,13 +26,13 @@ pkgs.testers.runNixOSTest {
       ../modules/nixos/platform/boot-menu.nix
     ];
     virtualisation = {
-      useBootLoader = true;
-      useEFIBoot = true;
       memorySize = 2048;
       qemu.options = [
         "-vga none"
         "-device virtio-vga"
       ];
+      useBootLoader = true;
+      useEFIBoot = true;
     };
     zoomies = {
       enable = true;
