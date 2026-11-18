@@ -75,13 +75,13 @@ in
     # its first frame, so it holds on for Zip to land, wave and, at power
     # off, fall asleep. The rest of the shutdown carries on meanwhile.
     plymouth-poweroff.serviceConfig.ExecStartPost = [ "-${lib.getExe' pkgs.coreutils "sleep"} 3" ];
-    plymouth-reboot.serviceConfig.ExecStartPost = [ "-${lib.getExe' pkgs.coreutils "sleep"} 1.6" ];
     # Without --retain-splash the console flashes between the splash and
     # the greeter.
     plymouth-quit.serviceConfig.ExecStart = [
       ""
       "-${plymouth} quit --retain-splash"
     ];
+    plymouth-reboot.serviceConfig.ExecStartPost = [ "-${lib.getExe' pkgs.coreutils "sleep"} 1.6" ];
     zoomies-splash-takeoff = {
       after = [ "systemd-user-sessions.service" ];
       before = [
