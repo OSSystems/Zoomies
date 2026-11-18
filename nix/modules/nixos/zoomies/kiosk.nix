@@ -95,6 +95,13 @@ let
       exec ${lib.getExe' config.systemd.package "systemd-cat"} -t zoomies-${name} \
         ${lib.getExe cage} -d -- ${program}
     '';
+  # Palette entry 0 is the sky; the colour pair 0 on 0 becomes the default,
+  # so later kernel messages draw invisibly too. No cursor, and no
+  # blanking, which would turn it black again.
+  paintSky = pkgs.writeShellScript "zoomies-paint-sky" ''
+    printf '\033]P0B8ECFF\033[30;40m\033[8]\033[9;0]\033[?25l\033[H\033[2J' \
+      > /dev/tty${toString config.services.greetd.settings.terminal.vt}
+  '';
 in
 {
   config = lib.mkIf cfg.enable {
@@ -222,24 +229,49 @@ in
         greetd.serviceConfig.Type = lib.mkForce "simple";
         plymouth-quit = lib.mkIf config.boot.plymouth.enable {
           after = [ "display-manager.service" ];
-          serviceConfig.ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
+          serviceConfig = {
+            # Leaving, the splash puts back the black it found on the
+            # greeter's console.
+            ExecStartPost = "-${pkgs.writeShellScript "zoomies-repaint-sky" ''
+              ${lib.getExe' pkgs.coreutils "timeout"} 10 ${pkgs.runtimeShell} -c \
+                'while ${lib.getExe' config.boot.plymouth.package "plymouth"} --ping; do sleep 0.05; done'
+              ${paintSky}
+            ''}";
+            ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
+          };
         };
-        # Between two sessions, nobody holds the screen and the kernel shows
-        # the greeter's text console: black, with any kernel message on it.
-        # The console's black is made the sky's colour, and so is its text,
-        # so that moment looks like the sky the next screen opens on. Done
-        # once the greeter has drawn: text on the console earlier wakes it
-        # while the splash hands over.
+        # Whenever nobody holds the screen, between the boot splash and the
+        # greeter or between two sessions, any text on the greeter's console
+        # wakes the kernel's, which shows it: black, with any kernel message
+        # on it. greetd writes there as it starts each session, so this
+        # happens. The console's black is made the sky's colour, and so is
+        # its text, so that moment looks like the sky on either side of it.
+        # Painting it before the display manager starts happens behind the
+        # boot splash; setting the consoles up resets them, so it waits for
+        # that.
         zoomies-console-sky = {
-          after = [ "display-manager.service" ];
+          after = [ "systemd-vconsole-setup.service" ];
+          before = [
+            "display-manager.service"
+            "zoomies-splash-takeoff.service"
+          ];
           description = "Paint the greeter's console as the sky";
+          path = [
+            config.systemd.package
+            pkgs.gnugrep
+          ];
           script = ''
-            until ls /run/user/*/zoomies-greeter-ready >/dev/null 2>&1; do sleep 0.1; done
-            # Palette entry 0 is the sky; the colour pair 0 on 0 becomes the
-            # default, so later kernel messages draw invisibly too. No
-            # cursor, and no blanking, which would turn it black again.
-            printf '\033]P0B8ECFF\033[30;40m\033[8]\033[9;0]\033[?25l\033[H\033[2J' \
-              > /dev/tty${toString config.services.greetd.settings.terminal.vt}
+            udevadm settle --timeout=10 || true
+            settled=0
+            for _ in $(seq 200); do
+              if systemctl list-jobs --no-legend | grep -q systemd-vconsole-setup; then
+                settled=0
+              elif [ "$((settled += 1))" -ge 3 ]; then
+                break
+              fi
+              sleep 0.05
+            done
+            ${paintSky}
           '';
           serviceConfig = {
             RemainAfterExit = true;
