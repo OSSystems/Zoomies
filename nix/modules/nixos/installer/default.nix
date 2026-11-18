@@ -29,9 +29,14 @@ let
     text = builtins.readFile ./install-target.sh;
   };
 
-  # Only the languages the installed system has; in glibc's SUPPORTED format.
+  # Only the languages the installed system has, in locale.gen format:
+  # Calamares drops just a trailing " UTF-8" from each line and uses the rest
+  # as the locale name, so NixOS's "pt_BR.UTF-8/UTF-8" would end up verbatim
+  # in LC_TIME and the other formats.
   supportedLocales = pkgs.writeText "zoomies-supported-locales" (
-    lib.concatMapStrings (locale: "${locale} \\\n") cfg.system.config.i18n.supportedLocales
+    lib.concatMapStrings (
+      locale: "${lib.replaceStrings [ "/" ] [ " " ] locale}\n"
+    ) cfg.system.config.i18n.supportedLocales
   );
 
   calamaresConfig = pkgs.runCommand "zoomies-calamares-config" { } ''
