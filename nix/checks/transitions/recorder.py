@@ -317,6 +317,7 @@ class Recorder:
             events.append((boots[boot], "kernel starts"))
         events += [(at, f"» {text}") for at, text in self.marks]
         events.sort()
+        self.events = events
         with open(os.path.join(self.out, "events.txt"), "w") as f:
             for at, text in events:
                 f.write(f"{at:8.3f} {text}\n")
@@ -340,6 +341,16 @@ class Recorder:
         self.chart(events, spans)
         self.filmstrips(windows, spans, events)
         return spans
+
+    def takeoffs(self):
+        """From each time Zip takes off until the greeter is ready."""
+        windows = []
+        for at, text in self.events:
+            if text.startswith("zoomies-splash-takeoff.service start"):
+                ready = next(t for t, mark in self.marks if mark == "greeter ready" and t > at)
+                windows.append((at, ready))
+        assert windows, f"{self.name}: Zip never took off"
+        return windows
 
     def kernel_says(self, pattern, start):
         """When the serial console next printed pattern, such as the kernel's

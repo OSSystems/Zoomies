@@ -166,6 +166,12 @@ pkgs.testers.runNixOSTest {
             ("4-kid-logs-in", *kid),
             ("5-power-off", yes - 1, rec.now()),
         ])
+        # Zip takes off into the sky the greeter opens on, and each screen
+        # fades to the sky the next one opens on.
+        for start, end in rec.takeoffs():
+            rec.assert_never_dark(spans, start, end, "the greeter took over from the boot splash")
+        rec.assert_never_dark(spans, *grown_up, "a grown-up logged in")
+        rec.assert_never_dark(spans, *kid, "a kid logged in")
         # From the question to the firmware, the screen goes from the
         # desktop to the sky to Zip landing, never through black.
         rec.assert_never_dark(spans, restarting, rec.kernel_says("reboot: Restarting system", restarting), "restarting")
