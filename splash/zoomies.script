@@ -29,13 +29,18 @@ DASH = 30;
 DASH_TICKS = 26;
 # The landing when the system stops: in from the left, then the pull up
 # onto the cloud. At power off night falls once he has waved for a moment.
-# All of it must fit the hold splash.nix gives the power off.
+# All of it must fit the hold splash.nix gives the power off. The splash
+# loads behind the last session's bare sky and waits there until it is on
+# the screen; the clouds fade in over that sky as he arrives. Should nobody
+# say so, he sets off anyway after LAND_ANYWAY.
 ARRIVE_TICKS = 26;
 FLARE_TICKS = 14;
 TOUCH = ARRIVE_TICKS + FLARE_TICKS;
 LANDED = TOUCH + 10;
 NIGHT_START = LANDED + 15;
 NIGHT_TICKS = 55;
+APPEAR_TICKS = 15;
+LAND_ANYWAY = 5 * RATE;
 
 mode = Plymouth.GetMode();
 stopping = mode == "shutdown" || mode == "reboot";
@@ -149,6 +154,8 @@ layout();
 
 tick = 0;
 takeoff = -1;
+landing = 0;
+waited = 0;
 
 fun clamp (k)
   {
@@ -219,7 +226,14 @@ fun pose (name, step, x, y, flap)
 
 fun refresh ()
   {
-    global.tick = tick + 1;
+    if (stopping && !landing)
+      {
+        global.waited = waited + 1;
+        if (waited >= LAND_ANYWAY)
+          global.landing = 1;
+      }
+    if (!stopping || landing)
+      global.tick = tick + 1;
     local.t = tick / RATE;
     # A drawing every 0.1 s, for the mascot's wave and Super Zip's flap.
     local.flap = Math.Int(tick / 5);
@@ -258,7 +272,7 @@ fun refresh ()
           }
         if (sleeping)
           dark = clamp((tick - NIGHT_START) / NIGHT_TICKS);
-        fade = 1 - 0.6 * dark;
+        fade = (1 - 0.6 * dark) * clamp(tick / APPEAR_TICKS);
         if (dark > 0.7 && name == "hover")
           name = "asleep";
       }
@@ -333,11 +347,15 @@ fun refresh ()
     pose(name, step, x, y, flap);
   }
 
-# zoomies-splash-takeoff.service sends this just before the greeter starts.
+# zoomies-splash-takeoff.service sends "zoomies-takeoff" just before the
+# greeter starts; the stopping splash's unit sends "zoomies-land" once the
+# splash is on the screen.
 fun status (text)
   {
     if (text == "zoomies-takeoff" && takeoff < 0)
       global.takeoff = tick;
+    if (text == "zoomies-land")
+      global.landing = 1;
   }
 
 fun nothing ()
