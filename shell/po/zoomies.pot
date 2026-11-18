@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 14:13-0300\n"
+"POT-Creation-Date: 2026-11-18 14:14-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -269,7 +269,7 @@ msgstr ""
 msgid "Kids"
 msgstr ""
 
-msgid "Wi-Fi"
+msgid "Network"
 msgstr ""
 
 msgid "System"
@@ -711,10 +711,13 @@ msgstr ""
 msgid "No networks found."
 msgstr ""
 
-msgid "Set this network up with More settings."
+msgid "Zoomies cannot join this kind of network."
 msgstr ""
 
 msgid "Forget"
+msgstr ""
+
+msgid "Settings"
 msgstr ""
 
 msgid "Connect"
@@ -741,13 +744,37 @@ msgstr ""
 msgid "Connecting…"
 msgstr ""
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Fixed address"
+msgstr ""
+
+msgid "Given by the router:"
+msgstr ""
+
+msgid "Address"
+msgstr ""
+
+msgid "Router"
+msgstr ""
+
+msgid "DNS"
+msgstr ""
+
+msgid "Not connected now."
+msgstr ""
+
+msgid "Saving…"
+msgstr ""
+
 msgid "Cable"
 msgstr ""
 
-msgid "More settings"
+msgid "🔌 Cable"
 msgstr ""
 
-msgid "IP address, proxy, VPN"
+msgid "Wi-Fi"
 msgstr ""
 
 msgid "This computer has no Wi-Fi."

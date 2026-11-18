@@ -228,7 +228,7 @@ class Parent(Gtk.ApplicationWindow):
         first = None
         for name, emoji, title in (
             ("kids", "🧒", _("Kids")),
-            ("wifi", "📶", _("Wi-Fi")),
+            ("network", "📡", _("Network")),
             ("system", "⚙️", _("System")),
         ):
             tab = Gtk.ToggleButton(active=first is None)
@@ -250,8 +250,8 @@ class Parent(Gtk.ApplicationWindow):
 
         self.selected = None
         self.pages.add_named(self.kids_page(), "kids")
-        self.wifi = wifi_page.WifiPage(self.overlay, config)
-        self.pages.add_named(self.wifi, "wifi")
+        self.network = wifi_page.NetworkPage(self.overlay)
+        self.pages.add_named(self.network, "network")
         self.pages.add_named(self.system_page(), "system")
 
         bottom = Gtk.Box(spacing=16)
@@ -269,8 +269,8 @@ class Parent(Gtk.ApplicationWindow):
     def switch_page(self, tab, name):
         if tab.get_active():
             self.pages.set_visible_child_name(name)
-            if name == "wifi":
-                self.wifi.refresh()
+            if name == "network":
+                self.network.refresh()
 
     def kids_page(self):
         """One kid at a time, picked from a chip for each kid at the top."""

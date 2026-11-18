@@ -278,8 +278,8 @@ msgstr "Zoomies para adultos"
 msgid "Kids"
 msgstr "Crianças"
 
-msgid "Wi-Fi"
-msgstr "Wi-Fi"
+msgid "Network"
+msgstr "Rede"
 
 msgid "System"
 msgstr "Sistema"
@@ -725,11 +725,14 @@ msgstr "salva"
 msgid "No networks found."
 msgstr "Nenhuma rede encontrada."
 
-msgid "Set this network up with More settings."
-msgstr "Configure esta rede em Mais configurações."
+msgid "Zoomies cannot join this kind of network."
+msgstr "O Zoomies não consegue entrar neste tipo de rede."
 
 msgid "Forget"
 msgstr "Esquecer"
+
+msgid "Settings"
+msgstr "Ajustes"
 
 msgid "Connect"
 msgstr "Conectar"
@@ -755,14 +758,38 @@ msgstr "Senhas de Wi-Fi têm de 8 a 63 caracteres."
 msgid "Connecting…"
 msgstr "Conectando…"
 
+msgid "Automatic"
+msgstr "Automático"
+
+msgid "Fixed address"
+msgstr "Endereço fixo"
+
+msgid "Given by the router:"
+msgstr "Dados pelo roteador:"
+
+msgid "Address"
+msgstr "Endereço"
+
+msgid "Router"
+msgstr "Roteador"
+
+msgid "DNS"
+msgstr "DNS"
+
+msgid "Not connected now."
+msgstr "Não conectado agora."
+
+msgid "Saving…"
+msgstr "Salvando…"
+
 msgid "Cable"
 msgstr "Cabo"
 
-msgid "More settings"
-msgstr "Mais configurações"
+msgid "🔌 Cable"
+msgstr "🔌 Cabo"
 
-msgid "IP address, proxy, VPN"
-msgstr "Endereço IP, proxy, VPN"
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
 
 msgid "This computer has no Wi-Fi."
 msgstr "Este computador não tem Wi-Fi."
@@ -782,6 +809,15 @@ msgstr "Conectado"
 
 msgid "Not plugged in"
 msgstr "Não conectado"
+
+#~ msgid "Set this network up with More settings."
+#~ msgstr "Configure esta rede em Mais configurações."
+
+#~ msgid "More settings"
+#~ msgstr "Mais configurações"
+
+#~ msgid "IP address, proxy, VPN"
+#~ msgstr "Endereço IP, proxy, VPN"
 
 #~ msgid "📅 Week"
 #~ msgstr "📅 Semana"

@@ -1,11 +1,10 @@
-"""Wi-Fi screens: the grown-ups' page and the first-boot wizard's list.
+"""Network screens: the grown-ups' page and the first-boot wizard's Wi-Fi list.
 
 Both ask the admin service, which talks to NetworkManager as root. Scans and
 connections take seconds, so requests run off the main thread and the
 screens stay responsive.
 """
 
-import subprocess
 import threading
 
 from . import admin, ui
@@ -36,10 +35,12 @@ def bars(strength):
 class NetworkList(Gtk.Box):
     """Networks nearby; picking one asks for its password and connects."""
 
-    def __init__(self, overlay, on_connected=lambda: None, back=None):
+    def __init__(self, overlay, on_connected=lambda: None, back=None, settings=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.overlay = overlay
         self.on_connected = on_connected
+        # Opens a saved network's address settings, where there are any.
+        self.settings = settings
         # Where closing one of its dialogs goes: in the wizard, the list
         # itself sits in a dialog, which must come back.
         self.go_back = back or overlay.close
@@ -125,7 +126,7 @@ class NetworkList(Gtk.Box):
 
     def pick(self, network):
         if not network["supported"]:
-            self.message.set_label(_("Set this network up with More settings."))
+            self.message.set_label(_("Zoomies cannot join this kind of network."))
         elif network["connected"] or network["known"]:
             self.saved_menu(network)
         elif network["password"]:
@@ -143,6 +144,10 @@ class NetworkList(Gtk.Box):
         forget = ui.big_button(_("Forget"), "no", "🗑️")
         forget.connect("clicked", lambda *_args: self.forget(network))
         row.append(forget)
+        if self.settings is not None:
+            settings = ui.big_button(_("Settings"), "subtle", "⚙️")
+            settings.connect("clicked", lambda *_args: self.settings(network))
+            row.append(settings)
         if not network["connected"]:
             join = ui.big_button(_("Connect"), "yes", "✔")
             join.connect("clicked", lambda *_args: self.connect_to(network, None, False))
@@ -248,15 +253,132 @@ class NetworkList(Gtk.Box):
         )
 
 
-class WifiPage(Gtk.Box):
-    """The grown-ups' page: Wi-Fi on or off, networks, and the cable."""
+def address_dialog(overlay, fields, title, done=lambda: None):
+    """How a connection gets its address: from the router, or fixed."""
+    box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16, css_classes=["address"])
+    box.append(Gtk.Label(label=title, css_classes=["dialog-title"]))
+    modes = Gtk.Box(spacing=4, halign=Gtk.Align.CENTER, css_classes=["subtabs"])
+    automatic = Gtk.ToggleButton(label=_("Automatic"), css_classes=["subtab"], active=True)
+    fixed = Gtk.ToggleButton(label=_("Fixed address"), css_classes=["subtab"], group=automatic)
+    modes.append(automatic)
+    modes.append(fixed)
+    box.append(modes)
+    pages = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, vhomogeneous=True)
+    box.append(pages)
 
-    def __init__(self, overlay, config):
+    now = Gtk.Grid(column_spacing=24, row_spacing=10, halign=Gtk.Align.CENTER)
+    now.attach(Gtk.Label(label=_("Given by the router:"), css_classes=["hint"]), 0, 0, 2, 1)
+    pages.add_named(now, "auto")
+    entries = Gtk.Grid(column_spacing=16, row_spacing=10, halign=Gtk.Align.CENTER)
+    pages.add_named(entries, "fixed")
+    names = (_("Address"), _("Router"), _("DNS"))
+    shown = []
+    for row, name in enumerate(names):
+        now.attach(Gtk.Label(label=name, xalign=1, css_classes=["field-name"]), 0, row + 1, 1, 1)
+        value = Gtk.Label(xalign=0)
+        now.attach(value, 1, row + 1, 1, 1)
+        shown.append(value)
+    placeholders = ("192.168.1.50", "192.168.1.1", "1.1.1.1, 8.8.8.8")
+    typed = []
+    for row, (name, example) in enumerate(zip(names, placeholders, strict=True)):
+        entries.attach(Gtk.Label(label=name, xalign=1, css_classes=["field-name"]), 0, row, 1, 1)
+        entry = Gtk.Entry(placeholder_text=example, width_chars=18, css_classes=["field"])
+        entries.attach(entry, 1, row, 1, 1)
+        typed.append(entry)
+    address, gateway, dns = typed
+
+    message = ui.message_label()
+    box.append(message)
+    row = Gtk.Box(spacing=16, halign=Gtk.Align.CENTER)
+    cancel = ui.big_button(_("Cancel"), "no", "✖")
+    cancel.connect("clicked", lambda *_args: overlay.close())
+    save = ui.big_button(_("Save"), "yes", "✔")
+    save.set_sensitive(False)
+    row.append(cancel)
+    row.append(save)
+    box.append(row)
+
+    def switched(*_args):
+        pages.set_visible_child_name("fixed" if fixed.get_active() else "auto")
+
+    fixed.connect("toggled", switched)
+
+    def loaded(reply, error):
+        if error is not None:
+            message.set_label(ui.reason(error))
+            return
+        current = reply["now"]
+        if current is None:
+            for label in shown:
+                label.set_label("—")
+            message.set_label(_("Not connected now."))
+        else:
+            shown[0].set_label(current["address"] or "—")
+            shown[1].set_label(current["gateway"] or "—")
+            shown[2].set_label(", ".join(current["dns"]) or "—")
+        saved = reply["saved"]
+        # A grown-up who switches to a fixed address usually keeps the one
+        # the router gave, so that is where the fields start.
+        start = saved if reply["fixed"] else (current or saved)
+        address.set_text(start["address"] or "")
+        gateway.set_text(start["gateway"] or "")
+        dns.set_text(", ".join(start["dns"]))
+        fixed.set_active(reply["fixed"])
+        save.set_sensitive(True)
+
+    def submit(*_args):
+        message.set_label(_("Saving…"))
+        save.set_sensitive(False)
+        values = {"fixed": fixed.get_active()}
+        if fixed.get_active():
+            values.update(
+                address=address.get_text(), gateway=gateway.get_text(), dns=dns.get_text()
+            )
+
+        def saved(_reply, error):
+            save.set_sensitive(True)
+            if error is not None:
+                message.set_label(ui.reason(error))
+                return
+            overlay.close()
+            done()
+
+        in_background(lambda: admin.request("set-address", **fields, **values), saved)
+
+    save.connect("clicked", submit)
+    for entry in typed:
+        entry.connect("activate", submit)
+    overlay.show(box)
+    automatic.grab_focus()
+    in_background(lambda: admin.request("address", **fields), loaded)
+
+
+class NetworkPage(Gtk.Box):
+    """The grown-ups' page: the cable, and Wi-Fi on or off with its networks."""
+
+    def __init__(self, overlay):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=16)
         self.overlay = overlay
         self.updating = False
 
-        header = Gtk.Box(spacing=16, css_classes=["parent-row"])
+        self.cable = Gtk.Box(spacing=16, css_classes=["parent-row"])
+        self.cable.append(Gtk.Label(label="🔌", css_classes=["button-emoji"]))
+        names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
+        names.append(Gtk.Label(label=_("Cable"), xalign=0, css_classes=["section-title"]))
+        self.wired = Gtk.Label(xalign=0)
+        names.append(self.wired)
+        self.cable.append(names)
+        settings = ui.big_button(_("Settings"), "subtle", "⚙️")
+        settings.connect(
+            "clicked",
+            lambda *_args: address_dialog(overlay, {"cable": True}, _("🔌 Cable"), self.refresh),
+        )
+        self.cable.append(settings)
+        self.append(self.cable)
+
+        wifi = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, vexpand=True)
+        wifi.add_css_class("parent-row")
+        header = Gtk.Box(spacing=16)
         header.append(Gtk.Label(label="📶", css_classes=["button-emoji"]))
         names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
         names.append(Gtk.Label(label=_("Wi-Fi"), xalign=0, css_classes=["section-title"]))
@@ -266,31 +388,18 @@ class WifiPage(Gtk.Box):
         self.switch = Gtk.Switch(valign=Gtk.Align.CENTER)
         self.switch.connect("notify::active", self.toggled)
         header.append(self.switch)
-        self.append(header)
-
-        self.networks = NetworkList(overlay, on_connected=self.refresh)
-        self.networks.add_css_class("parent-row")
-        scroller = ui.scroller(self.networks, vexpand=True)
-        self.append(scroller)
-
-        cable = Gtk.Box(spacing=16, css_classes=["parent-row"])
-        cable.append(Gtk.Label(label="🔌", css_classes=["button-emoji"]))
-        names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
-        names.append(Gtk.Label(label=_("Cable"), xalign=0, css_classes=["section-title"]))
-        self.wired = Gtk.Label(xalign=0)
-        names.append(self.wired)
-        cable.append(names)
-        editor = config.get("networkEditor")
-        if editor:
-            more = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
-            button = ui.big_button(_("More settings"), "subtle", "🛠️")
-            button.connect("clicked", lambda *_args: subprocess.Popen([editor]))
-            more.append(button)
-            more.append(Gtk.Label(label=_("IP address, proxy, VPN"), css_classes=["hint"]))
-            cable.append(more)
-        self.append(cable)
+        wifi.append(header)
+        self.networks = NetworkList(overlay, on_connected=self.refresh, settings=self.settings)
+        self.scroller = ui.scroller(self.networks, vexpand=True)
+        wifi.append(self.scroller)
+        self.append(wifi)
         self.message = ui.message_label()
         self.append(self.message)
+
+    def settings(self, network):
+        address_dialog(
+            self.overlay, NetworkList.which(network), f"📶 {network['ssid']}", self.refresh
+        )
 
     def refresh(self):
         in_background(lambda: admin.request("wifi-status"), self.show_status)
@@ -298,9 +407,9 @@ class WifiPage(Gtk.Box):
     def show_status(self, reply, error):
         if error is not None:
             self.status.set_label(ui.reason(error))
-            self.networks.set_visible(False)
+            self.scroller.set_visible(False)
             self.switch.set_visible(False)
-            self.wired.set_label("")
+            self.cable.set_visible(False)
             return
         self.updating = True
         self.switch.set_visible(reply["wifi"])
@@ -311,12 +420,18 @@ class WifiPage(Gtk.Box):
         elif not reply["enabled"]:
             self.status.set_label(_("Off"))
         elif reply["connected"]:
-            self.status.set_label(_("Connected to {network}").format(network=reply["connected"]))
+            text = _("Connected to {network}").format(network=reply["connected"])
+            self.status.set_label(connected(text, reply["wifiAddress"]))
         else:
             self.status.set_label(_("Not connected"))
-        self.wired.set_label(_("Connected") if reply["wired"] else _("Not plugged in"))
+        self.cable.set_visible(reply["cable"])
+        self.wired.set_label(
+            connected(_("Connected"), reply["wiredAddress"])
+            if reply["wired"]
+            else _("Not plugged in")
+        )
         show = reply["wifi"] and reply["enabled"]
-        self.networks.set_visible(show)
+        self.scroller.set_visible(show)
         if show:
             self.networks.scan()
 
@@ -330,3 +445,9 @@ class WifiPage(Gtk.Box):
             self.refresh()
 
         in_background(lambda: admin.request("wifi-enable", on=switch.get_active()), done)
+
+
+def connected(text, address):
+    """A connection's state with its address, which grown-ups need when
+    they set up a router or a printer."""
+    return f"{text} · {address}" if address else text

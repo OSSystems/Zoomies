@@ -429,6 +429,16 @@ button:focus {
   padding: 8px 16px;
 }
 
+.field-name {
+  font-weight: bold;
+}
+
+.field {
+  font-size: 22px;
+  min-height: 48px;
+  border-radius: 16px;
+}
+
 .network {
   border-radius: 16px;
   padding: 10px 16px;
