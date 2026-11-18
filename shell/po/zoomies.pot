@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-17 08:45-0300\n"
+"POT-Creation-Date: 2026-11-18 13:11-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -56,21 +56,6 @@ msgstr ""
 
 #, python-brace-format
 msgid "{time} to play"
-msgstr ""
-
-#, python-brace-format
-msgid "Back at {time}"
-msgstr ""
-
-#, python-brace-format
-msgid "Back tomorrow at {time}"
-msgstr ""
-
-#, python-brace-format
-msgid "Back on {day}"
-msgstr ""
-
-msgid "All done for today"
 msgstr ""
 
 msgid "Who's playing?"
@@ -457,6 +442,21 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Save your work, time is almost up for today."
+msgstr ""
+
+#, python-brace-format
+msgid "Back at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back on {day}"
+msgstr ""
+
+msgid "All done for today"
 msgstr ""
 
 msgid "Restart the computer?"

@@ -12,7 +12,6 @@ msgstr ""
 "Language-Team: Brazilian Portuguese\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-
 msgid "no answer from the admin service"
 msgstr "o serviço de administração não respondeu"
 
@@ -52,21 +51,6 @@ msgstr "Vamos jogar!"
 #, python-brace-format
 msgid "{time} to play"
 msgstr "{time} para jogar"
-
-#, python-brace-format
-msgid "Back at {time}"
-msgstr "Volta às {time}"
-
-#, python-brace-format
-msgid "Back tomorrow at {time}"
-msgstr "Volta amanhã às {time}"
-
-#, python-brace-format
-msgid "Back on {day}"
-msgstr "Volta {day}"
-
-msgid "All done for today"
-msgstr "Chega por hoje"
 
 msgid "Who's playing?"
 msgstr "Quem vai jogar?"
@@ -125,7 +109,9 @@ msgstr "Esse não é o PIN."
 msgid ""
 "👋 Welcome to Zoomies!\n"
 "Let's get online first."
-msgstr "👋 Bem-vindo ao Zoomies!\nPrimeiro, vamos conectar à internet."
+msgstr ""
+"👋 Bem-vindo ao Zoomies!\n"
+"Primeiro, vamos conectar à internet."
 
 msgid "Pick your Wi-Fi. You can also do this later."
 msgstr "Escolha o seu Wi-Fi. Dá para fazer isso depois também."
@@ -469,6 +455,21 @@ msgstr[1] "{minutes} minutos restantes"
 msgid "Save your work, time is almost up for today."
 msgstr "Salve o que estiver fazendo, o tempo de hoje está acabando."
 
+#, python-brace-format
+msgid "Back at {time}"
+msgstr "Volta às {time}"
+
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr "Volta amanhã às {time}"
+
+#, python-brace-format
+msgid "Back on {day}"
+msgstr "Volta {day}"
+
+msgid "All done for today"
+msgstr "Chega por hoje"
+
 msgid "Restart the computer?"
 msgstr "Reiniciar o computador?"
 
@@ -533,7 +534,9 @@ msgstr "Usar {template}"
 msgid ""
 "Replaces {name}'s week and internet days.\n"
 "Special days stay as they are."
-msgstr "Substitui a semana e os dias de internet de {name}.\nOs dias especiais continuam como estão."
+msgstr ""
+"Substitui a semana e os dias de internet de {name}.\n"
+"Os dias especiais continuam como estão."
 
 msgid "📅 Week"
 msgstr "📅 Semana"
@@ -616,7 +619,8 @@ msgid "📅 Special days"
 msgstr "📅 Dias especiais"
 
 msgid "Holidays or trips: a special day replaces its weekday once."
-msgstr "Feriados ou viagens: um dia especial substitui seu dia da semana uma vez."
+msgstr ""
+"Feriados ou viagens: um dia especial substitui seu dia da semana uma vez."
 
 msgid "🚫 No play"
 msgstr "🚫 Sem jogar"

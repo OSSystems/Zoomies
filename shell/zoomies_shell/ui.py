@@ -97,6 +97,18 @@ def play(name):
         )
 
 
+def when_back(status):
+    days, time = status.get("opensIn"), status.get("opensAt")
+    if status["reason"] == "hours" and days == 0:
+        return _("Back at {time}").format(time=time)
+    if days == 1:
+        return _("Back tomorrow at {time}").format(time=time)
+    if days is not None and days < 7:
+        weekday = (datetime.date.today() + datetime.timedelta(days=days)).weekday()
+        return _("Back on {day}").format(day=_(state.WEEKDAY_NAMES[weekday]))
+    return _("All done for today")
+
+
 def avatar(kid, size="big"):
     return Gtk.Label(
         label=kid.get("avatar", "🙂"),
