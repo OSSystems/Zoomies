@@ -305,7 +305,10 @@ class Recorder:
                 if boot not in boots:
                     continue
                 stamp = entry.get("_SOURCE_MONOTONIC_TIMESTAMP") or entry["__MONOTONIC_TIMESTAMP"]
-                at = int(stamp) / 1e6 + boots[boot]
+                # A loaded host can stall the guest, whose clock then jumps
+                # ahead of the offset seen before; nothing happens after it
+                # reached the host.
+                at = min(int(stamp) / 1e6 + boots[boot], arrival)
                 message = entry.get("MESSAGE")
                 writer.writerow([f"{at:.3f}", order.index(boot), f"{arrival:.3f}",
                                  entry.get("SYSLOG_IDENTIFIER", ""), entry.get("UNIT", ""),
@@ -347,7 +350,8 @@ class Recorder:
         windows = []
         for at, text in self.events:
             if text.startswith("zoomies-splash-takeoff.service start"):
-                ready = next(t for t, mark in self.marks if mark == "greeter ready" and t > at)
+                ready = next((t for t, mark in self.marks if mark == "greeter ready" and t > at), None)
+                assert ready, f"{self.name}: Zip took off at {at:.2f}s, after the greeter was ready"
                 windows.append((at, ready))
         assert windows, f"{self.name}: Zip never took off"
         return windows
