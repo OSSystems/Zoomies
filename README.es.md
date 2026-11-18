@@ -113,7 +113,7 @@ SuperTuxKart necesita una Raspberry Pi 4 o 5.
 > Instalar Zoomies borra el disco en el que se instala. Antes, guarda lo
 > que quieras conservar.
 
-1. Descarga `zoomies-installer.iso` de la
+1. Descarga `zoomies-installer-<versión>.iso` de la
    [última versión](https://github.com/OSSystems/zoomies/releases/latest).
 2. Grábalo en una memoria USB con [balenaEtcher](https://etcher.balena.io/):
    elige el archivo, elige la memoria y pulsa Flash. Esto borra la memoria.
@@ -128,7 +128,7 @@ No hace falta internet para instalar: todo está en la memoria USB.
 
 ## Instálalo en una Raspberry Pi
 
-1. Descarga `zoomies-raspberry-pi.img.zst` de la
+1. Descarga `zoomies-raspberry-pi-<versión>.img.zst` de la
    [última versión](https://github.com/OSSystems/zoomies/releases/latest).
 2. Grábalo en la tarjeta SD con
    [Raspberry Pi Imager](https://www.raspberrypi.com/software/): en

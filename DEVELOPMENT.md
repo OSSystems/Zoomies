@@ -148,6 +148,50 @@ The new system starts at the next boot, never in the middle of a session.
 Kids and their settings are kept. Systems older than 7 days are deleted to
 free disk space.
 
+## Make a release
+
+The images are built only for releases. Push a `vMAJOR.MINOR.PATCH` tag on
+`main`:
+
+```sh
+git tag -a v1.0.0 -m "Zoomies v1.0.0"
+git push origin v1.0.0
+```
+
+The [Release workflow](.github/workflows/release.yaml) builds the installer
+ISO and the Raspberry Pi image, uploads them to the release bucket and
+opens a draft release that links to them, with their `SHA256SUMS`. Read it
+over and publish it. The images go to a bucket because GitHub caps release
+files at 2 GiB, and the ISO alone is larger.
+
+The workflow runs in the `release` environment, which only `v*` tags may
+use. To set it up for a Cloudflare R2 bucket, or to rotate its key, run with
+an account API token allowed to edit R2 storage, account API tokens and the
+DNS of the zone that holds the hostname:
+
+```sh
+CLOUDFLARE_API_TOKEN=... nix shell --inputs-from . nixpkgs#awscli2 nixpkgs#gh \
+  nixpkgs#jq --command .github/scripts/setup-release-bucket.sh [hostname] [bucket]
+```
+
+It serves the bucket, `zoomies-releases` by default, from the hostname,
+`zoomies.ossystems.tech` by default, instead of its r2.dev address. Then it
+creates a key that can only write to that bucket, fills in the environment
+and checks that an upload can be downloaded. For another S3-compatible store,
+set the environment by hand:
+
+| Name | Kind | Value |
+| --- | --- | --- |
+| `RELEASE_S3_ACCESS_KEY_ID` | secret | Key allowed to write to the bucket |
+| `RELEASE_S3_SECRET_ACCESS_KEY` | secret | Its secret |
+| `RELEASE_S3_BUCKET` | variable | Bucket name |
+| `RELEASE_S3_ENDPOINT` | variable | S3-compatible endpoint; unset for AWS |
+| `RELEASE_S3_REGION` | variable | Region; defaults to `auto` |
+| `RELEASE_DOWNLOAD_URL` | variable | Public URL of the bucket's root |
+
+Each image lands in the bucket as `releases/<tag>/<file>`, the tag also in
+its name, such as `releases/v1.0.0/zoomies-installer-v1.0.0.iso`.
+
 ## Use it in your own NixOS configuration
 
 ```nix
