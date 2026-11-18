@@ -1,0 +1,70 @@
+--- a/cage.c
++++ b/cage.c
+@@ -219,12 +219,41 @@
+ 	return true;
+ }
+ 
++/* Zoomies: at power off and restart, the splash takes the screen from cage
++ * without the black console showing in between. Once it stops, cage keeps
++ * its last frame, the bare sky the shell faded to, while the hook named by
++ * ZOOMIES_HANDOVER waits for the splash to load and take the screen over in
++ * place. The hook returns at once when nobody asked for a power off, so
++ * logging out is not held up. */
++static void
++hand_over_screen(void)
++{
++	const char *hook = getenv("ZOOMIES_HANDOVER");
++	if (hook == NULL) {
++		return;
++	}
++	pid_t pid = fork();
++	if (pid == 0) {
++		/* The event loop blocks the signals it reads. */
++		sigset_t none;
++		sigemptyset(&none);
++		sigprocmask(SIG_SETMASK, &none, NULL);
++		execl(hook, hook, (char *) NULL);
++		_exit(127);
++	}
++	if (pid > 0) {
++		waitpid(pid, NULL, 0);
++	}
++}
++
+ static int
+ handle_signal(int signal, void *data)
+ {
+ 	struct cg_server *server = data;
+ 
+ 	switch (signal) {
++	case SIGHUP:
++		/* Fallthrough */
+ 	case SIGINT:
+ 		/* Fallthrough */
+ 	case SIGTERM:
+@@ -327,6 +356,9 @@
+ 	struct wl_event_loop *event_loop = wl_display_get_event_loop(server.wl_display);
+ 	struct wl_event_source *sigint_source = wl_event_loop_add_signal(event_loop, SIGINT, handle_signal, &server);
+ 	struct wl_event_source *sigterm_source = wl_event_loop_add_signal(event_loop, SIGTERM, handle_signal, &server);
++	/* Zoomies: logind hangs up on a session as it stops it, which would
++	 * kill cage before it hands the screen over. */
++	struct wl_event_source *sighup_source = wl_event_loop_add_signal(event_loop, SIGHUP, handle_signal, &server);
+ 
+ 	server.backend = wlr_backend_autocreate(event_loop, &server.session);
+ 	if (!server.backend) {
+@@ -627,6 +659,7 @@
+ 
+ 	seat_center_cursor(server.seat);
+ 	wl_display_run(server.wl_display);
++	hand_over_screen();
+ 
+ #if CAGE_HAS_XWAYLAND
+ 	if (xwayland) {
+@@ -661,6 +694,7 @@
+ 
+ 	wl_event_source_remove(sigint_source);
+ 	wl_event_source_remove(sigterm_source);
++	wl_event_source_remove(sighup_source);
+ 	if (sigchld_source) {
+ 		wl_event_source_remove(sigchld_source);
+ 	}

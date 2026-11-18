@@ -21,12 +21,38 @@ let
   # It also lights the screen up black and draws one frame later, which on a
   # busy machine without a GPU leaves a second of black after the splash; it
   # lights the screen up with the sky already drawn.
+  # At power off and restart it hands the screen to the splash in place;
+  # see handover.
   cage = pkgs.cage.overrideAttrs (old: {
     patches = (old.patches or [ ]) ++ [
       ./cage-sky.patch
       ./cage-first-frame.patch
+      ./cage-handover.patch
     ];
   });
+
+  # Run by cage once it stops. When the shell asked for the power off, cage
+  # keeps showing the bare sky it faded to until the platform's splash has
+  # loaded behind it, says it is holding the screen, and stays until the
+  # splash has taken it. Anything else, such as logging out, finds no
+  # request and is not held.
+  handover = pkgs.writeShellScript "zoomies-handover" ''
+    dir=/run/zoomies-splash
+    wait_for() {
+      for _ in $(${lib.getExe' pkgs.coreutils "seq"} 300); do
+        [ -e "$dir/$1" ] && return 0
+        ${lib.getExe' pkgs.coreutils "sleep"} 0.01
+      done
+      return 1
+    }
+    # The session's stop signals every process in it, including any cage
+    # forks while the signals go out; the waits below are bounded.
+    trap "" TERM HUP INT
+    [ -e "$dir/requested" ] && wait_for ready || exit 0
+    # Which compositor to take the screen from: cage, which runs this.
+    echo "$PPID" > "$dir/holding"
+    wait_for shown
+  '';
 
   kiosk =
     name: program:
@@ -39,6 +65,7 @@ let
       if [ -e /run/zoomies-gpu/software ]; then
         export GSK_RENDERER=cairo
       fi
+      export ZOOMIES_HANDOVER=${handover}
       # Into the journal: any text on the screen wakes the text console,
       # which then flashes between the boot splash and the greeter.
       exec ${lib.getExe' config.systemd.package "systemd-cat"} -t zoomies-${name} \
