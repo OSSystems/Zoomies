@@ -28,7 +28,15 @@ SOCKET = os.environ.get("ZOOMIES_ADMIN_SOCKET", "/run/zoomies-admin.sock")
 GROUPS = {"little": "zoomies-kids", "older": "zoomies-older"}
 PIN = re.compile(r"[0-9]{4,12}")
 MAX_FAILURES = 5
-WIFI_ACTIONS = ("wifi-status", "wifi-scan", "wifi-connect", "wifi-forget", "wifi-enable")
+NETWORK_ACTIONS = (
+    "wifi-status",
+    "wifi-scan",
+    "wifi-connect",
+    "wifi-forget",
+    "wifi-enable",
+    "address",
+    "set-address",
+)
 LOCKOUT = 60
 
 
@@ -127,7 +135,7 @@ class Admin:
             return {"locked": self.pin_locked()}
         if action == "set-pin":
             return self.set_pin(uid, message)
-        if action in WIFI_ACTIONS:
+        if action in NETWORK_ACTIONS:
             # Before the first PIN, the wizard sets up Wi-Fi with nothing
             # to protect yet, like the PIN itself.
             if self.pin_set():
@@ -328,6 +336,15 @@ def main():
     wifi.add_argument(
         "--password-stdin", action="store_true", help="read the password as the next line"
     )
+    address = commands.add_parser(
+        "address", help="how the cable or a Wi-Fi network gets its address"
+    )
+    address.add_argument("ssid", nargs="?", help="a saved Wi-Fi network; the cable without it")
+    how = address.add_mutually_exclusive_group()
+    how.add_argument("--auto", action="store_true", help="from the router")
+    how.add_argument("--fixed", metavar="ADDRESS", help="such as 192.168.1.50 or 10.0.0.5/16")
+    address.add_argument("--gateway", default="", help="the router, with --fixed")
+    address.add_argument("--dns", default="", help="DNS servers, with --fixed")
     pin = commands.add_parser("set-pin")
     pin.add_argument("--stdin", action="store_true", help="read old and new PIN as two lines")
     args = parser.parse_args()
@@ -367,6 +384,14 @@ def main():
                 fields["ssid"] = args.ssid
             reply = request(action, hidden=args.hidden, **fields)
             print(json.dumps(reply))
+        elif args.command == "address":
+            fields = {"ssid": args.ssid} if args.ssid else {"cable": True}
+            if args.auto or args.fixed:
+                fields.update(fixed=bool(args.fixed), address=args.fixed or "")
+                fields.update(gateway=args.gateway, dns=args.dns)
+                print(json.dumps(request("set-address", **fields)))
+            else:
+                print(json.dumps(request("address", **fields)))
         elif args.command == "set-pin":
             if args.stdin:
                 # First line the current PIN (empty when none), then the new one.

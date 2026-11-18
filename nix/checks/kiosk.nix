@@ -26,7 +26,8 @@ pkgs.testers.runNixOSTest {
   nodes = {
     # A fresh install, whose first boot asks for Wi-Fi and the PIN. It also
     # covers the nftables firewall and a system without older kids. A
-    # simulated radio plays the home Wi-Fi.
+    # simulated radio plays the home Wi-Fi, and a second network card the
+    # cable, plugged into a network with nobody else on it.
     fresh = {
       boot = {
         extraModprobeConfig = "options mac80211_hwsim radios=2";
@@ -79,6 +80,10 @@ pkgs.testers.runNixOSTest {
           };
         };
       };
+      virtualisation.vlans = [
+        1
+        2
+      ];
       zoomies.games = lib.mkForce [ ];
       zoomies.older.enable = false;
     };
@@ -702,6 +707,44 @@ pkgs.testers.runNixOSTest {
         fresh.wait_for_text("No play", timeout=30)
         fresh.screenshot("parent-special-days")
         log_out("parent", fresh)
+
+    with subtest("the cable and a Wi-Fi network take a fixed address"):
+        def method_of(device):
+            """A shell command that prints how a device's connection gets
+            its address."""
+            name = f"$(nmcli -g GENERAL.CONNECTION device show {device})"
+            return f'nmcli -g ipv4.method connection show "{name}"'
+
+        def method(device):
+            return fresh.succeed(method_of(device)).strip()
+
+        # The cable's network has no router, so a fixed address is its way in.
+        fresh.succeed(as_parent("zoomies-profile address --fixed 10.9.8.7 --dns 10.9.8.1"))
+        fresh.wait_until_succeeds("ip -4 addr show eth2 | grep -q 'inet 10.9.8.7/24'", timeout=60)
+        assert method("eth2") == "manual", method("eth2")
+        cable = json.loads(fresh.succeed(as_parent("zoomies-profile address")))
+        assert cable["fixed"] and cable["now"]["address"] == "10.9.8.7", cable
+        # Kids cannot change it; the greeter only with the PIN.
+        fresh.fail("runuser -u kim -- zoomies-profile address --auto")
+        fresh.fail("runuser -u greeter -- zoomies-profile address --auto")
+        # Mistakes are refused before NetworkManager sees them.
+        wrong = fresh.execute(
+            as_parent("zoomies-profile address --fixed 10.9.8.7 --gateway 10.1.1.1 2>&1")
+        )
+        assert wrong[0] != 0 and "same network" in wrong[1], wrong
+
+        fresh.succeed(
+            as_parent(
+                "zoomies-profile address 'Zoomies Home' --fixed 192.168.77.60 --gateway 192.168.77.1"
+            )
+        )
+        fresh.wait_until_succeeds("ip -4 addr show wlan0 | grep -q 'inet 192.168.77.60/24'", timeout=60)
+        fresh.succeed("ping -c1 -W5 192.168.77.1")
+        fresh.succeed(as_parent("zoomies-profile address 'Zoomies Home' --auto"))
+        fresh.wait_until_succeeds(
+            "ip -4 addr show wlan0 | grep -q 'inet 192.168.77.[1-5][0-9]/24'", timeout=60
+        )
+        assert method("wlan0") == "auto", method("wlan0")
 
     with subtest("a template replaces the week and the internet days, not special days"):
         fresh.send_key("ctrl-alt-p")

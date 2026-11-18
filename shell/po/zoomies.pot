@@ -18,6 +18,24 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
+msgid "type the address"
+msgstr ""
+
+msgid "the address is not valid; it looks like 192.168.1.50"
+msgstr ""
+
+msgid "this address cannot be used on its network"
+msgstr ""
+
+msgid "the router is not a valid address"
+msgstr ""
+
+msgid "the router must be on the same network as the address"
+msgstr ""
+
+msgid "the DNS servers are not valid addresses"
+msgstr ""
+
 msgid "no answer from the admin service"
 msgstr ""
 
@@ -652,6 +670,12 @@ msgid "the network service did not answer"
 msgstr ""
 
 msgid "this computer has no Wi-Fi"
+msgstr ""
+
+msgid "this computer has no cable port"
+msgstr ""
+
+msgid "this network is not saved"
 msgstr ""
 
 msgid "could not connect: check the password"

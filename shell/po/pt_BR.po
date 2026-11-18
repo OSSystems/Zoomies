@@ -12,6 +12,24 @@ msgstr ""
 "Language-Team: Brazilian Portuguese\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+msgid "type the address"
+msgstr "digite o endereço"
+
+msgid "the address is not valid; it looks like 192.168.1.50"
+msgstr "o endereço não é válido; ele se parece com 192.168.1.50"
+
+msgid "this address cannot be used on its network"
+msgstr "este endereço não pode ser usado nesta rede"
+
+msgid "the router is not a valid address"
+msgstr "o roteador não é um endereço válido"
+
+msgid "the router must be on the same network as the address"
+msgstr "o roteador precisa estar na mesma rede que o endereço"
+
+msgid "the DNS servers are not valid addresses"
+msgstr "os servidores DNS não são endereços válidos"
+
 msgid "no answer from the admin service"
 msgstr "o serviço de administração não respondeu"
 
@@ -667,6 +685,12 @@ msgstr "o serviço de rede não respondeu"
 
 msgid "this computer has no Wi-Fi"
 msgstr "este computador não tem Wi-Fi"
+
+msgid "this computer has no cable port"
+msgstr "este computador não tem entrada de cabo"
+
+msgid "this network is not saved"
+msgstr "esta rede não está salva"
 
 msgid "could not connect: check the password"
 msgstr "não foi possível conectar: confira a senha"

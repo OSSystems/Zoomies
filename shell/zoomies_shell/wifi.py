@@ -1,4 +1,4 @@
-"""Wi-Fi through NetworkManager, for the admin service.
+"""Wi-Fi and the cable through NetworkManager, for the admin service.
 
 The admin service runs these for the grown-ups' panel and for the first-boot
 wizard, which runs in the greeter before any PIN exists. Networks are saved
@@ -6,10 +6,12 @@ for the whole computer, so the kids' sessions get online too when their
 internet rules allow it, and the password never shows on a command line.
 """
 
+import socket
 import time
 
 import gi
 
+from . import addresses
 from .i18n import N_
 
 gi.require_version("NM", "1.0")
@@ -106,20 +108,126 @@ class Session:
     def status(self):
         wifi = self.devices(NM.DeviceType.WIFI)
         connected = None
+        wifi_address = None
         if wifi:
             ap = wifi[0].get_active_access_point()
             if ap is not None and wifi[0].get_state() == NM.DeviceState.ACTIVATED:
                 connected = ssid_text(ap.get_ssid())
-        wired = any(
-            d.get_state() == NM.DeviceState.ACTIVATED for d in self.devices(NM.DeviceType.ETHERNET)
-        )
+                wifi_address = current(wifi[0])["address"]
+        cables = self.devices(NM.DeviceType.ETHERNET)
+        plugged = next((d for d in cables if d.get_state() == NM.DeviceState.ACTIVATED), None)
         return {
+            "cable": bool(cables),
             "connected": connected,
             "enabled": self.client.wireless_get_enabled(),
             "online": self.client.get_primary_connection() is not None,
             "wifi": bool(wifi),
-            "wired": wired,
+            "wifiAddress": wifi_address,
+            "wired": plugged is not None,
+            "wiredAddress": current(plugged)["address"] if plugged else None,
         }
+
+    def target(self, message):
+        """The saved connection a request names, or None for a cable that
+        has none yet, and the device it is for."""
+        if message.get("cable"):
+            cables = self.devices(NM.DeviceType.ETHERNET)
+            if not cables:
+                raise Failed(N_("this computer has no cable port"))
+            device = cables[0]
+            active = device.get_active_connection()
+            if active is not None and active.get_connection() is not None:
+                return active.get_connection(), device
+            return next(iter(device.get_available_connections()), None), device
+        saved = self.saved(ssid_of(message))
+        if not saved:
+            raise Failed(N_("this network is not saved"))
+        return saved[0], self.wifi_device()
+
+    def address(self, message):
+        """How a connection gets its address: what is saved, and what the
+        device has now when the connection is up."""
+        connection, device = self.target(message)
+        setting = connection.get_setting_ip4_config() if connection else None
+        method = setting.get_method() if setting else NM.SETTING_IP4_CONFIG_METHOD_AUTO
+        saved = {"address": None, "gateway": None, "dns": []}
+        if setting is not None:
+            if setting.get_num_addresses():
+                first = setting.get_address(0)
+                saved["address"] = f"{first.get_address()}/{first.get_prefix()}"
+            saved["gateway"] = setting.get_gateway()
+            saved["dns"] = [setting.get_dns(i) for i in range(setting.get_num_dns())]
+        active = device.get_active_connection()
+        up = (
+            connection is not None
+            and same(active, connection)
+            and device.get_state() == NM.DeviceState.ACTIVATED
+        )
+        return {
+            "fixed": method == NM.SETTING_IP4_CONFIG_METHOD_MANUAL,
+            "now": current(device) if up else None,
+            "saved": saved,
+        }
+
+    def set_address(self, message):
+        connection, device = self.target(message)
+        fixed = None
+        if message.get("fixed"):
+            try:
+                fixed = addresses.fixed(
+                    message.get("address", ""), message.get("gateway", ""), message.get("dns", "")
+                )
+            except addresses.Invalid as error:
+                raise Failed(str(error)) from error
+        new = connection is None
+        if new:
+            # NetworkManager makes a cable's connection only once one is
+            # plugged in; a fixed address may be set before that.
+            connection = NM.SimpleConnection.new()
+            general = NM.SettingConnection.new()
+            general.set_property(NM.SETTING_CONNECTION_ID, "Cable")
+            general.set_property(NM.SETTING_CONNECTION_TYPE, NM.SETTING_WIRED_SETTING_NAME)
+            general.set_property(NM.SETTING_CONNECTION_UUID, NM.utils_uuid_generate())
+            general.set_property(NM.SETTING_CONNECTION_INTERFACE_NAME, device.get_iface())
+            connection.add_setting(general)
+            connection.add_setting(NM.SettingWired.new())
+        setting = connection.get_setting_ip4_config()
+        if setting is None:
+            setting = NM.SettingIP4Config.new()
+            connection.add_setting(setting)
+        setting.clear_addresses()
+        setting.clear_dns()
+        setting.set_property(NM.SETTING_IP_CONFIG_GATEWAY, None)
+        if fixed is None:
+            setting.set_property(NM.SETTING_IP_CONFIG_METHOD, NM.SETTING_IP4_CONFIG_METHOD_AUTO)
+        else:
+            setting.set_property(NM.SETTING_IP_CONFIG_METHOD, NM.SETTING_IP4_CONFIG_METHOD_MANUAL)
+            setting.add_address(NM.IPAddress.new(socket.AF_INET, fixed["address"], fixed["prefix"]))
+            setting.set_property(NM.SETTING_IP_CONFIG_GATEWAY, fixed["gateway"])
+            for server in fixed["dns"]:
+                setting.add_dns(server)
+        if new:
+            connection = self.call(
+                lambda cb: self.client.add_connection_async(connection, True, None, cb, None),
+                lambda c, r: c.add_connection_finish(r),
+            )
+        else:
+            self.call(
+                lambda cb: connection.commit_changes_async(True, None, cb, None),
+                lambda c, r: c.commit_changes_finish(r),
+            )
+        # A connection in use takes the new address only when it starts
+        # again; one that is not in use takes it next time. It is not
+        # waited for: with no router to answer, that takes most of a
+        # minute, and the greeter's PIN pad waits on this service too.
+        if same(device.get_active_connection(), connection):
+            self.call(
+                lambda cb: self.client.activate_connection_async(
+                    connection, device, None, None, cb
+                ),
+                lambda c, r: c.activate_connection_finish(r),
+            )
+        return {}
 
     def scan(self):
         device = self.wifi_device()
@@ -280,23 +388,50 @@ class Session:
         return {}
 
 
+def current(device):
+    """The address, router and DNS servers a device has now."""
+    config = device.get_ip4_config() if device is not None else None
+    if config is None:
+        return {"address": None, "gateway": None, "dns": []}
+    found = config.get_addresses()
+    return {
+        "address": found[0].get_address() if found else None,
+        "gateway": config.get_gateway(),
+        "dns": list(config.get_nameservers()),
+    }
+
+
+def same(active, connection):
+    """Whether an active connection runs this saved connection."""
+    return active is not None and active.get_uuid() == connection.get_uuid()
+
+
+def ssid_of(message):
+    """Networks from a scan come by their bytes; a hidden one by the name a
+    grown-up typed."""
+    try:
+        ssid = bytes.fromhex(message["id"]) if "id" in message else None
+    except (TypeError, ValueError):
+        ssid = None
+    if ssid is None:
+        ssid = str(message.get("ssid", "")).encode()
+    if not 1 <= len(ssid) <= 32:
+        raise Failed(N_("pick a network"))
+    return ssid
+
+
 def run(action, message):
-    """Run one Wi-Fi action of the admin service."""
+    """Run one network action of the admin service."""
     with Session() as session:
         if action == "wifi-status":
             return session.status()
         if action == "wifi-scan":
             return {"networks": session.scan()}
-        # Networks from a scan come by their bytes; a hidden one by the
-        # name a grown-up typed.
-        try:
-            ssid = bytes.fromhex(message["id"]) if "id" in message else None
-        except (TypeError, ValueError):
-            ssid = None
-        if ssid is None:
-            ssid = str(message.get("ssid", "")).encode()
-        if not 1 <= len(ssid) <= 32:
-            raise Failed(N_("pick a network"))
+        if action == "address":
+            return session.address(message)
+        if action == "set-address":
+            return session.set_address(message)
+        ssid = ssid_of(message)
         if action == "wifi-connect":
             password = message.get("password") or None
             if password is not None and not 8 <= len(password) <= 63:
