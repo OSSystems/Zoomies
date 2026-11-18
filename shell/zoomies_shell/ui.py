@@ -221,14 +221,29 @@ SYSTEM_ACTIONS = {
 }
 
 
+# Where the platform's splash and cage meet to hand the screen over at power
+# off and restart; it only exists when that splash is installed.
+SPLASH_HANDOVER = "/run/zoomies-splash"
+
+
+def power(action):
+    """Runs systemctl's action, asking cage to hand the screen to the splash."""
+    if os.path.isdir(SPLASH_HANDOVER):
+        try:
+            open(os.path.join(SPLASH_HANDOVER, "requested"), "a").close()
+        except OSError:
+            pass
+    subprocess.Popen(["systemctl", action])
+
+
 def system_button(overlay, action, text=None):
-    """A button that asks first, then runs systemctl's action."""
+    """A button that asks first, then fades to the sky and runs systemctl's action."""
     emoji, question_emoji, question = SYSTEM_ACTIONS[action]
     button = big_button(text, "subtle", emoji)
     button.connect(
         "clicked",
         lambda *_args: overlay.confirm(
-            _(question), question_emoji, lambda: subprocess.Popen(["systemctl", action])
+            _(question), question_emoji, lambda: overlay.fade_to_sky(lambda: power(action))
         ),
     )
     return button
@@ -396,6 +411,31 @@ class Overlay(Gtk.Overlay):
     @property
     def open(self):
         return self._layer is not None
+
+    FADE_SECONDS = 0.3
+
+    def fade_to_sky(self, then):
+        """Fades to the bare sky, then calls then.
+
+        The power off splash opens on that sky, so the screen never changes
+        all at once. The fade follows the clock, not the frames, so a slow
+        machine only shows fewer steps of it.
+        """
+        cover = Gtk.Box(hexpand=True, vexpand=True, can_target=False, css_classes=["sky-cover"])
+        cover.set_opacity(0)
+        self.add_overlay(cover)
+        self.get_child().set_sensitive(False)
+        start = GLib.get_monotonic_time()
+
+        def step(*_args):
+            done = (GLib.get_monotonic_time() - start) / 1e6 / self.FADE_SECONDS
+            cover.set_opacity(min(1.0, done))
+            if done < 1:
+                return GLib.SOURCE_CONTINUE
+            then()
+            return GLib.SOURCE_REMOVE
+
+        GLib.timeout_add(16, step)
 
     def confirm(self, question, emoji, on_yes):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)

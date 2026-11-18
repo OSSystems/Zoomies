@@ -165,6 +165,12 @@ button:focus {
   background: alpha(#1d3557, 0.45);
 }
 
+/* The window's sky without the clouds or anything on it: what the power off
+   splash opens on. */
+.sky-cover {
+  background: linear-gradient(180deg, #7fd3ff 0%, #b8ecff 55%, #c8f5c0 100%);
+}
+
 .dialog {
   background: white;
   border-radius: 40px;
