@@ -1,0 +1,143 @@
+name: "Release"
+on:
+  push:
+    # Versions are vMAJOR.MINOR.PATCH, so a stray tag such as v1.0 publishes
+    # nothing.
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+# A second run for the same tag would race the first to the bucket and the
+# release; finishing the first is cheaper than rebuilding.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  installer-iso:
+    runs-on: octocat-microvm
+    # The bucket's credentials live in the environment, so only tag pushes
+    # can reach them.
+    environment: release
+    outputs:
+      name: ${{ steps.publish.outputs.name }}
+      sha256: ${{ steps.publish.outputs.sha256 }}
+      url: ${{ steps.publish.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Build the installer ISO
+        id: build
+        run: echo "path=$(nix build -L --no-link --print-out-paths .#packages.x86_64-linux.installer-iso)" >>"$GITHUB_OUTPUT"
+      - name: Publish the installer ISO
+        id: publish
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.RELEASE_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.RELEASE_S3_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.RELEASE_S3_REGION || 'auto' }}
+          RELEASE_S3_BUCKET: ${{ vars.RELEASE_S3_BUCKET }}
+          RELEASE_S3_ENDPOINT: ${{ vars.RELEASE_S3_ENDPOINT }}
+          RELEASE_DOWNLOAD_URL: ${{ vars.RELEASE_DOWNLOAD_URL }}
+        run: >-
+          nix shell --inputs-from . nixpkgs#awscli2 --command
+          .github/scripts/publish-image.sh
+          "${{ steps.build.outputs.path }}/iso/zoomies-installer.iso"
+  # GitHub's Arm runners build the Pi image natively, with the kernel from the
+  # nixos-raspberrypi cache.
+  raspberry-pi-image:
+    runs-on: ubuntu-24.04-arm
+    environment: release
+    outputs:
+      name: ${{ steps.publish.outputs.name }}
+      sha256: ${{ steps.publish.outputs.sha256 }}
+      url: ${{ steps.publish.outputs.url }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      # The system's store, the raw image and its compressed copy do not fit
+      # next to the runner's preinstalled toolchains.
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+            /opt/hostedtoolcache /usr/local/share/boost /usr/local/.ghcup
+          sudo docker image prune --all --force || true
+          df -h /
+      - uses: ossystems/nix-actions@v1
+        with:
+          checkout: "false"
+          install-nix: "true"
+          # Main's CI owns the cache; a release only reads it.
+          cache-save: "false"
+          # The same key as CI's aarch64 job, so a tag on main restores the
+          # store CI saved for that very commit.
+          cache-key-suffix: -${{ runner.arch }}-${{ hashFiles('nix/**', 'shell/**', 'splash/**', 'assets/**') }}
+          flake-check: "false"
+          build-hosts: "false"
+          build-devshells: "false"
+          build-packages: "false"
+      - name: Build the Raspberry Pi image
+        id: build
+        run: echo "path=$(nix build -L --accept-flake-config --no-link --print-out-paths .#packages.aarch64-linux.raspberry-pi-image)" >>"$GITHUB_OUTPUT"
+      - name: Publish the Raspberry Pi image
+        id: publish
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.RELEASE_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.RELEASE_S3_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.RELEASE_S3_REGION || 'auto' }}
+          RELEASE_S3_BUCKET: ${{ vars.RELEASE_S3_BUCKET }}
+          RELEASE_S3_ENDPOINT: ${{ vars.RELEASE_S3_ENDPOINT }}
+          RELEASE_DOWNLOAD_URL: ${{ vars.RELEASE_DOWNLOAD_URL }}
+        run: >-
+          nix shell --inputs-from . nixpkgs#awscli2 --command
+          .github/scripts/publish-image.sh
+          "${{ steps.build.outputs.path }}/sd-image/zoomies-raspberry-pi.img.zst"
+  # A draft, so the notes can be read over and the release published by hand
+  # once the images are known to be there.
+  release:
+    needs:
+      - installer-iso
+      - raspberry-pi-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ github.ref_name }}
+      ISO_NAME: ${{ needs.installer-iso.outputs.name }}
+      ISO_SHA256: ${{ needs.installer-iso.outputs.sha256 }}
+      ISO_URL: ${{ needs.installer-iso.outputs.url }}
+      PI_NAME: ${{ needs.raspberry-pi-image.outputs.name }}
+      PI_SHA256: ${{ needs.raspberry-pi-image.outputs.sha256 }}
+      PI_URL: ${{ needs.raspberry-pi-image.outputs.url }}
+    steps:
+      - name: Write the notes and checksums
+        run: |
+          printf '%s  %s\n' "$ISO_SHA256" "$ISO_NAME" "$PI_SHA256" "$PI_NAME" >SHA256SUMS
+          cat >notes.md <<EOF
+          ## Download
+
+          The images are larger than GitHub lets a release hold, so they are
+          stored separately:
+
+          - **PC (BIOS or UEFI):** [$ISO_NAME]($ISO_URL)
+          - **Raspberry Pi 3, 4 and 5:** [$PI_NAME]($PI_URL)
+
+          The [README](https://github.com/$GH_REPO/blob/$TAG/README.md)
+          explains how to write them to a USB stick or SD card.
+          \`SHA256SUMS\` below lists their checksums.
+
+          EOF
+      # A re-run finds the draft an earlier attempt left. Its links depend
+      # only on the tag, so the notes, which may have been edited, are kept.
+      - name: Create or update the draft release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" SHA256SUMS --clobber
+          else
+            gh release create "$TAG" --draft --verify-tag \
+              --title "Zoomies $TAG" --generate-notes --notes-file notes.md \
+              SHA256SUMS
+          fi
