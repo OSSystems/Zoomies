@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 17:01-0300\n"
+"POT-Creation-Date: 2026-11-18 18:09-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -46,6 +46,9 @@ msgid "too many wrong PINs, wait a minute"
 msgstr ""
 
 msgid "wrong PIN"
+msgstr ""
+
+msgid "remote access is not available on this system"
 msgstr ""
 
 msgid "set the grown-ups PIN first"
@@ -284,6 +287,9 @@ msgstr ""
 msgid "Calm screen"
 msgstr ""
 
+msgid "Remote access"
+msgstr ""
+
 msgid "Open"
 msgstr ""
 
@@ -297,6 +303,17 @@ msgid "Restart"
 msgstr ""
 
 msgid "Power off"
+msgstr ""
+
+msgid "Off: nobody can log in to this computer from another one."
+msgstr ""
+
+#. Translators: {command} is what to type on another computer, such as "ssh parent@192.168.1.20".
+#, python-brace-format
+msgid "On: from a computer at home, type {command} and the PIN."
+msgstr ""
+
+msgid "On, but this computer is not connected to a network."
 msgstr ""
 
 msgid "Add a kid"

@@ -14,5 +14,8 @@
   nixpkgs.hostPlatform = "x86_64-linux";
   system.stateVersion = "26.05";
   virtualisation.vmVariant.imports = [ ./vm.nix ];
-  zoomies.enable = true;
+  zoomies = {
+    enable = true;
+    remoteAccess.enable = true;
+  };
 }

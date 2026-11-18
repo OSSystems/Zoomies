@@ -94,10 +94,11 @@ pkgs.testers.runNixOSTest {
         imports = [ common.machine ];
         zoomies.older.dnsFilter.servers = [ nodes.server.networking.primaryIPAddress ];
       };
-    # Web server and stand-in family DNS filter.
+    # Web server, stand-in family DNS filter and another computer at home.
     server =
       { config, ... }:
       {
+        environment.systemPackages = [ pkgs.sshpass ];
         networking.firewall = {
           allowedTCPPorts = [
             53
@@ -691,9 +692,17 @@ pkgs.testers.runNixOSTest {
         fresh.send_key("tab")
         fresh.send_key("spc")
         fresh.wait_for_text("Calm screen", timeout=60)
+        fresh.wait_for_text("nobody can log in", timeout=30)
         fresh.screenshot("parent-system")
-        fresh.send_key("shift-tab")
-        fresh.send_key("shift-tab")
+        fresh.fail("systemctl is-active sshd.service")
+        # Past Change PIN and Calm screen.
+        for _ in range(3):
+            fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("type ssh parent", timeout=60)
+        fresh.screenshot("parent-remote-access")
+        for _ in range(5):
+            fresh.send_key("shift-tab")
         fresh.send_key("spc")
         fresh.wait_for_text("Max a day", timeout=60)
         # Past Network, System, Kim's chip, Add a kid, +15 min, Stop, Edit,
@@ -708,6 +717,48 @@ pkgs.testers.runNixOSTest {
         fresh.wait_for_text("No play", timeout=30)
         fresh.screenshot("parent-special-days")
         log_out("parent", fresh)
+
+    with subtest("remote access lets in only the grown-up, from the home network"):
+        def ssh(user, password, address="fresh", options=""):
+            return (
+                # IPv4, the address the panel shows: the test network's IPv6
+                # is global, not a home network's private range.
+                f"sshpass -p '{password}' ssh -4 -o StrictHostKeyChecking=no"
+                " -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no"
+                f" -o ConnectTimeout=10 {options} {user}@{address} true"
+            )
+
+        def pin_failures():
+            return int(fresh.succeed(
+                "faillock --dir /var/lib/zoomies/faillock --user parent | grep -c ' V$' || true"
+            ))
+
+        # Turned on from the panel above.
+        fresh.wait_for_unit("sshd.service")
+        server.succeed(ssh("parent", "2468"))
+        server.fail(ssh("kim", ""))
+        server.fail(ssh("root", ""))
+        server.fail(ssh("parent", "1111"))
+        # A wrong PIN over SSH counts towards the same lock.
+        assert pin_failures() == 1
+        fresh.succeed("faillock --dir /var/lib/zoomies/faillock --user parent --reset")
+        # From outside the private ranges sshd asks for no password at all,
+        # so strangers cannot lock the grown-up out either.
+        fresh.succeed("ip address add 100.64.0.1/24 dev eth1")
+        server.succeed("ip address add 100.64.0.2/24 dev eth1")
+        server.fail(ssh("parent", "2468", "100.64.0.1", "-b 100.64.0.2"))
+        assert pin_failures() == 0
+        # Kids, and the greeter without the PIN, cannot switch it.
+        fresh.fail("runuser -u kim -- zoomies-profile remote-access off")
+        fresh.fail("runuser -u greeter -- zoomies-profile remote-access off")
+        fresh.succeed(as_parent("zoomies-profile remote-access off"))
+        server.fail(ssh("parent", "2468"))
+        # Off stays off, even when something asks sshd to start.
+        fresh.succeed("systemctl start sshd.service")
+        fresh.fail("systemctl is-active sshd.service")
+        fresh.succeed(as_parent("zoomies-profile remote-access on") + " | grep -q '\"on\": true'")
+        server.succeed(ssh("parent", "2468"))
+        fresh.succeed(as_parent("zoomies-profile remote-access off"))
 
     with subtest("the cable and a Wi-Fi network take a fixed address"):
         def method_of(device):

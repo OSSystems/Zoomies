@@ -143,6 +143,7 @@ let
       enable = true;
       games = [ game ];
       older.apps = [ pkgs.libreoffice ];
+      remoteAccess.enable = true;
     };
   };
 in

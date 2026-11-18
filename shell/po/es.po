@@ -42,6 +42,9 @@ msgstr "demasiados PIN incorrectos, espera un minuto"
 msgid "wrong PIN"
 msgstr "PIN incorrecto"
 
+msgid "remote access is not available on this system"
+msgstr "el acceso remoto no está disponible en este sistema"
+
 msgid "set the grown-ups PIN first"
 msgstr "primero define el PIN de los adultos"
 
@@ -294,6 +297,9 @@ msgstr "Cambiar PIN"
 msgid "Calm screen"
 msgstr "Pantalla tranquila"
 
+msgid "Remote access"
+msgstr "Acceso remoto"
+
 msgid "Open"
 msgstr "Abrir"
 
@@ -308,6 +314,17 @@ msgstr "Reiniciar"
 
 msgid "Power off"
 msgstr "Apagar"
+
+msgid "Off: nobody can log in to this computer from another one."
+msgstr "Apagado: nadie puede entrar en esta computadora desde otra."
+
+#. Translators: {command} is what to type on another computer, such as "ssh parent@192.168.1.20".
+#, python-brace-format
+msgid "On: from a computer at home, type {command} and the PIN."
+msgstr "Encendido: desde una computadora de casa, escribe {command} y el PIN."
+
+msgid "On, but this computer is not connected to a network."
+msgstr "Encendido, pero esta computadora no está conectada a una red."
 
 msgid "Add a kid"
 msgstr "Añadir un niño"

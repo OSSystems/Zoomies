@@ -271,6 +271,9 @@ class Parent(Gtk.ApplicationWindow):
             self.pages.set_visible_child_name(name)
             if name == "network":
                 self.network.refresh()
+            elif name == "system" and self.config.get("remoteAccess"):
+                # The address may have changed since the panel opened.
+                self.show_remote_access(self.ask_remote_access("remote-access"))
 
     def kids_page(self):
         """One kid at a time, picked from a chip for each kid at the top."""
@@ -296,12 +299,16 @@ class Parent(Gtk.ApplicationWindow):
     def system_page(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
 
-        def row(emoji, title, *widgets):
+        def row(emoji, title, *widgets, detail=None):
             line = Gtk.Box(spacing=16, css_classes=["parent-row"])
             line.append(Gtk.Label(label=emoji, css_classes=["button-emoji"]))
-            line.append(
-                Gtk.Label(label=title, xalign=0, hexpand=True, css_classes=["section-title"])
+            words = Gtk.Box(
+                orientation=Gtk.Orientation.VERTICAL, hexpand=True, valign=Gtk.Align.CENTER
             )
+            words.append(Gtk.Label(label=title, xalign=0, css_classes=["section-title"]))
+            if detail is not None:
+                words.append(detail)
+            line.append(words)
             for widget in widgets:
                 line.append(widget)
             box.append(line)
@@ -314,6 +321,12 @@ class Parent(Gtk.ApplicationWindow):
         calm = Gtk.Switch(active=state.calm_screen(), valign=Gtk.Align.CENTER)
         calm.connect("notify::active", lambda switch, _pspec: state.set_calm_screen(switch.get_active()))
         row("☁️", _("Calm screen"), calm)
+        if self.config.get("remoteAccess"):
+            self.remote_detail = Gtk.Label(xalign=0, wrap=True, css_classes=["hint"])
+            self.remote = Gtk.Switch(valign=Gtk.Align.CENTER)
+            self.remote.connect("state-set", self.set_remote_access)
+            row("🌍", _("Remote access"), self.remote, detail=self.remote_detail)
+            self.show_remote_access(self.ask_remote_access("remote-access"))
         terminal = ui.big_button(_("Open"), "subtle", "⌨")
         terminal.connect("clicked", lambda *_args: subprocess.Popen(["foot"]))
         row("⌨", _("Terminal"), terminal)
@@ -324,6 +337,37 @@ class Parent(Gtk.ApplicationWindow):
             ui.system_button(self.overlay, "poweroff", _("Power off")),
         )
         return box
+
+    def ask_remote_access(self, action, **fields):
+        try:
+            return admin.request(action, **fields)
+        except admin.Refused as error:
+            return {"error": error}
+
+    def show_remote_access(self, reply):
+        if "error" in reply:
+            self.remote.set_active(self.remote.get_state())
+            self.remote_detail.set_label(ui.reason(reply["error"]))
+            return
+        on = bool(reply["on"])
+        self.remote.set_state(on)
+        self.remote.set_active(on)
+        if not on:
+            text = _("Off: nobody can log in to this computer from another one.")
+        elif reply["addresses"]:
+            # Translators: {command} is what to type on another computer, such as "ssh parent@192.168.1.20".
+            text = _("On: from a computer at home, type {command} and the PIN.").format(
+                command=f"ssh {reply['user']}@{reply['addresses'][0]}"
+            )
+        else:
+            text = _("On, but this computer is not connected to a network.")
+        self.remote_detail.set_label(text)
+
+    def set_remote_access(self, _switch, on):
+        if on != self.remote.get_state():
+            self.show_remote_access(self.ask_remote_access("set-remote-access", on=on))
+        # The switch shows what the service did, not what was asked.
+        return True
 
     def populate(self):
         self.config = state.load_config()
