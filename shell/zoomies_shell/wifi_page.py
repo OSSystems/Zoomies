@@ -270,9 +270,7 @@ class WifiPage(Gtk.Box):
 
         self.networks = NetworkList(overlay, on_connected=self.refresh)
         self.networks.add_css_class("parent-row")
-        scroller = Gtk.ScrolledWindow(
-            vexpand=True, child=self.networks, hscrollbar_policy=Gtk.PolicyType.NEVER
-        )
+        scroller = ui.scroller(self.networks, vexpand=True)
         self.append(scroller)
 
         cable = Gtk.Box(spacing=16, css_classes=["parent-row"])

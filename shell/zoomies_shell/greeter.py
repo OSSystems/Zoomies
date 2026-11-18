@@ -122,9 +122,7 @@ class Greeter(Gtk.ApplicationWindow):
             margin_end=14,
         )
         # A big family must not push the grown-ups and power buttons away.
-        scroller = Gtk.ScrolledWindow(
-            vexpand=True, child=self.kids, hscrollbar_policy=Gtk.PolicyType.NEVER
-        )
+        scroller = ui.scroller(self.kids, vexpand=True)
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)

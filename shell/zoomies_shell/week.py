@@ -415,9 +415,8 @@ def template_picker(panel, kid, done, new=False):
         card.connect("toggled", toggled)
         cards.append(card)
     # Short screens scroll the templates and keep the buttons in sight.
-    scroller = Gtk.ScrolledWindow(
-        child=cards,
-        hscrollbar_policy=Gtk.PolicyType.NEVER,
+    scroller = ui.scroller(
+        cards,
         propagate_natural_height=True,
         propagate_natural_width=True,
         max_content_height=max(200, panel.get_height() - 380),

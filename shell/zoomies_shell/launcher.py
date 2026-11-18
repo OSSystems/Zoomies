@@ -78,9 +78,7 @@ class Launcher(Gtk.ApplicationWindow):
             self.grid.attach(empty, 0, 0, 1, 1)
         for index, info in enumerate(games):
             self.grid.attach(self._tile(info), index % columns, index // columns, 1, 1)
-        scroller = Gtk.ScrolledWindow(
-            vexpand=True, child=self.grid, hscrollbar_policy=Gtk.PolicyType.NEVER
-        )
+        scroller = ui.scroller(self.grid, vexpand=True)
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)

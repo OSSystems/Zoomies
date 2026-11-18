@@ -187,6 +187,19 @@ def clock():
     return label
 
 
+def scroller(child, **properties):
+    """A scrolled area whose scrollbar never hides, wide enough to grab: a
+    bar that only shows while scrolling leaves no hint of more below."""
+    window = Gtk.ScrolledWindow(
+        child=child,
+        hscrollbar_policy=Gtk.PolicyType.NEVER,
+        overlay_scrolling=False,
+        **properties,
+    )
+    window.add_css_class("scroller")
+    return window
+
+
 def big_button(text, css=None, emoji=None):
     button = Gtk.Button()
     box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)

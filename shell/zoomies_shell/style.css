@@ -399,3 +399,43 @@ button:focus {
 .dialog.templates {
   padding: 24px 20px;
 }
+
+/* Scrollbars stay in sight and are wide enough for a finger; a shadow
+   marks the edge with more beyond it. */
+
+.scroller > scrollbar {
+  background: none;
+  border: none;
+}
+
+.scroller > scrollbar.vertical {
+  margin-left: 10px;
+}
+
+.scroller > scrollbar trough {
+  background: alpha(#1d3557, 0.12);
+  border-radius: 999px;
+  min-width: 18px;
+}
+
+.scroller > scrollbar slider {
+  background: #1d3557;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  min-width: 18px;
+  min-height: 64px;
+}
+
+.scroller > scrollbar slider:hover,
+.scroller > scrollbar slider:active {
+  background-color: #3d5a80;
+}
+
+.scroller > undershoot.bottom {
+  background: linear-gradient(to top, alpha(#1d3557, 0.25), transparent 32px);
+}
+
+.scroller > undershoot.top {
+  background: linear-gradient(to bottom, alpha(#1d3557, 0.25), transparent 32px);
+}

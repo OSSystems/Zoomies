@@ -195,9 +195,7 @@ class Parent(Gtk.ApplicationWindow):
         actions.append(add)
         box.append(actions)
         self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        self.scroller = Gtk.ScrolledWindow(
-            vexpand=True, child=self.list, hscrollbar_policy=Gtk.PolicyType.NEVER
-        )
+        self.scroller = ui.scroller(self.list, vexpand=True)
         box.append(self.scroller)
         return box
 
