@@ -122,7 +122,7 @@ class KidCard(Gtk.Box):
         card's whole height; the tab's own button sits on the right."""
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         line = Gtk.Box(spacing=12)
-        tabs = Gtk.Box(spacing=4, hexpand=True, halign=Gtk.Align.START, css_classes=["subtabs"])
+        tabs = Gtk.Box(spacing=8, hexpand=True, halign=Gtk.Align.START, css_classes=["subtabs"])
         line.append(tabs)
         tools = Gtk.Stack(hhomogeneous=False, interpolate_size=True)
         line.append(tools)

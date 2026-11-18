@@ -340,7 +340,7 @@ switch > slider {
 .subtabs {
   background: alpha(#1d3557, 0.08);
   border-radius: 999px;
-  padding: 4px;
+  padding: 6px;
 }
 
 .subtab {
@@ -360,7 +360,15 @@ switch > slider {
 
 .subtab:checked {
   background: white;
-  box-shadow: 0 3px 0 alpha(#1d3557, 0.15);
+  box-shadow: 0 3px 0 alpha(#1d3557, 0.15), inset 0 0 0 3px #1d3557;
+}
+
+/* The usual focus outline would cover the next option and look like the
+   choice; this one fits in the bar's padding and the gap between options. */
+.subtabs > .subtab:focus,
+.subtabs > .subtab:focus-visible {
+  outline: 3px solid #ffd60a;
+  outline-offset: 2px;
 }
 
 .subtab-emoji {

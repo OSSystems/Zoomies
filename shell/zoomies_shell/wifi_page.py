@@ -257,7 +257,7 @@ def address_dialog(overlay, fields, title, done=lambda: None):
     """How a connection gets its address: from the router, or fixed."""
     box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16, css_classes=["address"])
     box.append(Gtk.Label(label=title, css_classes=["dialog-title"]))
-    modes = Gtk.Box(spacing=4, halign=Gtk.Align.CENTER, css_classes=["subtabs"])
+    modes = Gtk.Box(spacing=8, halign=Gtk.Align.CENTER, css_classes=["subtabs"])
     automatic = Gtk.ToggleButton(label=_("Automatic"), css_classes=["subtab"], active=True)
     fixed = Gtk.ToggleButton(label=_("Fixed address"), css_classes=["subtab"], group=automatic)
     modes.append(automatic)
