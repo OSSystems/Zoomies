@@ -16,11 +16,15 @@ let
     {
       boot.consoleLogLevel = lib.mkForce 3;
       boot.loader.efi.canTouchEfiVariables = false;
-      boot.loader.grub = lib.mkIf efi {
-        device = "nodev";
-        efiInstallAsRemovable = true;
-        efiSupport = true;
-      };
+      boot.loader.grub = lib.mkMerge [
+        # As installed: the VM framework picks its own screen size.
+        { gfxmodeBios = lib.mkForce "auto"; }
+        (lib.mkIf efi {
+          device = "nodev";
+          efiInstallAsRemovable = true;
+          efiSupport = true;
+        })
+      ];
       imports = [
         flake.nixosModules.zoomies
         ../modules/nixos/platform/boot-menu.nix
@@ -166,6 +170,11 @@ pkgs.testers.runNixOSTest {
             ("4-kid-logs-in", *kid),
             ("5-power-off", yes - 1, rec.now()),
         ])
+        # From GRUB's sky on, the screen stays lit to the greeter. Under
+        # BIOS, QEMU blanks its display as Linux's driver replaces the
+        # firmware's VGA, which real graphics cards need not do.
+        if name == "uefi":
+            rec.assert_never_dark(spans, rec.lit_after(0), boot[1], "booting")
         # Zip takes off into the sky the greeter opens on, and each screen
         # fades to the sky the next one opens on.
         for start, end in rec.takeoffs():

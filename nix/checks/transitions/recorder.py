@@ -345,6 +345,10 @@ class Recorder:
         self.filmstrips(windows, spans, events)
         return spans
 
+    def lit_after(self, start):
+        """When the screen first shows something bright: GRUB's sky after the firmware."""
+        return next(t for t, _w, _h, luma, *_rest in self.samples if t >= start and luma >= DARK)
+
     def takeoffs(self):
         """From each time Zip takes off until the greeter is ready."""
         windows = []
