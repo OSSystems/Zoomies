@@ -15,6 +15,11 @@ in
     grub = {
       inherit theme;
       extraConfig = ''
+        # GRUB draws the picture behind its terminal only when something is
+        # written, and nothing is while it waits and loads Linux: the screen
+        # stayed black for that whole time, seconds on BIOS. Clearing draws
+        # the splash's first frame now.
+        clear
         if [ -z "''${boot_once}" ]; then
           insmod part_gpt
           insmod part_msdos
