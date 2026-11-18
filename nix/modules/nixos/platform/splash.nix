@@ -13,7 +13,24 @@ let
   # greeter draws, so the greeter seems to appear on the splash itself.
   # Deactivated, the splash lets the display manager take the screen while
   # its last frame stays up; it quits once the display manager has drawn.
+  #
+  # Once deactivated, any text written to a console wakes the kernel's own,
+  # which replaces that last frame with black until the greeter draws.
+  # Setting the consoles up writes to them, and a busy machine may still be
+  # probing the devices that set them up, so Zip waits on his cloud until
+  # all of that is done.
   takeoff = pkgs.writeShellScript "zoomies-splash-takeoff" ''
+    ${lib.getExe' config.systemd.package "udevadm"} settle --timeout=10 || true
+    settled=0
+    for _ in $(${lib.getExe' pkgs.coreutils "seq"} 200); do
+      if ${lib.getExe' config.systemd.package "systemctl"} list-jobs --no-legend |
+        ${lib.getExe pkgs.gnugrep} -q systemd-vconsole-setup; then
+        settled=0
+      elif [ "$((settled += 1))" -ge 3 ]; then
+        break
+      fi
+      ${lib.getExe' pkgs.coreutils "sleep"} 0.05
+    done
     if ${plymouth} --ping; then
       ${plymouth} update --status=zoomies-takeoff
       ${lib.getExe' pkgs.coreutils "sleep"} 1.3
