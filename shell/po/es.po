@@ -188,6 +188,23 @@ msgstr "Abriendo {game}…"
 msgid "Almost time to stop. Pick something quick!"
 msgstr "Ya casi hay que parar. ¡Elige algo rápido!"
 
+msgid "Stopped for today"
+msgstr "Detenido por hoy"
+
+msgid "Playing, no limit"
+msgstr "Jugando, sin límite"
+
+msgid "No limit"
+msgstr "Sin límite"
+
+#, python-brace-format
+msgid "Playing, {time} left"
+msgstr "Jugando, quedan {time}"
+
+#, python-brace-format
+msgid "{time} left"
+msgstr "Quedan {time}"
+
 msgid "+15 min"
 msgstr "+15 min"
 
@@ -244,9 +261,6 @@ msgstr "Sistema"
 msgid "Back to the kids"
 msgstr "Volver a los niños"
 
-msgid "Add a kid"
-msgstr "Añadir un niño"
-
 msgid "Change PIN"
 msgstr "Cambiar PIN"
 
@@ -267,6 +281,9 @@ msgstr "Reiniciar"
 
 msgid "Power off"
 msgstr "Apagar"
+
+msgid "Add a kid"
+msgstr "Añadir un niño"
 
 msgid "No kids yet. Press ➕ Add a kid."
 msgstr "Todavía no hay niños. Pulsa ➕ Añadir un niño."

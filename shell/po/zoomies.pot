@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-18 13:11-0300\n"
+"POT-Creation-Date: 2026-11-18 14:13-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -178,6 +178,23 @@ msgstr ""
 msgid "Almost time to stop. Pick something quick!"
 msgstr ""
 
+msgid "Stopped for today"
+msgstr ""
+
+msgid "Playing, no limit"
+msgstr ""
+
+msgid "No limit"
+msgstr ""
+
+#, python-brace-format
+msgid "Playing, {time} left"
+msgstr ""
+
+#, python-brace-format
+msgid "{time} left"
+msgstr ""
+
 msgid "+15 min"
 msgstr ""
 
@@ -234,9 +251,6 @@ msgstr ""
 msgid "Back to the kids"
 msgstr ""
 
-msgid "Add a kid"
-msgstr ""
-
 msgid "Change PIN"
 msgstr ""
 
@@ -256,6 +270,9 @@ msgid "Restart"
 msgstr ""
 
 msgid "Power off"
+msgstr ""
+
+msgid "Add a kid"
 msgstr ""
 
 msgid "No kids yet. Press ➕ Add a kid."

@@ -709,9 +709,10 @@ pkgs.testers.runNixOSTest {
         fresh.send_chars("2468\n")
         wait_for_ready("zoomies-parent", "parent", fresh)
         fresh.wait_for_text("Max a day", timeout=60)
-        # From the Kids tab: Wi-Fi, System, Add a kid, then Kim's +15 min,
-        # Stop, Edit and Remove come before the week's template button.
-        for _ in range(8):
+        # From the Kids tab: Wi-Fi, System, Kim's chip, Add a kid, then
+        # Kim's +15 min, Stop, Edit and Remove come before the week's
+        # template button.
+        for _ in range(9):
             fresh.send_key("tab")
         fresh.send_key("spc")
         fresh.wait_for_text("week for Kim", timeout=60)

@@ -12,11 +12,55 @@ def why(error):
     return getattr(error, "strerror", None) or error
 
 
-class KidRow(Gtk.Box):
-    def __init__(self, panel, kid):
+def chip_status(status, stopped):
+    """A few words on where a kid stands today, and their mood: playing,
+    free to play, resting or stopped."""
+    if stopped:
+        return _("Stopped for today"), "stopped"
+    if not status:
+        return "", "free"
+    if not status["allowed"]:
+        return ui.when_back(status), "resting"
+    playing = status.get("playing")
+    mood = "playing" if playing else "free"
+    remaining = status["remaining"]
+    if remaining is None:
+        return (_("Playing, no limit") if playing else _("No limit")), mood
+    text = _("Playing, {time} left") if playing else _("{time} left")
+    return text.format(time=state.format_duration(remaining)), mood
+
+
+class KidChip(Gtk.ToggleButton):
+    """A kid to pick in the panel, with how their day goes so far."""
+
+    def __init__(self, kid):
+        super().__init__(css_classes=["kid-chip"])
+        self.kid = kid
+        box = Gtk.Box(spacing=12)
+        box.append(ui.avatar(kid, "chip"))
+        names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, valign=Gtk.Align.CENTER)
+        names.append(Gtk.Label(label=kid["name"], xalign=0, css_classes=["chip-name"]))
+        line = Gtk.Box(spacing=6)
+        self.mood = Gtk.Box(valign=Gtk.Align.CENTER, css_classes=["mood"])
+        line.append(self.mood)
+        self.status = Gtk.Label(xalign=0, css_classes=["chip-status"])
+        line.append(self.status)
+        names.append(line)
+        box.append(names)
+        self.set_child(box)
+
+    def show_status(self, status, stopped):
+        text, mood = chip_status(status, stopped)
+        self.status.set_label(text)
+        self.mood.set_css_classes(["mood", mood])
+
+
+class KidCard(Gtk.Box):
+    def __init__(self, panel, kid, chip=None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         self.panel = panel
         self.kid = kid
+        self.chip = chip or KidChip(kid)
         self.add_css_class("parent-row")
 
         header = Gtk.Box(spacing=20)
@@ -67,9 +111,11 @@ class KidRow(Gtk.Box):
             sections = []
         self.grid = next((s for s in sections if isinstance(s, week.WeekGrid)), None)
         self.internet = next((s for s in sections if isinstance(s, week.InternetBox)), None)
+        column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
         for section in sections:
             section.add_css_class("section")
-            self.append(section)
+            column.append(section)
+        self.append(ui.scroller(column, vexpand=True))
         self.refresh()
 
     def show_message(self, text):
@@ -118,6 +164,7 @@ class KidRow(Gtk.Box):
             text += _(" (resting)")
         self.played.set_label(text)
         stopped = state.stopped_today(self.kid["user"], state.load_policy())
+        self.chip.show_status(status, stopped)
         label = self.stop.get_child().get_last_child()
         label.set_label(_("Let play today") if stopped else _("Stop for today"))
         if self.grid is not None:
@@ -164,6 +211,7 @@ class Parent(Gtk.ApplicationWindow):
         page.append(top)
         page.append(self.pages)
 
+        self.selected = None
         self.pages.add_named(self.kids_page(), "kids")
         self.wifi = wifi_page.WifiPage(self.overlay, config)
         self.pages.add_named(self.wifi, "wifi")
@@ -188,16 +236,25 @@ class Parent(Gtk.ApplicationWindow):
                 self.wifi.refresh()
 
     def kids_page(self):
+        """One kid at a time, picked from a chip for each kid at the top."""
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        actions = Gtk.Box(spacing=16, halign=Gtk.Align.END)
-        add = ui.big_button(_("Add a kid"), "yes", "➕")
-        add.connect("clicked", lambda *_args: self.edit_kid(None))
-        actions.append(add)
-        box.append(actions)
-        self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
-        self.scroller = ui.scroller(self.list, vexpand=True)
-        box.append(self.scroller)
+        # Many kids wrap onto a second line rather than hide off screen.
+        self.chips = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, css_classes=["kid-chips"])
+        box.append(self.chips)
+        self.cards = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
+        box.append(self.cards)
         return box
+
+    def add_chip(self, widget):
+        self.chips.append(widget)
+        # The chip itself takes the focus, not the box around it.
+        widget.get_parent().set_focusable(False)
+
+    def show_kid(self, chip):
+        if chip.get_active():
+            self.selected = chip.kid["user"]
+            card = next(row for row in self.rows if row.chip is chip)
+            self.cards.set_visible_child(card)
 
     def system_page(self):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
@@ -233,13 +290,32 @@ class Parent(Gtk.ApplicationWindow):
 
     def populate(self):
         self.config = state.load_config()
-        while child := self.list.get_first_child():
-            self.list.remove(child)
-        self.rows = [KidRow(self, kid) for kid in self.config["kids"]]
+        self.chips.remove_all()
+        while child := self.cards.get_first_child():
+            self.cards.remove(child)
+        self.rows = [KidCard(self, kid) for kid in self.config["kids"]]
+        users = [row.kid["user"] for row in self.rows]
+        if self.selected not in users:
+            self.selected = users[0] if users else None
+        first = None
         for row in self.rows:
-            self.list.append(row)
+            if first is None:
+                first = row.chip
+            else:
+                row.chip.set_group(first)
+            row.chip.connect("toggled", self.show_kid)
+            self.add_chip(row.chip)
+            self.cards.add_child(row)
+        add = ui.big_button(_("Add a kid"), "subtle", "➕")
+        add.add_css_class("add-chip")
+        add.connect("clicked", lambda *_args: self.edit_kid(None))
+        self.add_chip(add)
+        for row in self.rows:
+            if row.kid["user"] == self.selected:
+                row.chip.set_active(True)
+                self.cards.set_visible_child(row)
         if not self.rows:
-            self.list.append(
+            self.cards.add_child(
                 Gtk.Label(label=_("No kids yet. Press ➕ Add a kid."), css_classes=["dialog-title"])
             )
 
@@ -256,10 +332,11 @@ class Parent(Gtk.ApplicationWindow):
             if not rebuild:
                 row.refresh()
                 continue
-            fresh = KidRow(self, row.kid)
-            self.list.insert_child_after(fresh, row)
-            self.list.remove(row)
+            fresh = KidCard(self, row.kid, row.chip)
             self.rows[i] = fresh
+            self.cards.add_child(fresh)
+            self.cards.set_visible_child(fresh)
+            self.cards.remove(row)
             # The old card had the focus; a stray key must not land on the
             # new card's +15 min.
             if fresh.grid is not None:
@@ -347,6 +424,7 @@ class Parent(Gtk.ApplicationWindow):
 
             def add():
                 user = admin.request("add-kid", **form.values())["user"]
+                self.selected = user
                 # Every kid starts with the week for their kind; the
                 # grown-up then sees the others and can pick one.
                 try:
