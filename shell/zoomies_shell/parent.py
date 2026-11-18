@@ -345,6 +345,7 @@ class Parent(Gtk.ApplicationWindow):
             self.cards.add_child(row)
         add = ui.big_button(_("Add a kid"), "subtle", "➕")
         add.add_css_class("add-chip")
+        add.add_css_class("small")
         add.connect("clicked", lambda *_args: self.edit_kid(None))
         self.add_chip(add)
         for row in self.rows:

@@ -43,9 +43,9 @@ window {
 }
 
 .avatar-chip {
-  font-size: 30px;
-  min-width: 56px;
-  min-height: 56px;
+  font-size: 26px;
+  min-width: 48px;
+  min-height: 48px;
   border-width: 3px;
 }
 
@@ -271,14 +271,14 @@ button:focus {
 
 /* Room for the focus outline, which the chips' boxes would cut off. */
 .kid-chips > flowboxchild {
-  padding: 10px;
+  padding: 8px;
 }
 
 .kid-chip {
   color: #1d3557;
   background: alpha(white, 0.55);
   border-radius: 28px;
-  padding: 8px 22px 8px 8px;
+  padding: 6px 16px 6px 6px;
   box-shadow: 0 4px 0 alpha(#1d3557, 0.18), inset 0 0 0 4px transparent;
 }
 
