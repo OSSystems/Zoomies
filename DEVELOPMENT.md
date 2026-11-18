@@ -164,8 +164,21 @@ opens a draft release that links to them, with their `SHA256SUMS`. Read it
 over and publish it. The images go to a bucket because GitHub caps release
 files at 2 GiB, and the ISO alone is larger.
 
-The workflow runs in the `release` environment. Limit it to `v*` tags, and
-set there:
+The workflow runs in the `release` environment, which only `v*` tags may
+use. To set it up for a Cloudflare R2 bucket, or to rotate its key, run with
+an account API token allowed to edit R2 storage, account API tokens and the
+DNS of the zone that holds the hostname:
+
+```sh
+CLOUDFLARE_API_TOKEN=... nix shell --inputs-from . nixpkgs#awscli2 nixpkgs#gh \
+  nixpkgs#jq --command .github/scripts/setup-release-bucket.sh [hostname] [bucket]
+```
+
+It serves the bucket, `zoomies-releases` by default, from the hostname,
+`zoomies.ossystems.tech` by default, instead of its r2.dev address. Then it
+creates a key that can only write to that bucket, fills in the environment
+and checks that an upload can be downloaded. For another S3-compatible store,
+set the environment by hand:
 
 | Name | Kind | Value |
 | --- | --- | --- |
