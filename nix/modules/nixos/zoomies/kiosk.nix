@@ -31,27 +31,51 @@ let
     ];
   });
 
-  # Run by cage once it stops. When the shell asked for the power off, cage
-  # keeps showing the bare sky it faded to until the platform's splash has
-  # loaded behind it, says it is holding the screen, and stays until the
-  # splash has taken it. Anything else, such as logging out, finds no
-  # request and is not held.
+  # Run by cage once it stops, with cage's handle on the screen. When the
+  # shell asked for the power off, cage keeps showing the bare sky it faded
+  # to until the platform's splash has loaded behind it, says it is holding
+  # the screen, and stays until the splash has taken it. Otherwise a holder
+  # keeps the handle, and so cage's last frame, until the next screen has
+  # drawn; logging out is not held up.
   handover = pkgs.writeShellScript "zoomies-handover" ''
+    PATH=${lib.makeBinPath [ pkgs.coreutils ]}
     dir=/run/zoomies-splash
     wait_for() {
-      for _ in $(${lib.getExe' pkgs.coreutils "seq"} 300); do
+      for _ in $(seq 300); do
         [ -e "$dir/$1" ] && return 0
-        ${lib.getExe' pkgs.coreutils "sleep"} 0.01
+        sleep 0.01
       done
       return 1
     }
-    # The session's stop signals every process in it, including any cage
-    # forks while the signals go out; the waits below are bounded.
-    trap "" TERM HUP INT
-    [ -e "$dir/requested" ] && wait_for ready || exit 0
-    # Which compositor to take the screen from: cage, which runs this.
-    echo "$PPID" > "$dir/holding"
-    wait_for shown
+    # cage starts this ignoring the session's stop signals.
+    [ -d "$dir" ] || exit 0
+    if [ -e "$dir/requested" ]; then
+      echo "zoomies-handover: keeping the sky up until the splash loads" >&2
+      if ! wait_for ready; then
+        echo "zoomies-handover: the splash did not load in time" >&2
+        exit 0
+      fi
+      # Which compositor to take the screen from: cage, which runs this.
+      echo "$PPID" > "$dir/holding"
+      wait_for shown || echo "zoomies-handover: the splash did not take the screen" >&2
+    elif [ -n "''${ZOOMIES_SCREEN_FD:-}" ]; then
+      echo "zoomies-handover: keeping the last frame up until the next screen draws" >&2
+      left=$(mktemp "$dir/left.XXXXXX")
+      # Each screen marks its own file; others' may not be touched here.
+      drawn() {
+        for mark in "$dir"/drawn-*; do
+          [ "$mark" -nt "$left" ] && return 0
+        done
+        return 1
+      }
+      (
+        for _ in $(seq 1000); do
+          drawn && break
+          sleep 0.01
+        done
+        rm -f "$left"
+      ) </dev/null >/dev/null 2>&1 &
+    fi
   '';
 
   kiosk =
