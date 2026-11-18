@@ -320,6 +320,23 @@ button:focus {
   margin: 4px 0;
 }
 
+switch {
+  background: alpha(#1d3557, 0.2);
+  border: none;
+  border-radius: 999px;
+}
+
+switch:checked {
+  background: #2a9d4a;
+}
+
+switch > slider {
+  background: white;
+  border: none;
+  border-radius: 999px;
+  box-shadow: 0 2px 0 alpha(#1d3557, 0.25);
+}
+
 .subtabs {
   background: alpha(#1d3557, 0.08);
   border-radius: 999px;
