@@ -4,8 +4,10 @@
   andika,
   grub2,
   imagemagick,
+  python3,
   resvg,
   runCommand,
+  zoomies-splash,
 }:
 
 runCommand "zoomies-grub-theme"
@@ -13,13 +15,19 @@ runCommand "zoomies-grub-theme"
     nativeBuildInputs = [
       grub2
       imagemagick
+      python3
       resvg
     ];
   }
   ''
     mkdir $out
     cp ${./theme.txt} $out/theme.txt
-    resvg -w 1920 ${../../../../../assets/wallpaper/older.svg} $out/background.png
+    wallpaper=${../../../../../assets/wallpaper/older.svg}
+    python3 ${./background.py} $wallpaper menu.svg ${../../../../../assets/mascot/zip.svg}
+    resvg -w 1920 menu.svg $out/background.png
+    # While Zoomies loads, the splash's first frame, so that Zip seems to
+    # come up from below onto the picture already on the screen.
+    cp ${zoomies-splash}/share/zoomies-splash/first-frame.png $out/loading.png
 
     # Latin with accents and the arrows in the hint, to keep the fonts small.
     ranges=0x20-0x7E,0xA0-0x24F,0x2190-0x2193

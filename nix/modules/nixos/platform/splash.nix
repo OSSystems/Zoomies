@@ -16,7 +16,7 @@ let
   takeoff = pkgs.writeShellScript "zoomies-splash-takeoff" ''
     if ${plymouth} --ping; then
       ${plymouth} update --status=zoomies-takeoff
-      ${lib.getExe' pkgs.coreutils "sleep"} 0.9
+      ${lib.getExe' pkgs.coreutils "sleep"} 1.3
       ${plymouth} deactivate
     fi
   '';
@@ -71,6 +71,11 @@ in
   };
   environment.etc."plymouth/plymouthd.conf".source = lib.mkForce daemonConfig;
   systemd.services = {
+    # A machine with nothing left to stop turns off before the splash draws
+    # its first frame, so it holds on for Zip to land, wave and, at power
+    # off, fall asleep. The rest of the shutdown carries on meanwhile.
+    plymouth-poweroff.serviceConfig.ExecStartPost = [ "-${lib.getExe' pkgs.coreutils "sleep"} 3" ];
+    plymouth-reboot.serviceConfig.ExecStartPost = [ "-${lib.getExe' pkgs.coreutils "sleep"} 1.6" ];
     # Without --retain-splash the console flashes between the splash and
     # the greeter.
     plymouth-quit.serviceConfig.ExecStart = [
