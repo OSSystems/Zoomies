@@ -56,7 +56,9 @@ let
       --replace-fail 'os.environ["ZOOMIES_INSTALL_TARGET"]' '"${lib.getExe installTarget}"'
   '';
 
-  grubTheme = pkgs.callPackage ../platform/grub-theme { };
+  grubTheme = pkgs.callPackage ../platform/grub-theme {
+    zoomies-splash = pkgs.callPackage ../../../packages/zoomies-splash/package.nix { };
+  };
 
   # The BIOS menu of the disc is syslinux, which shows a 640x480 picture.
   syslinuxSplash = pkgs.runCommand "zoomies-syslinux-splash.png" {
