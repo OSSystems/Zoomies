@@ -50,6 +50,7 @@ WHAT = {
     "org.kde.krita.desktop": N_("Paint pictures"),
     "org.kde.ktouch.desktop": N_("Learn to type"),
     "org.stellarium.Stellarium.desktop": N_("Explore the sky"),
+    "org.turbowarp.TurboWarp.desktop": N_("Make games and stories"),
     "thunar.desktop": N_("Find your files"),
     "writer.desktop": N_("Write stories"),
 }

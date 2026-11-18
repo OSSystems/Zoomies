@@ -149,6 +149,7 @@ in
         krita
         libreoffice
         stellarium
+        (pkgs.callPackage ../../../packages/turbowarp-desktop/package.nix { })
       ];
       defaultText = lib.literalExpression "office, learning and creative apps";
       description = "Apps on the older kids' desktop, besides Firefox and the games.";

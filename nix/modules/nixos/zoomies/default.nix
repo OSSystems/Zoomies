@@ -178,6 +178,7 @@ in
         supertux
         supertuxkart
         tuxpaint
+        (callPackage ../../../packages/turbowarp-desktop/package.nix { })
       ];
       defaultText = lib.literalExpression "a curated set of open-source games";
       description = "Games installed for every kid unless their profile picks others.";
