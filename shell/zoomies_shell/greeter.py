@@ -145,6 +145,12 @@ class Greeter(Gtk.ApplicationWindow):
         self.gamepad = ui.Gamepad(self, on_back=self.overlay.close)
 
         self.populate()
+        ui.arrive(
+            self,
+            ("drop", [top]),
+            ("pop", ui.children(self.kids)),
+            ("rise", [bottom]),
+        )
         GLib.timeout_add_seconds(5, self.refresh)
         self.ready = ui.when_ready(self, "zoomies-greeter", "setup")
         GLib.idle_add(self.maybe_set_up)

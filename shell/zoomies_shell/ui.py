@@ -362,6 +362,71 @@ def sky(slowness, strength=1.0):
     return None if state.calm_screen() else Sky(slowness, strength)
 
 
+# When each step of a screen's arrival starts, and how far apart the
+# widgets of one step start; the sky shows bare for a moment first.
+ARRIVALS = {"drop": 0.15, "pop": 0.35, "rise": 0.8}
+STAGGER = 0.06
+_delays = None
+_delay_classes = set()
+
+
+def children(widget):
+    found = []
+    child = widget.get_first_child()
+    while child is not None:
+        found.append(child)
+        child = child.get_next_sibling()
+    return found
+
+
+def arrive(window, *steps):
+    """Brings a screen in on the bare sky the screen before left.
+
+    Each step is a kind of entrance, one of ARRIVALS, and its widgets, which
+    start one after another: the title drops, the tiles pop, the buttons
+    rise. Keys work at once. A calm screen only fades in.
+
+    The first frame takes long to draw, without a GPU up to half a second,
+    and an animation started with it would be mostly over by the time it
+    shows. That frame shows the bare sky; the steps start once it is out.
+    """
+    calm = state.calm_screen()
+    timeline = []
+    for kind, widgets in steps:
+        for index, widget in enumerate(widgets):
+            if calm:
+                timeline.append((widget, "appear", 0))
+            else:
+                timeline.append((widget, kind, round(1000 * (ARRIVALS[kind] + STAGGER * min(index, 6)))))
+            widget.add_css_class("waiting")
+    global _delays
+    needed = {delay for _widget, _kind, delay in timeline} - _delay_classes
+    if needed:
+        if _delays is None:
+            _delays = Gtk.CssProvider()
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(), _delays, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+        _delay_classes.update(needed)
+        _delays.load_from_string(
+            "".join(f".delay-{ms} {{ animation-delay: {ms}ms; }}\n" for ms in sorted(_delay_classes))
+        )
+
+    def start(clock):
+        clock.disconnect(painted)
+        for widget, kind, delay in timeline:
+            widget.add_css_class(f"arrive-{kind}")
+            widget.add_css_class(f"delay-{delay}")
+            widget.remove_css_class("waiting")
+
+    def realized(*_args):
+        nonlocal painted
+        painted = window.get_frame_clock().connect("after-paint", start)
+
+    painted = None
+    window.connect("realize", realized)
+
+
 class Overlay(Gtk.Overlay):
     """A full-window layer for dialogs; cage shows one window, so popups
     would otherwise take over the whole screen."""

@@ -171,6 +171,61 @@ button:focus {
   background: linear-gradient(180deg, #7fd3ff 0%, #b8ecff 55%, #c8f5c0 100%);
 }
 
+/* A screen arriving on the bare sky: see ui.arrive. Each step holds its
+   first keyframe until its turn. */
+.waiting {
+  opacity: 0;
+}
+
+.arrive-drop,
+.arrive-pop,
+.arrive-rise,
+.arrive-appear {
+  animation-fill-mode: both;
+  animation-timing-function: ease-out;
+}
+
+.arrive-drop {
+  animation-name: drop;
+  animation-duration: 350ms;
+}
+
+.arrive-pop {
+  animation-name: pop;
+  animation-duration: 450ms;
+}
+
+.arrive-rise {
+  animation-name: rise;
+  animation-duration: 300ms;
+}
+
+.arrive-appear {
+  animation-name: appear;
+  animation-duration: 400ms;
+}
+
+@keyframes drop {
+  from { opacity: 0; transform: translateY(-48px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pop {
+  0% { opacity: 0; transform: scale(0.6); }
+  60% { opacity: 1; transform: scale(1.08); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(32px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes appear {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 .dialog {
   background: white;
   border-radius: 40px;
