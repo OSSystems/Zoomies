@@ -74,4 +74,7 @@ in
       name = "Lia";
     };
   };
+  # Developers log in as root with no password, which the panel's switch
+  # would not allow.
+  zoomies.remoteAccess.enable = lib.mkForce false;
 }

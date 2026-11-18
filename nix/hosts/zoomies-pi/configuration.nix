@@ -14,5 +14,8 @@
   networking.hostName = hostName;
   nixpkgs.hostPlatform = "aarch64-linux";
   system.stateVersion = "26.05";
-  zoomies.enable = true;
+  zoomies = {
+    enable = true;
+    remoteAccess.enable = true;
+  };
 }

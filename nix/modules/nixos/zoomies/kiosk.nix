@@ -136,6 +136,8 @@ in
           ];
           # Older kids can reach a text console from their desktop.
           login.rules = lockout;
+          # Over SSH the password is the PIN too.
+          sshd.rules = lib.mkIf cfg.remoteAccess.enable lockout;
           # Kids could otherwise guess the PIN with su; grown-ups use sudo.
           su.requireWheel = true;
           # greetd fails a locked account just like a wrong PIN, apart from

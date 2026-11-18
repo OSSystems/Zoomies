@@ -127,6 +127,7 @@ in
         olderSession = if cfg.older.enable then cfg.sessions.older else null;
         parent = if cfg.parent.user == null then null else { inherit (cfg.parent) user; };
         parentSession = cfg.sessions.parent;
+        remoteAccess = cfg.remoteAccess.enable;
         resetKeep = cfg.resetHomes.keep;
         warningSound = "${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga";
       };
@@ -164,6 +165,7 @@ in
     ./language.nix
     ./network.nix
     ./older.nix
+    ./remote-access.nix
     ./reset.nix
     ./screen-time.nix
   ];

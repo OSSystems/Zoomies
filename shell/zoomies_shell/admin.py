@@ -38,6 +38,7 @@ NETWORK_ACTIONS = (
     "set-address",
 )
 LOCKOUT = 60
+REMOTE_ACCESS = os.path.join(state.STATE_DIR, "remote-access")
 
 
 class Refused(Exception):
@@ -148,6 +149,19 @@ class Admin:
                 return wifi.run(action, message)
             except wifi.Failed as error:
                 raise Refused(str(error)) from error
+        if action in ("remote-access", "set-remote-access"):
+            if not state.load_config().get("remoteAccess"):
+                raise Refused(N_("remote access is not available on this system"))
+            if not self.pin_set():
+                raise Refused(N_("set the grown-ups PIN first"))
+            self.authorize(uid, message)
+            if action == "set-remote-access":
+                set_remote_access(bool(message.get("on")))
+            return {
+                "on": os.path.exists(REMOTE_ACCESS),
+                "user": self.parent,
+                "addresses": local_addresses(),
+            }
         if action in ("add-kid", "edit-kid", "remove-kid"):
             if not self.pin_set():
                 raise Refused(N_("set the grown-ups PIN first"))
@@ -275,6 +289,40 @@ class Admin:
         return {}
 
 
+def set_remote_access(on):
+    # sshd starts only while the file exists, so the choice outlives a
+    # reboot. Stopping it ends no session already open.
+    if on:
+        with open(REMOTE_ACCESS, "w"):
+            pass
+        subprocess.run(["systemctl", "start", "sshd.service"], check=True)
+    else:
+        subprocess.run(["systemctl", "stop", "sshd.service"], check=True)
+        try:
+            os.remove(REMOTE_ACCESS)
+        except FileNotFoundError:
+            pass
+
+
+def local_addresses():
+    """Addresses another computer at home can reach, IPv4 first."""
+    result = subprocess.run(
+        ["ip", "-json", "address", "show", "scope", "global"], capture_output=True, text=True
+    )
+    try:
+        links = json.loads(result.stdout or "[]")
+    except ValueError:
+        return []
+    found = [
+        (info["family"], info["local"])
+        for link in links
+        if link.get("operstate") != "DOWN"
+        for info in link.get("addr_info", [])
+        if info.get("family") in ("inet", "inet6") and "local" in info
+    ]
+    return [address for _family, address in sorted(found, key=lambda pair: pair[0] != "inet")]
+
+
 def _user_exists(name):
     try:
         pwd.getpwnam(name)
@@ -345,6 +393,8 @@ def main():
     how.add_argument("--fixed", metavar="ADDRESS", help="such as 192.168.1.50 or 10.0.0.5/16")
     address.add_argument("--gateway", default="", help="the router, with --fixed")
     address.add_argument("--dns", default="", help="DNS servers, with --fixed")
+    remote = commands.add_parser("remote-access", help="SSH for the grown-up account")
+    remote.add_argument("state", nargs="?", choices=["on", "off"])
     pin = commands.add_parser("set-pin")
     pin.add_argument("--stdin", action="store_true", help="read old and new PIN as two lines")
     args = parser.parse_args()
@@ -392,6 +442,12 @@ def main():
                 print(json.dumps(request("set-address", **fields)))
             else:
                 print(json.dumps(request("address", **fields)))
+        elif args.command == "remote-access":
+            if args.state:
+                reply = request("set-remote-access", on=args.state == "on")
+            else:
+                reply = request("remote-access")
+            print(json.dumps(reply))
         elif args.command == "set-pin":
             if args.stdin:
                 # First line the current PIN (empty when none), then the new one.

@@ -1,6 +1,7 @@
 # The panel and the first-boot wizard run unprivileged; this root service
-# does the few things they need root for: creating kid accounts and setting
-# the PIN. Only the grown-up and the greeter can reach its socket.
+# does the few things they need root for: creating kid accounts, setting
+# the PIN, the network and remote access. Only the grown-up and the greeter
+# can reach its socket.
 {
   config,
   lib,
@@ -30,6 +31,7 @@ in
         description = "Zoomies profiles and PIN";
         path = [
           config.systemd.package
+          pkgs.iproute2
           pkgs.pamtester
           pkgs.procps
           pkgs.shadow
