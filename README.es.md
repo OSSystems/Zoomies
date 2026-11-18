@@ -151,8 +151,9 @@ Para abrir el panel de los adultos, mantén pulsado el 🔒 en la pantalla
 «¿Quién va a jugar?», o pulsa Ctrl+Alt+P, y escribe tu PIN. Tras cinco PIN
 incorrectos, el panel queda bloqueado durante diez minutos.
 
-Desde ahí también puedes conectarte a otra Wi-Fi, cambiar el PIN y
-reiniciar o apagar el ordenador.
+Desde ahí también puedes conectarte a otra Wi-Fi, darle al ordenador una
+dirección fija en el cable o la Wi-Fi, cambiar el PIN y reiniciar o apagar
+el ordenador.
 
 ## Actualizaciones
 

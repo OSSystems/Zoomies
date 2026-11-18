@@ -42,6 +42,13 @@ window {
   min-height: 156px;
 }
 
+.avatar-chip {
+  font-size: 26px;
+  min-width: 48px;
+  min-height: 48px;
+  border-width: 3px;
+}
+
 .avatar-small {
   font-size: 40px;
   min-width: 76px;
@@ -262,6 +269,113 @@ button:focus {
   background: #ffd60a;
 }
 
+/* Room for the focus outline, which the chips' boxes would cut off. */
+.kid-chips > flowboxchild {
+  padding: 8px;
+}
+
+.kid-chip {
+  color: #1d3557;
+  background: alpha(white, 0.55);
+  border-radius: 28px;
+  padding: 6px 16px 6px 6px;
+  box-shadow: 0 4px 0 alpha(#1d3557, 0.18), inset 0 0 0 4px transparent;
+}
+
+.kid-chip:checked {
+  background: white;
+  box-shadow: 0 4px 0 alpha(#1d3557, 0.18), inset 0 0 0 4px #1d3557;
+}
+
+.chip-name {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.chip-status {
+  font-size: 16px;
+  color: #3d5a80;
+}
+
+.mood {
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 999px;
+  background: #8fd8ff;
+}
+
+.mood.playing {
+  background: #2a9d4a;
+}
+
+.mood.resting {
+  background: #9aa8b8;
+}
+
+.mood.stopped {
+  background: #e63946;
+}
+
+.big-button.add-chip {
+  margin: 4px 0;
+}
+
+switch {
+  background: alpha(#1d3557, 0.2);
+  border: none;
+  border-radius: 999px;
+}
+
+switch:checked {
+  background: #2a9d4a;
+}
+
+switch > slider {
+  background: white;
+  border: none;
+  border-radius: 999px;
+  box-shadow: 0 2px 0 alpha(#1d3557, 0.25);
+}
+
+.subtabs {
+  background: alpha(#1d3557, 0.08);
+  border-radius: 999px;
+  padding: 6px;
+}
+
+.subtab {
+  color: #1d3557;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 999px;
+  padding: 6px 20px;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.subtab:hover {
+  background: alpha(white, 0.5);
+}
+
+.subtab:checked {
+  background: white;
+  box-shadow: 0 3px 0 alpha(#1d3557, 0.15), inset 0 0 0 3px #1d3557;
+}
+
+/* The usual focus outline would cover the next option and look like the
+   choice; this one fits in the bar's padding and the gap between options. */
+.subtabs > .subtab:focus,
+.subtabs > .subtab:focus-visible {
+  outline: 3px solid #ffd60a;
+  outline-offset: 2px;
+}
+
+.subtab-emoji {
+  font-family: "Noto Color Emoji", "Andika";
+  font-size: 22px;
+}
+
 .big-button.on {
   background: #ffd60a;
 }
@@ -277,11 +391,6 @@ button:focus {
 
 .big-button.small .button-emoji {
   font-size: 22px;
-}
-
-.section {
-  border-top: 2px dashed alpha(#1d3557, 0.15);
-  padding-top: 12px;
 }
 
 .section-title {
@@ -345,6 +454,16 @@ button:focus {
   padding: 8px 16px;
 }
 
+.field-name {
+  font-weight: bold;
+}
+
+.field {
+  font-size: 22px;
+  min-height: 48px;
+  border-radius: 16px;
+}
+
 .network {
   border-radius: 16px;
   padding: 10px 16px;
@@ -398,4 +517,44 @@ button:focus {
 /* Five templates side by side need the room a dialog's padding takes. */
 .dialog.templates {
   padding: 24px 20px;
+}
+
+/* Scrollbars stay in sight and are wide enough for a finger; a shadow
+   marks the edge with more beyond it. */
+
+.scroller > scrollbar {
+  background: none;
+  border: none;
+}
+
+.scroller > scrollbar.vertical {
+  margin-left: 10px;
+}
+
+.scroller > scrollbar trough {
+  background: alpha(#1d3557, 0.12);
+  border-radius: 999px;
+  min-width: 18px;
+}
+
+.scroller > scrollbar slider {
+  background: #1d3557;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  min-width: 18px;
+  min-height: 64px;
+}
+
+.scroller > scrollbar slider:hover,
+.scroller > scrollbar slider:active {
+  background-color: #3d5a80;
+}
+
+.scroller > undershoot.bottom {
+  background: linear-gradient(to top, alpha(#1d3557, 0.25), transparent 32px);
+}
+
+.scroller > undershoot.top {
+  background: linear-gradient(to bottom, alpha(#1d3557, 0.25), transparent 32px);
 }

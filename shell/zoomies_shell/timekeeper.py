@@ -168,6 +168,9 @@ def daemon(_args):
                     # Rules that cannot be read allow nothing, as in PAM.
                     log(f"{user}: broken rules: {error!r}")
                     status = {**BROKEN, "used": int(usage["seconds"].get(user, 0))}
+                # The grown-ups see who plays now. A kid who is only
+                # "online" is logged in, but not the one on screen.
+                status["playing"] = login == "active"
                 statuses[user] = status
                 if status["online"]:
                     online.add(pwd.getpwnam(user).pw_uid)

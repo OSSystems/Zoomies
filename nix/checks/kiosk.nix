@@ -26,7 +26,8 @@ pkgs.testers.runNixOSTest {
   nodes = {
     # A fresh install, whose first boot asks for Wi-Fi and the PIN. It also
     # covers the nftables firewall and a system without older kids. A
-    # simulated radio plays the home Wi-Fi.
+    # simulated radio plays the home Wi-Fi, and a second network card the
+    # cable, plugged into a network with nobody else on it.
     fresh = {
       boot = {
         extraModprobeConfig = "options mac80211_hwsim radios=2";
@@ -79,6 +80,10 @@ pkgs.testers.runNixOSTest {
           };
         };
       };
+      virtualisation.vlans = [
+        1
+        2
+      ];
       zoomies.games = lib.mkForce [ ];
       zoomies.older.enable = false;
     };
@@ -660,7 +665,7 @@ pkgs.testers.runNixOSTest {
         fresh.succeed("printf '2468\\n' | runuser -u greeter -- zoomies-profile wifi scan --pin-stdin")
         fresh.succeed(as_parent("zoomies-profile wifi status") + " | grep -q '\"connected\": \"Zoomies Home\"'")
 
-    with subtest("the grown-ups panel shows the week, the internet and Wi-Fi"):
+    with subtest("the grown-ups panel shows the week, the internet and the network"):
         date = fresh.succeed("date -d '+3 days' +%F").strip()
         school = {"blocks": [["07:00", "07:30"], ["17:00", "19:30"]], "minutes": 60}
         weekend = {"blocks": [["09:00", "12:00"], ["14:00", "20:00"]], "minutes": 180}
@@ -677,11 +682,12 @@ pkgs.testers.runNixOSTest {
         wait_for_ready("zoomies-parent", "parent", fresh)
         fresh.wait_for_text("Max a day", timeout=60)
         fresh.screenshot("parent-week")
-        # The focus starts on the Kids tab; Wi-Fi and System follow.
+        # The focus starts on the Kids tab; Network and System follow.
         fresh.send_key("tab")
         fresh.send_key("spc")
         fresh.wait_for_text("Zoomies Home", timeout=90)
-        fresh.screenshot("parent-wifi")
+        fresh.wait_for_text("Cable", timeout=30)
+        fresh.screenshot("parent-network")
         fresh.send_key("tab")
         fresh.send_key("spc")
         fresh.wait_for_text("Calm screen", timeout=60)
@@ -690,17 +696,84 @@ pkgs.testers.runNixOSTest {
         fresh.send_key("shift-tab")
         fresh.send_key("spc")
         fresh.wait_for_text("Max a day", timeout=60)
-        # Moving the focus down the week scrolls the page to the internet
-        # and the special days.
-        for _ in range(36):
+        # Past Network, System, Kim's chip, Add a kid, +15 min, Stop, Edit,
+        # Remove and the Week tab.
+        for _ in range(10):
             fresh.send_key("tab")
-        for _ in range(6):
-            if "Special days" in fresh.get_screen_text():
-                break
-            fresh.send_key("tab")
-            fresh.send_key("tab")
-        fresh.wait_for_text("Special days", timeout=30)
+        fresh.send_key("spc")
+        fresh.wait_for_text("Online during play time", timeout=30)
         fresh.screenshot("parent-internet")
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("No play", timeout=30)
+        fresh.screenshot("parent-special-days")
+        log_out("parent", fresh)
+
+    with subtest("the cable and a Wi-Fi network take a fixed address"):
+        def method_of(device):
+            """A shell command that prints how a device's connection gets
+            its address."""
+            name = f"$(nmcli -g GENERAL.CONNECTION device show {device})"
+            return f'nmcli -g ipv4.method connection show "{name}"'
+
+        def method(device):
+            return fresh.succeed(method_of(device)).strip()
+
+        # The cable's network has no router, so a fixed address is its way in.
+        fresh.succeed(as_parent("zoomies-profile address --fixed 10.9.8.7 --dns 10.9.8.1"))
+        fresh.wait_until_succeeds("ip -4 addr show eth2 | grep -q 'inet 10.9.8.7/24'", timeout=60)
+        assert method("eth2") == "manual", method("eth2")
+        cable = json.loads(fresh.succeed(as_parent("zoomies-profile address")))
+        assert cable["fixed"] and cable["now"]["address"] == "10.9.8.7", cable
+        # Kids cannot change it; the greeter only with the PIN.
+        fresh.fail("runuser -u kim -- zoomies-profile address --auto")
+        fresh.fail("runuser -u greeter -- zoomies-profile address --auto")
+        # Mistakes are refused before NetworkManager sees them.
+        wrong = fresh.execute(
+            as_parent("zoomies-profile address --fixed 10.9.8.7 --gateway 10.1.1.1 2>&1")
+        )
+        assert wrong[0] != 0 and "same network" in wrong[1], wrong
+
+        fresh.succeed(
+            as_parent(
+                "zoomies-profile address 'Zoomies Home' --fixed 192.168.77.60 --gateway 192.168.77.1"
+            )
+        )
+        fresh.wait_until_succeeds("ip -4 addr show wlan0 | grep -q 'inet 192.168.77.60/24'", timeout=60)
+        fresh.succeed("ping -c1 -W5 192.168.77.1")
+        fresh.succeed(as_parent("zoomies-profile address 'Zoomies Home' --auto"))
+        fresh.wait_until_succeeds(
+            "ip -4 addr show wlan0 | grep -q 'inet 192.168.77.[1-5][0-9]/24'", timeout=60
+        )
+        assert method("wlan0") == "auto", method("wlan0")
+
+        # From the panel: the cable's settings, back to the router's address.
+        # Its network has no router, so the cable then goes down: its
+        # connection is checked by name.
+        cable_name = fresh.succeed("nmcli -g GENERAL.CONNECTION device show eth2").strip()
+        fresh.send_key("ctrl-alt-p")
+        fresh.sleep(2)
+        fresh.send_chars("2468\n")
+        wait_for_ready("zoomies-parent", "parent", fresh)
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("10.9.8.7", timeout=60)
+        # The cable's Settings comes right after the tabs.
+        fresh.send_key("tab")
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("Fixed address", timeout=30)
+        fresh.wait_for_text("10.9.8.1", timeout=30)
+        fresh.screenshot("parent-address")
+        # Automatic has the focus; then Fixed address, Cancel and Save.
+        fresh.send_key("spc")
+        fresh.wait_for_text("Given by the router", timeout=30)
+        for _ in range(3):
+            fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_until_succeeds(
+            f"[ \"$(nmcli -g ipv4.method connection show '{cable_name}')\" = auto ]", timeout=90
+        )
         log_out("parent", fresh)
 
     with subtest("a template replaces the week and the internet days, not special days"):
@@ -709,9 +782,10 @@ pkgs.testers.runNixOSTest {
         fresh.send_chars("2468\n")
         wait_for_ready("zoomies-parent", "parent", fresh)
         fresh.wait_for_text("Max a day", timeout=60)
-        # From the Kids tab: Wi-Fi, System, Add a kid, then Kim's +15 min,
-        # Stop, Edit and Remove come before the week's template button.
-        for _ in range(8):
+        # From the Kids tab: Network, System, Kim's chip, Add a kid, then
+        # Kim's +15 min, Stop, Edit, Remove and the three tabs of the card
+        # come before the week's template button.
+        for _ in range(12):
             fresh.send_key("tab")
         fresh.send_key("spc")
         fresh.wait_for_text("week for Kim", timeout=60)

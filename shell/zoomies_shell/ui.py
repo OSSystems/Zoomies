@@ -97,6 +97,18 @@ def play(name):
         )
 
 
+def when_back(status):
+    days, time = status.get("opensIn"), status.get("opensAt")
+    if status["reason"] == "hours" and days == 0:
+        return _("Back at {time}").format(time=time)
+    if days == 1:
+        return _("Back tomorrow at {time}").format(time=time)
+    if days is not None and days < 7:
+        weekday = (datetime.date.today() + datetime.timedelta(days=days)).weekday()
+        return _("Back on {day}").format(day=_(state.WEEKDAY_NAMES[weekday]))
+    return _("All done for today")
+
+
 def avatar(kid, size="big"):
     return Gtk.Label(
         label=kid.get("avatar", "🙂"),
@@ -173,6 +185,19 @@ def clock():
     tick()
     GLib.timeout_add_seconds(5, tick)
     return label
+
+
+def scroller(child, **properties):
+    """A scrolled area whose scrollbar never hides, wide enough to grab: a
+    bar that only shows while scrolling leaves no hint of more below."""
+    window = Gtk.ScrolledWindow(
+        child=child,
+        hscrollbar_policy=Gtk.PolicyType.NEVER,
+        overlay_scrolling=False,
+        **properties,
+    )
+    window.add_css_class("scroller")
+    return window
 
 
 def big_button(text, css=None, emoji=None):

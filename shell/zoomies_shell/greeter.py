@@ -5,7 +5,6 @@ without a password). The parent tile needs a long press, then the parent
 account's password typed on a PIN pad, so the PIN is never part of the image.
 """
 
-import datetime
 import json
 import os
 import socket
@@ -85,22 +84,10 @@ def describe(status):
     if not status:
         return _("Let's play!")
     if not status["allowed"]:
-        return when_back(status)
+        return ui.when_back(status)
     if status["remaining"] is None:
         return _("Let's play!")
     return _("{time} to play").format(time=state.format_duration(status["remaining"]))
-
-
-def when_back(status):
-    days, time = status.get("opensIn"), status.get("opensAt")
-    if status["reason"] == "hours" and days == 0:
-        return _("Back at {time}").format(time=time)
-    if days == 1:
-        return _("Back tomorrow at {time}").format(time=time)
-    if days is not None and days < 7:
-        weekday = (datetime.date.today() + datetime.timedelta(days=days)).weekday()
-        return _("Back on {day}").format(day=_(state.WEEKDAY_NAMES[weekday]))
-    return _("All done for today")
 
 
 class Greeter(Gtk.ApplicationWindow):
@@ -135,9 +122,7 @@ class Greeter(Gtk.ApplicationWindow):
             margin_end=14,
         )
         # A big family must not push the grown-ups and power buttons away.
-        scroller = Gtk.ScrolledWindow(
-            vexpand=True, child=self.kids, hscrollbar_policy=Gtk.PolicyType.NEVER
-        )
+        scroller = ui.scroller(self.kids, vexpand=True)
         page.append(scroller)
 
         bottom = Gtk.Box(spacing=16)

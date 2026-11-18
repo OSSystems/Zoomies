@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-17 08:45-0300\n"
+"POT-Creation-Date: 2026-11-18 14:14-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,24 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+msgid "type the address"
+msgstr ""
+
+msgid "the address is not valid; it looks like 192.168.1.50"
+msgstr ""
+
+msgid "this address cannot be used on its network"
+msgstr ""
+
+msgid "the router is not a valid address"
+msgstr ""
+
+msgid "the router must be on the same network as the address"
+msgstr ""
+
+msgid "the DNS servers are not valid addresses"
+msgstr ""
 
 msgid "no answer from the admin service"
 msgstr ""
@@ -56,21 +74,6 @@ msgstr ""
 
 #, python-brace-format
 msgid "{time} to play"
-msgstr ""
-
-#, python-brace-format
-msgid "Back at {time}"
-msgstr ""
-
-#, python-brace-format
-msgid "Back tomorrow at {time}"
-msgstr ""
-
-#, python-brace-format
-msgid "Back on {day}"
-msgstr ""
-
-msgid "All done for today"
 msgstr ""
 
 msgid "Who's playing?"
@@ -193,6 +196,23 @@ msgstr ""
 msgid "Almost time to stop. Pick something quick!"
 msgstr ""
 
+msgid "Stopped for today"
+msgstr ""
+
+msgid "Playing, no limit"
+msgstr ""
+
+msgid "No limit"
+msgstr ""
+
+#, python-brace-format
+msgid "Playing, {time} left"
+msgstr ""
+
+#, python-brace-format
+msgid "{time} left"
+msgstr ""
+
 msgid "+15 min"
 msgstr ""
 
@@ -207,6 +227,15 @@ msgstr ""
 
 #, python-brace-format
 msgid "The rules of {name} cannot be read: {reason}."
+msgstr ""
+
+msgid "Week"
+msgstr ""
+
+msgid "Internet"
+msgstr ""
+
+msgid "Special days"
 msgstr ""
 
 #, python-brace-format
@@ -240,16 +269,13 @@ msgstr ""
 msgid "Kids"
 msgstr ""
 
-msgid "Wi-Fi"
+msgid "Network"
 msgstr ""
 
 msgid "System"
 msgstr ""
 
 msgid "Back to the kids"
-msgstr ""
-
-msgid "Add a kid"
 msgstr ""
 
 msgid "Change PIN"
@@ -271,6 +297,9 @@ msgid "Restart"
 msgstr ""
 
 msgid "Power off"
+msgstr ""
+
+msgid "Add a kid"
 msgstr ""
 
 msgid "No kids yet. Press ➕ Add a kid."
@@ -459,6 +488,21 @@ msgstr[1] ""
 msgid "Save your work, time is almost up for today."
 msgstr ""
 
+#, python-brace-format
+msgid "Back at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr ""
+
+#, python-brace-format
+msgid "Back on {day}"
+msgstr ""
+
+msgid "All done for today"
+msgstr ""
+
 msgid "Restart the computer?"
 msgstr ""
 
@@ -523,9 +567,6 @@ msgstr ""
 msgid ""
 "Replaces {name}'s week and internet days.\n"
 "Special days stay as they are."
-msgstr ""
-
-msgid "📅 Week"
 msgstr ""
 
 msgid "Start from a template…"
@@ -602,9 +643,6 @@ msgstr ""
 msgid "🎮 Offline today"
 msgstr ""
 
-msgid "📅 Special days"
-msgstr ""
-
 msgid "Holidays or trips: a special day replaces its weekday once."
 msgstr ""
 
@@ -632,6 +670,12 @@ msgid "the network service did not answer"
 msgstr ""
 
 msgid "this computer has no Wi-Fi"
+msgstr ""
+
+msgid "this computer has no cable port"
+msgstr ""
+
+msgid "this network is not saved"
 msgstr ""
 
 msgid "could not connect: check the password"
@@ -667,10 +711,13 @@ msgstr ""
 msgid "No networks found."
 msgstr ""
 
-msgid "Set this network up with More settings."
+msgid "Zoomies cannot join this kind of network."
 msgstr ""
 
 msgid "Forget"
+msgstr ""
+
+msgid "Settings"
 msgstr ""
 
 msgid "Connect"
@@ -697,13 +744,37 @@ msgstr ""
 msgid "Connecting…"
 msgstr ""
 
+msgid "Automatic"
+msgstr ""
+
+msgid "Fixed address"
+msgstr ""
+
+msgid "Given by the router:"
+msgstr ""
+
+msgid "Address"
+msgstr ""
+
+msgid "Router"
+msgstr ""
+
+msgid "DNS"
+msgstr ""
+
+msgid "Not connected now."
+msgstr ""
+
+msgid "Saving…"
+msgstr ""
+
 msgid "Cable"
 msgstr ""
 
-msgid "More settings"
+msgid "🔌 Cable"
 msgstr ""
 
-msgid "IP address, proxy, VPN"
+msgid "Wi-Fi"
 msgstr ""
 
 msgid "This computer has no Wi-Fi."

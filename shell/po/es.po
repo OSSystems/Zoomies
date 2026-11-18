@@ -12,6 +12,23 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+msgid "type the address"
+msgstr "escribe la dirección"
+
+msgid "the address is not valid; it looks like 192.168.1.50"
+msgstr "la dirección no es válida; se parece a 192.168.1.50"
+
+msgid "this address cannot be used on its network"
+msgstr "esta dirección no se puede usar en su red"
+
+msgid "the router is not a valid address"
+msgstr "el router no es una dirección válida"
+
+msgid "the router must be on the same network as the address"
+msgstr "el router debe estar en la misma red que la dirección"
+
+msgid "the DNS servers are not valid addresses"
+msgstr "los servidores DNS no son direcciones válidas"
 
 msgid "no answer from the admin service"
 msgstr "el servicio de administración no respondió"
@@ -52,21 +69,6 @@ msgstr "¡A jugar!"
 #, python-brace-format
 msgid "{time} to play"
 msgstr "{time} para jugar"
-
-#, python-brace-format
-msgid "Back at {time}"
-msgstr "Vuelve a las {time}"
-
-#, python-brace-format
-msgid "Back tomorrow at {time}"
-msgstr "Vuelve mañana a las {time}"
-
-#, python-brace-format
-msgid "Back on {day}"
-msgstr "Vuelve el {day}"
-
-msgid "All done for today"
-msgstr "Se acabó por hoy"
 
 msgid "Who's playing?"
 msgstr "¿Quién va a jugar?"
@@ -126,7 +128,9 @@ msgstr "Ese no es el PIN."
 msgid ""
 "👋 Welcome to Zoomies!\n"
 "Let's get online first."
-msgstr "👋 ¡Bienvenido a Zoomies!\nPrimero, conectémonos a internet."
+msgstr ""
+"👋 ¡Bienvenido a Zoomies!\n"
+"Primero, conectémonos a internet."
 
 msgid "Pick your Wi-Fi. You can also do this later."
 msgstr "Elige tu Wi-Fi. También puedes hacerlo después."
@@ -202,6 +206,23 @@ msgstr "Abriendo {game}…"
 msgid "Almost time to stop. Pick something quick!"
 msgstr "Ya casi hay que parar. ¡Elige algo rápido!"
 
+msgid "Stopped for today"
+msgstr "Detenido por hoy"
+
+msgid "Playing, no limit"
+msgstr "Jugando, sin límite"
+
+msgid "No limit"
+msgstr "Sin límite"
+
+#, python-brace-format
+msgid "Playing, {time} left"
+msgstr "Jugando, quedan {time}"
+
+#, python-brace-format
+msgid "{time} left"
+msgstr "Quedan {time}"
+
 msgid "+15 min"
 msgstr "+15 min"
 
@@ -217,6 +238,15 @@ msgstr "Quitar"
 #, python-brace-format
 msgid "The rules of {name} cannot be read: {reason}."
 msgstr "No se pueden leer las reglas de {name}: {reason}."
+
+msgid "Week"
+msgstr "Semana"
+
+msgid "Internet"
+msgstr "Internet"
+
+msgid "Special days"
+msgstr "Días especiales"
 
 #, python-brace-format
 msgid "Could not save: {reason}."
@@ -249,17 +279,14 @@ msgstr "Zoomies para adultos"
 msgid "Kids"
 msgstr "Niños"
 
-msgid "Wi-Fi"
-msgstr "Wi-Fi"
+msgid "Network"
+msgstr "Red"
 
 msgid "System"
 msgstr "Sistema"
 
 msgid "Back to the kids"
 msgstr "Volver a los niños"
-
-msgid "Add a kid"
-msgstr "Añadir un niño"
 
 msgid "Change PIN"
 msgstr "Cambiar PIN"
@@ -281,6 +308,9 @@ msgstr "Reiniciar"
 
 msgid "Power off"
 msgstr "Apagar"
+
+msgid "Add a kid"
+msgstr "Añadir un niño"
 
 msgid "No kids yet. Press ➕ Add a kid."
 msgstr "Todavía no hay niños. Pulsa ➕ Añadir un niño."
@@ -470,6 +500,21 @@ msgstr[1] "Quedan {minutes} minutos"
 msgid "Save your work, time is almost up for today."
 msgstr "Guarda lo que estés haciendo, el tiempo de hoy casi se acaba."
 
+#, python-brace-format
+msgid "Back at {time}"
+msgstr "Vuelve a las {time}"
+
+#, python-brace-format
+msgid "Back tomorrow at {time}"
+msgstr "Vuelve mañana a las {time}"
+
+#, python-brace-format
+msgid "Back on {day}"
+msgstr "Vuelve el {day}"
+
+msgid "All done for today"
+msgstr "Se acabó por hoy"
+
 msgid "Restart the computer?"
 msgstr "¿Reiniciar el ordenador?"
 
@@ -534,10 +579,9 @@ msgstr "Usar {template}"
 msgid ""
 "Replaces {name}'s week and internet days.\n"
 "Special days stay as they are."
-msgstr "Reemplaza la semana y los días de internet de {name}.\nLos días especiales se quedan como están."
-
-msgid "📅 Week"
-msgstr "📅 Semana"
+msgstr ""
+"Reemplaza la semana y los días de internet de {name}.\n"
+"Los días especiales se quedan como están."
 
 msgid "Start from a template…"
 msgstr "Empezar desde una plantilla…"
@@ -613,11 +657,9 @@ msgstr "🌐 Con internet hoy"
 msgid "🎮 Offline today"
 msgstr "🎮 Sin internet hoy"
 
-msgid "📅 Special days"
-msgstr "📅 Días especiales"
-
 msgid "Holidays or trips: a special day replaces its weekday once."
-msgstr "Festivos o viajes: un día especial sustituye a su día de la semana una vez."
+msgstr ""
+"Festivos o viajes: un día especial sustituye a su día de la semana una vez."
 
 msgid "🚫 No play"
 msgstr "🚫 Sin jugar"
@@ -644,6 +686,12 @@ msgstr "el servicio de red no respondió"
 
 msgid "this computer has no Wi-Fi"
 msgstr "este ordenador no tiene Wi-Fi"
+
+msgid "this computer has no cable port"
+msgstr "este ordenador no tiene puerto de cable"
+
+msgid "this network is not saved"
+msgstr "esta red no está guardada"
 
 msgid "could not connect: check the password"
 msgstr "no se pudo conectar: revisa la contraseña"
@@ -678,11 +726,14 @@ msgstr "guardada"
 msgid "No networks found."
 msgstr "No se encontraron redes."
 
-msgid "Set this network up with More settings."
-msgstr "Configura esta red en Más ajustes."
+msgid "Zoomies cannot join this kind of network."
+msgstr "Zoomies no puede unirse a este tipo de red."
 
 msgid "Forget"
 msgstr "Olvidar"
+
+msgid "Settings"
+msgstr "Ajustes"
 
 msgid "Connect"
 msgstr "Conectar"
@@ -708,14 +759,38 @@ msgstr "Las contraseñas de Wi-Fi tienen de 8 a 63 caracteres."
 msgid "Connecting…"
 msgstr "Conectando…"
 
+msgid "Automatic"
+msgstr "Automática"
+
+msgid "Fixed address"
+msgstr "Dirección fija"
+
+msgid "Given by the router:"
+msgstr "Dados por el router:"
+
+msgid "Address"
+msgstr "Dirección"
+
+msgid "Router"
+msgstr "Router"
+
+msgid "DNS"
+msgstr "DNS"
+
+msgid "Not connected now."
+msgstr "No conectado ahora."
+
+msgid "Saving…"
+msgstr "Guardando…"
+
 msgid "Cable"
 msgstr "Cable"
 
-msgid "More settings"
-msgstr "Más ajustes"
+msgid "🔌 Cable"
+msgstr "🔌 Cable"
 
-msgid "IP address, proxy, VPN"
-msgstr "Dirección IP, proxy, VPN"
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
 
 msgid "This computer has no Wi-Fi."
 msgstr "Este ordenador no tiene Wi-Fi."
@@ -735,3 +810,18 @@ msgstr "Conectado"
 
 msgid "Not plugged in"
 msgstr "Desconectado"
+
+#~ msgid "Set this network up with More settings."
+#~ msgstr "Configura esta red en Más ajustes."
+
+#~ msgid "More settings"
+#~ msgstr "Más ajustes"
+
+#~ msgid "IP address, proxy, VPN"
+#~ msgstr "Dirección IP, proxy, VPN"
+
+#~ msgid "📅 Week"
+#~ msgstr "📅 Semana"
+
+#~ msgid "📅 Special days"
+#~ msgstr "📅 Días especiales"
