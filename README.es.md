@@ -40,6 +40,8 @@ perderse.
 - Juegos para correr, saltar, pintar y aprender: SuperTuxKart, SuperTux,
   Extreme Tux Racer, Neverball, Pingus, Tux Paint y GCompris, que por sí
   solo trae más de cien actividades con letras, números y lógica.
+- TurboWarp, para crear sus propios juegos e historias con los bloques de
+  Scratch.
 - Sin internet, a menos que tú lo abras.
 - Nada que romper: salvo las partidas guardadas, el ordenador olvida lo que
   un niño pequeño cambió cada vez que se enciende.

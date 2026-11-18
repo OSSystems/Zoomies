@@ -38,6 +38,7 @@ A screen full of big tiles, one per game, and nothing else to get lost in.
 - Games to race, jump, paint and learn: SuperTuxKart, SuperTux, Extreme Tux
   Racer, Neverball, Pingus, Tux Paint and GCompris, which alone brings more
   than a hundred activities for letters, numbers and logic.
+- TurboWarp, to make their own games and stories with Scratch blocks.
 - No internet, unless you open it for them.
 - Nothing to break: apart from saved games, the computer forgets what a
   little kid changed each time it starts.

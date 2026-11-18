@@ -374,6 +374,9 @@ msgstr "Aprender a digitar"
 msgid "Explore the sky"
 msgstr "Explorar o céu"
 
+msgid "Make games and stories"
+msgstr "Criar jogos e histórias"
+
 msgid "Find your files"
 msgstr "Achar seus arquivos"
 

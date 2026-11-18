@@ -50,6 +50,7 @@ WHAT = {
     "org.kde.krita.desktop": N_("Paint pictures"),
     "org.kde.ktouch.desktop": N_("Learn to type"),
     "org.stellarium.Stellarium.desktop": N_("Explore the sky"),
+    "org.turbowarp.TurboWarp.desktop": N_("Make games and stories"),
     "thunar.desktop": N_("Find your files"),
     "writer.desktop": N_("Write stories"),
 }
@@ -375,7 +376,10 @@ class Shelf(Gtk.Window):
         for path in apps.icon_dirs(config.get("olderApps", []) + kid["games"]):
             Gtk.IconTheme.get_default().append_search_path(path)
         entries = apps.entries(config.get("olderApps", []), set(config.get("olderHiddenApps", [])))
-        games = apps.entries(kid["games"])
+        # A game that is also one of the apps, like Scratch, shows once,
+        # with the apps, where it says what it is for.
+        shown = {os.path.basename(info.get_filename()) for info in entries}
+        games = [info for info in apps.entries(kid["games"]) if os.path.basename(info.get_filename()) not in shown]
         self.known = {}
         for info in [*Gio.AppInfo.get_all(), *entries, *games]:
             if not isinstance(info, Gio.DesktopAppInfo):
