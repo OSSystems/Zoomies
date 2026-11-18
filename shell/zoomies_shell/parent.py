@@ -64,7 +64,7 @@ class KidCard(Gtk.Box):
         self.add_css_class("parent-row")
 
         header = Gtk.Box(spacing=20)
-        header.append(ui.avatar(kid, "small"))
+        header.append(ui.avatar(kid, "chip"))
         names = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, hexpand=True)
         line = Gtk.Box(spacing=12)
         line.append(Gtk.Label(label=kid["name"], xalign=0, css_classes=["kid-name"]))
@@ -111,12 +111,49 @@ class KidCard(Gtk.Box):
             sections = []
         self.grid = next((s for s in sections if isinstance(s, week.WeekGrid)), None)
         self.internet = next((s for s in sections if isinstance(s, week.InternetBox)), None)
-        column = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
-        for section in sections:
-            section.add_css_class("section")
-            column.append(section)
-        self.append(ui.scroller(column, vexpand=True))
+        if sections:
+            self.append(self.tabbed(sections))
         self.refresh()
+
+    TABS = (("📅", _("Week")), ("🌐", _("Internet")), ("⭐", _("Special days")))
+
+    def tabbed(self, sections):
+        """The sections, one at a time behind tabs, so the week has the
+        card's whole height; the tab's own button sits on the right."""
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        line = Gtk.Box(spacing=12)
+        tabs = Gtk.Box(spacing=4, hexpand=True, halign=Gtk.Align.START, css_classes=["subtabs"])
+        line.append(tabs)
+        tools = Gtk.Stack(hhomogeneous=False, interpolate_size=True)
+        line.append(tools)
+        box.append(line)
+        pages = Gtk.Stack(vexpand=True, transition_type=Gtk.StackTransitionType.CROSSFADE)
+        box.append(pages)
+        first = None
+        for (emoji, title), section in zip(self.TABS, sections, strict=True):
+            tab = Gtk.ToggleButton(css_classes=["subtab"])
+            label = Gtk.Box(spacing=8)
+            label.append(Gtk.Label(label=emoji, css_classes=["subtab-emoji"]))
+            label.append(Gtk.Label(label=title))
+            tab.set_child(label)
+            if first is None:
+                first = tab
+            else:
+                tab.set_group(first)
+            tabs.append(tab)
+            page = ui.scroller(section)
+            pages.add_named(page, title)
+            tool = section.tool or Gtk.Box()
+            tools.add_named(tool, title)
+
+            def toggled(tab, page=page, tool=tool):
+                if tab.get_active():
+                    pages.set_visible_child(page)
+                    tools.set_visible_child(tool)
+
+            tab.connect("toggled", toggled)
+        first.set_active(True)
+        return box
 
     def show_message(self, text):
         self.message.set_label(text)

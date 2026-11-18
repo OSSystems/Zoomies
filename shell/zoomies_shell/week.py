@@ -489,18 +489,15 @@ class WeekGrid(Gtk.Box):
         self.caps = []
         self.offers = []
         self.offer_timer = None
-        title = Gtk.Box(spacing=12)
-        title.append(
-            Gtk.Label(label=_("📅 Week"), xalign=0, hexpand=True, css_classes=["section-title"])
+        # Shown by the kid's card next to the tabs.
+        start = self.start = self.tool = ui.big_button(
+            _("Start from a template…"), "subtle", "✨"
         )
-        start = self.start = ui.big_button(_("Start from a template…"), "subtle", "✨")
         start.add_css_class("small")
         start.connect(
             "clicked",
             lambda *_args: template_picker(panel, kid, lambda: panel.schedule_changed(kid, True)),
         )
-        title.append(start)
-        self.append(title)
         header = Gtk.Box(spacing=10)
         header.append(Gtk.Box(width_request=self.LABEL_WIDTH))
         header.append(HourScale())
@@ -736,8 +733,8 @@ class InternetBox(Gtk.Box):
         policy = state.load_policy()
         self.rules = state.internet_rules(kid, policy)
 
+        self.tool = None
         top = Gtk.Box(spacing=12)
-        top.append(Gtk.Label(label=_("🌐 Internet"), css_classes=["section-title"]))
         self.switch = Gtk.Switch(active=self.rules["on"], valign=Gtk.Align.CENTER)
         self.switch.connect("notify::active", lambda *_args: self.save())
         top.append(self.switch)
@@ -830,17 +827,9 @@ class SpecialDays(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         self.panel = panel
         self.kid = kid
-        top = Gtk.Box(spacing=12)
-        top.append(
-            Gtk.Label(
-                label=_("📅 Special days"), css_classes=["section-title"], hexpand=True, xalign=0
-            )
-        )
-        add = ui.big_button(_("Add"), "subtle", "➕")
+        add = self.tool = ui.big_button(_("Add"), "subtle", "➕")
         add.add_css_class("small")
         add.connect("clicked", lambda *_args: self.add())
-        top.append(add)
-        self.append(top)
         self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.append(self.list)
         self.populate()

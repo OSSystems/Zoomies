@@ -320,6 +320,37 @@ button:focus {
   margin: 4px 0;
 }
 
+.subtabs {
+  background: alpha(#1d3557, 0.08);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.subtab {
+  color: #1d3557;
+  font-size: 20px;
+  font-weight: bold;
+  border-radius: 999px;
+  padding: 6px 20px;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.subtab:hover {
+  background: alpha(white, 0.5);
+}
+
+.subtab:checked {
+  background: white;
+  box-shadow: 0 3px 0 alpha(#1d3557, 0.15);
+}
+
+.subtab-emoji {
+  font-family: "Noto Color Emoji", "Andika";
+  font-size: 22px;
+}
+
 .big-button.on {
   background: #ffd60a;
 }
@@ -335,11 +366,6 @@ button:focus {
 
 .big-button.small .button-emoji {
   font-size: 22px;
-}
-
-.section {
-  border-top: 2px dashed alpha(#1d3557, 0.15);
-  padding-top: 12px;
 }
 
 .section-title {

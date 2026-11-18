@@ -220,6 +220,15 @@ msgstr "Remover"
 msgid "The rules of {name} cannot be read: {reason}."
 msgstr "As regras de {name} não podem ser lidas: {reason}."
 
+msgid "Week"
+msgstr "Semana"
+
+msgid "Internet"
+msgstr "Internet"
+
+msgid "Special days"
+msgstr "Dias especiais"
+
 #, python-brace-format
 msgid "Could not save: {reason}."
 msgstr "Não foi possível salvar: {reason}."
@@ -555,9 +564,6 @@ msgstr ""
 "Substitui a semana e os dias de internet de {name}.\n"
 "Os dias especiais continuam como estão."
 
-msgid "📅 Week"
-msgstr "📅 Semana"
-
 msgid "Start from a template…"
 msgstr "Começar de um modelo…"
 
@@ -631,9 +637,6 @@ msgstr "🌐 Com internet hoje"
 
 msgid "🎮 Offline today"
 msgstr "🎮 Sem internet hoje"
-
-msgid "📅 Special days"
-msgstr "📅 Dias especiais"
 
 msgid "Holidays or trips: a special day replaces its weekday once."
 msgstr ""
@@ -755,3 +758,9 @@ msgstr "Conectado"
 
 msgid "Not plugged in"
 msgstr "Não conectado"
+
+#~ msgid "📅 Week"
+#~ msgstr "📅 Semana"
+
+#~ msgid "📅 Special days"
+#~ msgstr "📅 Dias especiais"

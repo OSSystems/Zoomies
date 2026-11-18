@@ -690,17 +690,17 @@ pkgs.testers.runNixOSTest {
         fresh.send_key("shift-tab")
         fresh.send_key("spc")
         fresh.wait_for_text("Max a day", timeout=60)
-        # Moving the focus down the week scrolls the page to the internet
-        # and the special days.
-        for _ in range(36):
+        # Past Wi-Fi, System, Kim's chip, Add a kid, +15 min, Stop, Edit,
+        # Remove and the Week tab.
+        for _ in range(10):
             fresh.send_key("tab")
-        for _ in range(6):
-            if "Special days" in fresh.get_screen_text():
-                break
-            fresh.send_key("tab")
-            fresh.send_key("tab")
-        fresh.wait_for_text("Special days", timeout=30)
+        fresh.send_key("spc")
+        fresh.wait_for_text("Online during play time", timeout=30)
         fresh.screenshot("parent-internet")
+        fresh.send_key("tab")
+        fresh.send_key("spc")
+        fresh.wait_for_text("No play", timeout=30)
+        fresh.screenshot("parent-special-days")
         log_out("parent", fresh)
 
     with subtest("a template replaces the week and the internet days, not special days"):
@@ -710,9 +710,9 @@ pkgs.testers.runNixOSTest {
         wait_for_ready("zoomies-parent", "parent", fresh)
         fresh.wait_for_text("Max a day", timeout=60)
         # From the Kids tab: Wi-Fi, System, Kim's chip, Add a kid, then
-        # Kim's +15 min, Stop, Edit and Remove come before the week's
-        # template button.
-        for _ in range(9):
+        # Kim's +15 min, Stop, Edit, Remove and the three tabs of the card
+        # come before the week's template button.
+        for _ in range(12):
             fresh.send_key("tab")
         fresh.send_key("spc")
         fresh.wait_for_text("week for Kim", timeout=60)

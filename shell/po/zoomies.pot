@@ -211,6 +211,15 @@ msgstr ""
 msgid "The rules of {name} cannot be read: {reason}."
 msgstr ""
 
+msgid "Week"
+msgstr ""
+
+msgid "Internet"
+msgstr ""
+
+msgid "Special days"
+msgstr ""
+
 #, python-brace-format
 msgid "Could not save: {reason}."
 msgstr ""
@@ -542,9 +551,6 @@ msgid ""
 "Special days stay as they are."
 msgstr ""
 
-msgid "📅 Week"
-msgstr ""
-
 msgid "Start from a template…"
 msgstr ""
 
@@ -617,9 +623,6 @@ msgid "🌐 Online today"
 msgstr ""
 
 msgid "🎮 Offline today"
-msgstr ""
-
-msgid "📅 Special days"
 msgstr ""
 
 msgid "Holidays or trips: a special day replaces its weekday once."
