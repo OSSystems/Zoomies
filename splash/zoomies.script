@@ -1,6 +1,10 @@
-# Zip dashes through the sky while the system boots. Just before the
-# greeter appears on the same sky, he winds up, takes his flying pose and
-# zooms off.
+# The boot opens on a still sky with Zip's cloud in the middle; he shoots up
+# from below the screen, drops onto it and stands there waving while the
+# system boots.
+# Just before the greeter appears on the same sky, he crouches, springs off
+# the cloud, climbs nose up, levels out and zooms off; only then does the
+# wind blow. When the system stops, he flies in, pulls up to brake and lands
+# on his cloud; at power off night falls and he goes to sleep.
 #
 # Plymouth has no clock: this runs once per refresh, 50 times a second, so
 # motion is counted in refreshes. A busy machine slows Zip down instead of
@@ -10,10 +14,34 @@
 RATE = 50;
 CLOUDS = 7;
 STREAKS = 8;
-# The takeoff: a short wind-up into the flying pose, then the dash. It
-# must fit the 0.9 s zoomies-splash-takeoff.service waits for.
-WINDUP_TICKS = 8;
-DASH_TICKS = 32;
+# The takeoff, in refreshes since it began: the crouch, the spring off the
+# cloud, the climb from nose up to level, then the dash. It must fit the
+# time zoomies-splash-takeoff.service waits for.
+# His entrance, in refreshes since the splash appeared: up from below to
+# above his cloud, the drop onto it, and the squash as he lands.
+RISE_TICKS = 22;
+DROP = RISE_TICKS + 12;
+SETTLED = DROP + 6;
+SPRING = 6;
+CLIMB = 10;
+LEVEL = 28;
+DASH = 30;
+DASH_TICKS = 26;
+# The landing when the system stops: in from the left, then the pull up
+# onto the cloud. At power off night falls once he has waved for a moment.
+# All of it must fit the hold splash.nix gives the power off.
+ARRIVE_TICKS = 26;
+FLARE_TICKS = 14;
+TOUCH = ARRIVE_TICKS + FLARE_TICKS;
+LANDED = TOUCH + 10;
+NIGHT_START = LANDED + 15;
+NIGHT_TICKS = 55;
+
+mode = Plymouth.GetMode();
+stopping = mode == "shutdown" || mode == "reboot";
+sleeping = mode == "shutdown";
+
+@STAR_LIST@
 
 fun load (name)
   {
@@ -40,9 +68,18 @@ fun layout ()
 
     sky.sprite.SetImage(Image("sky.png").Scale(screen.w, screen.h));
     sky.sprite.SetPosition(screen.x, screen.y, -100);
+    night.sprite.SetImage(Image("night.png").Scale(screen.w, screen.h));
+    night.sprite.SetPosition(screen.x, screen.y, -90);
+    for (local.i = 0; i < @STARS@; i++)
+      {
+        local.star = Image("star.png");
+        stars[i].sprite.SetImage(star.Scale(Math.Int(star.GetWidth() * stars[i].size * scale + 0.5),
+                                            Math.Int(star.GetHeight() * stars[i].size * scale + 0.5)));
+        stars[i].sprite.SetPosition(Math.Int(stage.x + stars[i].x * scale), Math.Int(stage.y + stars[i].y * scale), -80);
+      }
 
     # Clouds and streaks drift left at their own speeds, in stage pixels per
-    # second, and wrap around the screen.
+    # second, when Zip flies, and wrap around the screen.
     for (local.i = 0; i < CLOUDS; i++)
       {
         clouds[i].image = load("cloud-" + (i % 3) + ".png");
@@ -60,49 +97,87 @@ fun layout ()
         streaks[i].speed = 2100 * scale / RATE;
       }
 
-    hero.sprite.SetImage(load("zip.png"));
-    for (local.i = 0; i < @CAPE_FRAMES@; i++)
-      cape.frames[i] = load("cape-" + i + ".png");
+    for (local.i = 0; i < @HOVER_FRAMES@; i++)
+      hover.frames[i] = load("hover-" + i + ".png");
+    asleep.sprite.SetImage(load("asleep.png"));
+    crouch.sprite.SetImage(load("crouch.png"));
+    stretch.sprite.SetImage(load("stretch.png"));
     for (local.i = 0; i < @FLY_FRAMES@; i++)
-      fly.frames[i] = load("fly-" + i + ".png");
+      {
+        fly.frames[i] = load("fly-" + i + ".png");
+        for (local.k = 0; k < @CLIMB_STEPS@; k++)
+          climb.frames[k * @FLY_FRAMES@ + i] = load("climb-" + k + "-" + i + ".png");
+      }
+    perch.sprite.SetImage(load("perch.png"));
 
     # Zip's centre on the stage, and where that centre sits in each image.
     global.zip.x = stage.x + 930 * scale;
     global.zip.y = stage.y + 534 * scale;
-    global.hero.dx = @HERO_X@ * scale;
-    global.hero.dy = @HERO_Y@ * scale;
-    global.cape.dx = @CAPE_X@ * scale;
-    global.cape.dy = @CAPE_Y@ * scale;
+    global.hover.dx = @HERO_X@ * scale;
+    global.hover.dy = @HERO_Y@ * scale;
     global.fly.dx = @FLY_X@ * scale;
     global.fly.dy = @FLY_Y@ * scale;
+    global.perch.dx = @PERCH_X@ * scale;
+    global.perch.dy = @PERCH_Y@ * scale;
+    # From Zip's centre down to his cloud's.
+    global.perch.below = (@FEET@ + @PERCH_DROP@) * scale;
   }
 
 sky.sprite = Sprite();
+night.sprite = Sprite();
+night.sprite.SetOpacity(0);
+for (i = 0; i < @STARS@; i++)
+  {
+    stars[i].sprite = Sprite();
+    stars[i].sprite.SetOpacity(0);
+  }
 for (i = 0; i < CLOUDS; i++)
   clouds[i].sprite = Sprite();
 for (i = 0; i < STREAKS; i++)
-  streaks[i].sprite = Sprite();
-hero.sprite = Sprite();
-cape.sprite = Sprite();
+  {
+    streaks[i].sprite = Sprite();
+    streaks[i].sprite.SetOpacity(0);
+  }
+perch.sprite = Sprite();
+hover.sprite = Sprite();
+asleep.sprite = Sprite();
+crouch.sprite = Sprite();
+stretch.sprite = Sprite();
+climb.sprite = Sprite();
 fly.sprite = Sprite();
-fly.sprite.SetOpacity(0);
 layout();
 
 tick = 0;
 takeoff = -1;
 
+fun clamp (k)
+  {
+    if (k < 0)
+      return 0;
+    if (k > 1)
+      return 1;
+    return k;
+  }
+
 fun ease_in (k)
   {
-    if (k >= 1)
-      return 1;
+    k = clamp(k);
     return k * k * k;
   }
 
-fun drift (items, count, boost, opacity)
+fun ease_out (k)
+  {
+    k = 1 - clamp(k);
+    return 1 - k * k * k;
+  }
+
+# wind is how fast Zip flies, 0 when he hovers: the clouds stand still
+# then, and the streaks only show while he moves.
+fun drift (items, count, wind, opacity)
   {
     for (local.i = 0; i < count; i++)
       {
-        items[i].x -= items[i].speed * boost;
+        items[i].x -= items[i].speed * wind;
         local.w = items[i].image.GetWidth();
         if (items[i].x < screen.x - w)
           items[i].x += screen.w + w;
@@ -111,43 +186,151 @@ fun drift (items, count, boost, opacity)
       }
   }
 
+fun shown (yes)
+  {
+    if (yes)
+      return 1;
+    return 0;
+  }
+
+# Shows one of Zip's poses and hides the others: the front ones stand on
+# the cloud, the side ones fly. step picks how far up his nose points while
+# he climbs or brakes.
+fun pose (name, step, x, y, flap)
+  {
+    hover.sprite.SetImage(hover.frames[flap % @HOVER_FRAMES@]);
+    fly.sprite.SetImage(fly.frames[flap % @FLY_FRAMES@]);
+    climb.sprite.SetImage(climb.frames[step * @FLY_FRAMES@ + flap % @FLY_FRAMES@]);
+    local.fx = Math.Int(x - hover.dx);
+    local.fy = Math.Int(y - hover.dy);
+    hover.sprite.SetPosition(fx, fy, 10);
+    asleep.sprite.SetPosition(fx, fy, 10);
+    crouch.sprite.SetPosition(fx, fy, 10);
+    stretch.sprite.SetPosition(fx, fy, 10);
+    fly.sprite.SetPosition(Math.Int(x - fly.dx), Math.Int(y - fly.dy), 11);
+    climb.sprite.SetPosition(Math.Int(x - fly.dx), Math.Int(y - fly.dy), 11);
+    hover.sprite.SetOpacity(shown(name == "hover"));
+    asleep.sprite.SetOpacity(shown(name == "asleep"));
+    crouch.sprite.SetOpacity(shown(name == "crouch"));
+    stretch.sprite.SetOpacity(shown(name == "stretch"));
+    fly.sprite.SetOpacity(shown(name == "fly"));
+    climb.sprite.SetOpacity(shown(name == "climb"));
+  }
+
 fun refresh ()
   {
     global.tick = tick + 1;
     local.t = tick / RATE;
-    # windup goes 0 to 1 as Zip turns into his flying pose, dash 0 to 1 as
-    # he crosses the screen.
-    local.windup = 0;
-    local.dash = 0;
-    if (takeoff >= 0)
+    # A drawing every 0.1 s, for the mascot's wave and Super Zip's flap.
+    local.flap = Math.Int(tick / 5);
+    local.x = zip.x;
+    # How far above his cloud he is, and how far the cloud gives under him.
+    local.lift = 0;
+    local.dip = 0;
+    local.wind = 0;
+    local.fade = 1;
+    local.dark = 0;
+    local.name = "hover";
+    local.step = 0;
+
+    if (stopping)
       {
-        windup = (tick - takeoff) / WINDUP_TICKS;
-        if (windup > 1)
-          windup = 1;
-        dash = ease_in((tick - takeoff - WINDUP_TICKS) / DASH_TICKS);
-        if (dash < 0)
-          dash = 0;
+        # In from past the left edge, high, slowing down; then nose up to
+        # brake, down onto the cloud, and a squash as he lands.
+        local.arrive = ease_out(tick / ARRIVE_TICKS);
+        x = zip.x - (1 - arrive) * (zip.x - screen.x + 400 * scale);
+        wind = 5 * (1 - arrive);
+        local.flare = clamp((tick - ARRIVE_TICKS) / FLARE_TICKS);
+        lift = (260 - 160 * arrive) * scale * (1 - ease_in(flare));
+        if (tick < ARRIVE_TICKS)
+          name = "fly";
+        else if (tick < TOUCH)
+          {
+            name = "climb";
+            step = @CLIMB_STEPS@ - 1 - Math.Int(flare * @CLIMB_STEPS@ * 0.999);
+          }
+        else if (tick < TOUCH + 4)
+          name = "stretch";
+        else if (tick < LANDED)
+          {
+            name = "crouch";
+            dip = 14 * scale;
+          }
+        if (sleeping)
+          dark = clamp((tick - NIGHT_START) / NIGHT_TICKS);
+        fade = 1 - 0.6 * dark;
+        if (dark > 0.7 && name == "hover")
+          name = "asleep";
+      }
+    else if (takeoff >= 0)
+      {
+        local.since = tick - takeoff;
+        # Up off the cloud fast, slowing as he climbs; forward as he levels
+        # out; then off past the right edge while the clouds rush by and
+        # fade, so the last frame is the bare sky the greeter starts on.
+        local.rise = ease_out((since - SPRING) / (DASH - SPRING));
+        lift = rise * 300 * scale;
+        local.level = ease_in((since - CLIMB) / (DASH - CLIMB));
+        local.dash = ease_in((since - DASH) / DASH_TICKS);
+        x = zip.x + level * 140 * scale + dash * (screen.x + screen.w - zip.x + 400 * scale);
+        wind = clamp((since - CLIMB) / (DASH - CLIMB)) + 5 * dash;
+        # Gone before he is, in case the greeter takes the screen early.
+        fade = 1 - clamp(dash * 1.6);
+        if (since < SPRING)
+          {
+            name = "crouch";
+            dip = 10 * scale;
+          }
+        else if (since < CLIMB)
+          {
+            name = "stretch";
+            dip = 18 * scale * (1 - (since - SPRING) / (CLIMB - SPRING));
+          }
+        else if (since < LEVEL)
+          {
+            name = "climb";
+            step = Math.Int((since - CLIMB) / (LEVEL - CLIMB) * @CLIMB_STEPS@ * 0.999);
+          }
+        else
+          name = "fly";
+      }
+    else if (tick < SETTLED)
+      {
+        # From past the bottom edge to above the cloud, slowing as he
+        # climbs, then down onto it.
+        local.top = 220 * scale;
+        local.far = screen.y + screen.h - zip.y + 400 * scale;
+        if (tick < RISE_TICKS)
+          {
+            lift = -far + (far + top) * ease_out(tick / RISE_TICKS);
+            name = "climb";
+          }
+        else if (tick < DROP)
+          {
+            lift = top * (1 - ease_in((tick - RISE_TICKS) / (DROP - RISE_TICKS)));
+            name = "stretch";
+          }
+        else
+          {
+            name = "crouch";
+            dip = 14 * scale;
+          }
       }
 
-    # The clouds rush and fade as Zip leaves: the last frame is the bare
-    # sky that cage and the greeter start on.
-    drift(clouds, CLOUDS, 1 + 4 * dash, 1 - dash);
-    drift(streaks, STREAKS, 1 + 4 * dash, 1 - dash);
+    drift(clouds, CLOUDS, wind, fade);
+    # Streaks show the wind; they fade with the clouds as he leaves.
+    drift(streaks, STREAKS, 1 + wind, clamp(wind) * fade);
 
-    # A step back to wind up, then off to the right, past the screen's edge.
-    local.x = zip.x - Math.Sin(windup * 3.14159) * 45 * scale + dash * (screen.x + screen.w - zip.x + 400 * scale);
-    local.y = zip.y + Math.Sin(t * 3.2) * 42 * scale * (1 - windup);
+    night.sprite.SetOpacity(dark);
+    for (local.i = 0; i < @STARS@; i++)
+      stars[i].sprite.SetOpacity(dark * (0.75 + 0.25 * Math.Sin(t * 2 + i * 1.7)));
 
-    hero.sprite.SetPosition(Math.Int(x - hero.dx), Math.Int(y - hero.dy), 10);
-    hero.sprite.SetOpacity(1 - windup);
-    # The cape holds each drawing for two refreshes: one flap every 0.6 s.
-    cape.sprite.SetImage(cape.frames[Math.Int(tick / 2) % @CAPE_FRAMES@]);
-    cape.sprite.SetPosition(Math.Int(x - cape.dx), Math.Int(y - cape.dy), 9);
-    cape.sprite.SetOpacity(1 - windup);
-    # Super Zip's flap: a drawing every 0.1 s.
-    fly.sprite.SetImage(fly.frames[Math.Int(tick / 5) % @FLY_FRAMES@]);
-    fly.sprite.SetPosition(Math.Int(x - fly.dx), Math.Int(y - fly.dy), 11);
-    fly.sprite.SetOpacity(windup);
+    # Zip and his cloud float together, more slowly as he falls asleep.
+    local.float = Math.Sin(t * 2.4 * (1 - 0.5 * dark)) * 12 * scale;
+    local.y = zip.y + float - lift + dip;
+    perch.sprite.SetPosition(Math.Int(zip.x - perch.dx), Math.Int(zip.y + float + dip + perch.below - perch.dy), 5);
+    perch.sprite.SetOpacity(fade);
+    pose(name, step, x, y, flap);
   }
 
 # zoomies-splash-takeoff.service sends this just before the greeter starts.

@@ -14,7 +14,9 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     runHook preInstall
     theme=$out/share/plymouth/themes/zoomies
-    mkdir -p $theme
+    mkdir -p $theme $out/share/zoomies-splash
+    # For the boot menu, not the splash: kept out of the initrd's theme.
+    mv out/first-frame.png $out/share/zoomies-splash
     cp out/* $theme
     cat > $theme/zoomies.plymouth <<EOT
     [Plymouth Theme]

@@ -4,6 +4,13 @@ desktop-image-scale-method: "crop"
 desktop-color: "#6ec1ec"
 message-font: "Andika Regular 24"
 message-color: "#1d3557"
+# The picture shown while Zoomies loads fills the text terminal's window;
+# with a border, the menu's own background would frame it.
+terminal-left: "0"
+terminal-top: "0"
+terminal-width: "100%"
+terminal-height: "100%"
+terminal-border: "0"
 
 + label {
   top = 8%
@@ -17,7 +24,8 @@ message-color: "#1d3557"
 }
 
 + boot_menu {
-  left = 25%
+  # Right of Zip, who points at it.
+  left = 36%
   top = 64%
   width = 50%
   height = 20%

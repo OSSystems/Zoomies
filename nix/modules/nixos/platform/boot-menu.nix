@@ -6,7 +6,9 @@
 { pkgs, ... }:
 
 let
-  theme = pkgs.callPackage ./grub-theme { };
+  theme = pkgs.callPackage ./grub-theme {
+    zoomies-splash = pkgs.callPackage ../../../packages/zoomies-splash/package.nix { };
+  };
 in
 {
   boot.loader = {
@@ -31,7 +33,7 @@ in
         fi
       '';
       # Shown while the chosen entry loads; the default is the NixOS logo.
-      splashImage = "${theme}/background.png";
+      splashImage = "${theme}/loading.png";
       timeoutStyle = "hidden";
     };
     timeout = 1;
