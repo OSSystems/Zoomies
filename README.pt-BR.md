@@ -151,8 +151,9 @@ Para abrir o painel dos adultos, mantenha pressionado o 🔒 na tela "Quem
 vai jogar?", ou pressione Ctrl+Alt+P, e digite o seu PIN. Depois de cinco
 PINs errados, o painel fica bloqueado por dez minutos.
 
-Dali você também pode conectar a outro Wi-Fi, trocar o PIN e reiniciar ou
-desligar o computador.
+Dali você também pode conectar a outro Wi-Fi, dar ao computador um
+endereço fixo no cabo ou no Wi-Fi, trocar o PIN e reiniciar ou desligar o
+computador.
 
 ## Atualizações
 

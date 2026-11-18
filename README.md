@@ -147,8 +147,9 @@ To open the grown-ups panel, press and hold 🔒 on the "Who's playing?"
 screen, or press Ctrl+Alt+P, and type your PIN. After five wrong PINs the
 panel stays locked for ten minutes.
 
-From there you can also connect to another Wi-Fi, change the PIN, and
-restart or turn off the computer.
+From there you can also connect to another Wi-Fi, give the computer a
+fixed address on the cable or Wi-Fi, change the PIN, and restart or turn
+off the computer.
 
 ## Updates
 
