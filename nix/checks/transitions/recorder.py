@@ -19,6 +19,10 @@ VIDEO_W, VIDEO_H, STRIP = 960, 600, 40
 # The sky is bright; the firmware, a text console and a blank screen are
 # dark. The power off's night falls slowly and stays above this.
 DARK = 60
+# The most the brightness may change in one frame where it fades: half the
+# way from black to the sky. On a loaded host the capture can miss a step
+# or two of a fade; a cut goes the whole way at once.
+STEP = 110
 
 # Units and messages worth a line on the chart; the rest of the journal is
 # kept in events.csv.
@@ -297,6 +301,7 @@ class Recorder:
         order = list(boots)
 
         events = []
+        self.journal = []
         with open(os.path.join(self.out, "journal.csv"), "w") as f:
             writer = csv.writer(f)
             writer.writerow(["time", "boot", "arrival", "identifier", "unit", "message"])
@@ -313,6 +318,8 @@ class Recorder:
                 writer.writerow([f"{at:.3f}", order.index(boot), f"{arrival:.3f}",
                                  entry.get("SYSLOG_IDENTIFIER", ""), entry.get("UNIT", ""),
                                  message if isinstance(message, str) else ""])
+                if isinstance(message, str):
+                    self.journal.append((at, message))
                 event = unit_event(entry)
                 if event:
                     events.append((at, event))
@@ -367,6 +374,25 @@ class Recorder:
             if t >= start and pattern in line:
                 return t
         raise AssertionError(f"{self.name}: the console never printed {pattern!r}")
+
+    def journal_says(self, pattern, start):
+        """When the guest next logged a message matching pattern."""
+        for at, message in sorted(self.journal):
+            if at >= start and re.search(pattern, message):
+                return at
+        raise AssertionError(f"{self.name}: the journal never said {pattern!r}")
+
+    def assert_gradual(self, start, end, what):
+        """The brightness never jumps by more than STEP from one frame to the
+        next: black and the sky blend instead of cutting."""
+        previous = None
+        for t, _w, _h, luma, *_rest in self.samples:
+            if start <= t <= end:
+                assert previous is None or abs(luma - previous) <= STEP, (
+                    f"{self.name}: the brightness jumped from {previous:.0f} to {luma:.0f} "
+                    f"at {t:.2f}s while {what}"
+                )
+                previous = luma
 
     def assert_never_dark(self, spans, start, end, what):
         for dark_start, dark_end in spans:

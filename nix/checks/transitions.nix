@@ -181,10 +181,19 @@ pkgs.testers.runNixOSTest {
             rec.assert_never_dark(spans, start, end, "the greeter took over from the boot splash")
         rec.assert_never_dark(spans, *grown_up, "a grown-up logged in")
         rec.assert_never_dark(spans, *kid, "a kid logged in")
-        # From the question to the firmware, the screen goes from the
-        # desktop to the sky to Zip landing, never through black.
-        rec.assert_never_dark(spans, restarting, rec.kernel_says("reboot: Restarting system", restarting), "restarting")
-        rec.assert_never_dark(spans, powering_off, rec.kernel_says("reboot: Power down", powering_off), "powering off")
+        # From the question until Zip dims, the screen goes from the desktop
+        # to the sky to Zip landing, never through black; then it fades to
+        # the firmware's black.
+        for start, kernel in ((restarting, "reboot: Restarting system"), (powering_off, "reboot: Power down")):
+            what = "restarting" if start == restarting else "powering off"
+            dims = rec.journal_says("zoomies-splash: dimming to black", start)
+            rec.assert_never_dark(spans, start, dims, what)
+            rec.assert_gradual(dims, rec.kernel_says(kernel, start), f"dimming as the computer was {what}")
+        # GRUB fades the picture in from the firmware's black, at power on
+        # and after the restart.
+        for start in (0, rec.kernel_says("reboot: Restarting system", restarting)):
+            lit = rec.lit_after(start)
+            rec.assert_gradual(lit - 1, lit + 1, "GRUB came up")
 
 
     for node, name in ((uefi, "uefi"), (bios, "bios")):
