@@ -41,6 +41,9 @@ NIGHT_START = LANDED + 15;
 NIGHT_TICKS = 55;
 APPEAR_TICKS = 15;
 LAND_ANYWAY = 5 * RATE;
+# The firmware blanks the screen as the computer restarts or turns off; the
+# splash dims to black just before, so the change is not sudden.
+BLACKOUT_TICKS = 20;
 
 mode = Plymouth.GetMode();
 stopping = mode == "shutdown" || mode == "reboot";
@@ -75,6 +78,8 @@ fun layout ()
     sky.sprite.SetPosition(screen.x, screen.y, -100);
     night.sprite.SetImage(Image("night.png").Scale(screen.w, screen.h));
     night.sprite.SetPosition(screen.x, screen.y, -90);
+    black.sprite.SetImage(Image("black.png").Scale(screen.w, screen.h));
+    black.sprite.SetPosition(screen.x, screen.y, 100);
     for (local.i = 0; i < @STARS@; i++)
       {
         local.star = Image("star.png");
@@ -131,6 +136,8 @@ fun layout ()
 sky.sprite = Sprite();
 night.sprite = Sprite();
 night.sprite.SetOpacity(0);
+black.sprite = Sprite();
+black.sprite.SetOpacity(0);
 for (i = 0; i < @STARS@; i++)
   {
     stars[i].sprite = Sprite();
@@ -156,6 +163,7 @@ tick = 0;
 takeoff = -1;
 landing = 0;
 waited = 0;
+blackout = -1;
 
 fun clamp (k)
   {
@@ -345,17 +353,25 @@ fun refresh ()
     perch.sprite.SetPosition(Math.Int(zip.x - perch.dx), Math.Int(zip.y + float + dip + perch.below - perch.dy), 5);
     perch.sprite.SetOpacity(fade);
     pose(name, step, x, y, flap);
+    if (blackout >= 0)
+      black.sprite.SetOpacity(clamp((tick - blackout) / BLACKOUT_TICKS));
   }
 
 # zoomies-splash-takeoff.service sends "zoomies-takeoff" just before the
 # greeter starts; the stopping splash's unit sends "zoomies-land" once the
-# splash is on the screen.
+# splash is on the screen, and "zoomies-blackout" just before it lets the
+# computer stop.
 fun status (text)
   {
     if (text == "zoomies-takeoff" && takeoff < 0)
       global.takeoff = tick;
     if (text == "zoomies-land")
       global.landing = 1;
+    if (text == "zoomies-blackout" && blackout < 0)
+      {
+        global.landing = 1;
+        global.blackout = tick;
+      }
   }
 
 fun nothing ()

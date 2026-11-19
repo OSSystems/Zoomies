@@ -122,6 +122,10 @@ let
         ${plymouth} update --status=zoomies-land
         touch $dir/shown
         sleep ${hold}
+        # Zip dims to black, so the firmware's black does not cut him off.
+        echo "zoomies-splash: dimming to black"
+        ${plymouth} update --status=zoomies-blackout
+        sleep 0.5
       '';
       serviceConfig = {
         RemainAfterExit = true;
