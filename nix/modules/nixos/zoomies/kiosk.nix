@@ -238,6 +238,10 @@ in
               ${paintSky}
             ''}";
             ExecStartPre = "-${lib.getExe' pkgs.coreutils "timeout"} 60 ${pkgs.runtimeShell} -c 'until ls /run/user/*/zoomies-greeter-ready; do sleep 0.1; done'";
+            # Plymouth's own unit gives up after 20 s, before this wait does
+            # on a slow first start; the splash then never quits nor gives
+            # the console its sky back.
+            TimeoutStartSec = 90;
           };
         };
         # Whenever nobody holds the screen, between the boot splash and the
