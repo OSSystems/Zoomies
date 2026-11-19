@@ -242,6 +242,7 @@ All Nix code lives under `nix/` and is wired by
 | `nix/checks/translations.nix` | `checks.translations` (every string the screens show is translatable; each translation compiles) |
 | `nix/checks/splash.nix` | `checks.splash` (records the boot; fails if the screen goes dark before the greeter) |
 | `nix/checks/switch.nix` | `checks.switch` (records a kid logging in and out; fails if the screen goes dark) |
+| `nix/checks/transitions.nix` | `checks.transitions` (films power on, logins, restart and power off under BIOS and UEFI at 30 fps, with the journal on the same clock) |
 | `nix/checks/preview.nix` | `checks.preview` (records the boot menu, boot, reboot and power off, for a look at the motion) |
 | `nix/checks/screenshots.nix` | `checks.screenshots` (the READMEs' pictures, in each language) |
 | `nix/hosts/zoomies/` | `nixosConfigurations.zoomies` |

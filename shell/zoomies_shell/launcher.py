@@ -208,7 +208,7 @@ class Launcher(Gtk.ApplicationWindow):
 
     def leave(self):
         self.stop_game()
-        self.get_application().quit()
+        self.overlay.fade_to_sky(self.get_application().quit)
 
     def refresh(self):
         left = state.time_left(state.read_status().get(self.kid["user"]))

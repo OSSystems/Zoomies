@@ -232,6 +232,7 @@ def main():
         render(streak(length), f"{out}/streak-{size}.png")
     render(sky(), f"{out}/sky.png")
     render(sky(NIGHT), f"{out}/night.png")
+    render(sky([("0", "#000"), ("1", "#000")]), f"{out}/black.png")
     render(star(), f"{out}/star.png")
     # The theme lines the canvases up on Zip's centre.
     values = {

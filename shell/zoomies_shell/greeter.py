@@ -145,6 +145,12 @@ class Greeter(Gtk.ApplicationWindow):
         self.gamepad = ui.Gamepad(self, on_back=self.overlay.close)
 
         self.populate()
+        ui.arrive(
+            self,
+            ("drop", [top]),
+            ("pop", ui.children(self.kids)),
+            ("rise", [bottom]),
+        )
         GLib.timeout_add_seconds(5, self.refresh)
         self.ready = ui.when_ready(self, "zoomies-greeter", "setup")
         GLib.idle_add(self.maybe_set_up)
@@ -253,7 +259,7 @@ class Greeter(Gtk.ApplicationWindow):
         else:
             error = self.greetd.login(kid["user"], self.config["kidSession"])
         if error is None:
-            self.get_application().quit()
+            self.overlay.fade_to_sky(self.get_application().quit)
             return
         # PAM may know better than the last status the timekeeper wrote,
         # for example right as the allowed hours end.
@@ -342,7 +348,7 @@ class Greeter(Gtk.ApplicationWindow):
             )
             entry.set_text("")
             if error is None:
-                self.get_application().quit()
+                self.overlay.fade_to_sky(self.get_application().quit)
                 return
             # greetd answers a locked account like a wrong PIN.
             if self.pin_locked():

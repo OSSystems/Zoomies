@@ -28,6 +28,13 @@ runCommand "zoomies-grub-theme"
     # While Zoomies loads, the splash's first frame, so that Zip seems to
     # come up from below onto the picture already on the screen.
     cp ${zoomies-splash}/share/zoomies-splash/first-frame.png $out/loading.png
+    # The firmware leaves the screen black; these bring the picture up from
+    # there. GRUB decodes and stretches each one, which paces the fade, so
+    # they are small: dark and short-lived, nobody sees their detail.
+    for step in 1 2 3 4 5 6 7; do
+      magick $out/loading.png -resize 480x -fill black -colorize $((100 - step * 100 / 8))% \
+        PNG24:$out/fade-$step.png
+    done
 
     # Latin with accents and the arrows in the hint, to keep the fonts small.
     ranges=0x20-0x7E,0xA0-0x24F,0x2190-0x2193

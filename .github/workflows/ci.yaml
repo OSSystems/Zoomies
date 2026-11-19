@@ -37,7 +37,7 @@ jobs:
   # tests run there too, and the store is shared between runs. The action
   # builds its attributes one after another, so each check gets its own job
   # to run in parallel and report its own status. The VM tests peak at
-  # about 9 GiB of guest memory together, so the host needs no
+  # about 11 GiB of guest memory together, so the host needs no
   # max-parallel.
   checks:
     name: ${{ matrix.check }}
@@ -52,6 +52,7 @@ jobs:
           - kiosk-memory
           - nixos-zoomies
           - splash
+          - transitions
           - translations
     steps:
       - uses: ossystems/nix-actions@v1

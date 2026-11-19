@@ -1,0 +1,84 @@
+--- a/cage.c
++++ b/cage.c
+@@ -219,12 +219,55 @@
+ 	return true;
+ }
+ 
++/* Zoomies: the screen changes hands without a black frame. Once cage
++ * stops, the hook named by ZOOMIES_HANDOVER gets cage's handle on the screen
++ * as ZOOMIES_SCREEN_FD. At power off and restart, cage keeps showing its last
++ * frame, the bare sky the shell faded to, while the hook waits for the
++ * splash to take the screen over in place. Otherwise the hook leaves that
++ * handle open in the background until the next session has drawn: the
++ * kernel turns the screen off when the last handle on a frame closes, and
++ * would do so between two sessions. */
++static void
++hand_over_screen(struct cg_server *server)
++{
++	const char *hook = getenv("ZOOMIES_HANDOVER");
++	if (hook == NULL) {
++		return;
++	}
++	int screen = wlr_backend_get_drm_fd(server->backend);
++	pid_t pid = fork();
++	if (pid == 0) {
++		/* The session's stop signals every process in it, including one
++		 * forked while the signals go out; the hook's waits are bounded.
++		 * Ignored before the event loop's blocking is lifted, so none is
++		 * delivered in between. */
++		signal(SIGTERM, SIG_IGN);
++		signal(SIGHUP, SIG_IGN);
++		signal(SIGINT, SIG_IGN);
++		sigset_t none;
++		sigemptyset(&none);
++		sigprocmask(SIG_SETMASK, &none, NULL);
++		if (screen >= 0 && fcntl(screen, F_SETFD, 0) == 0) {
++			char number[16];
++			snprintf(number, sizeof(number), "%d", screen);
++			setenv("ZOOMIES_SCREEN_FD", number, 1);
++		}
++		execl(hook, hook, (char *) NULL);
++		_exit(127);
++	}
++	if (pid > 0) {
++		waitpid(pid, NULL, 0);
++	}
++}
++
+ static int
+ handle_signal(int signal, void *data)
+ {
+ 	struct cg_server *server = data;
+ 
+ 	switch (signal) {
++	case SIGHUP:
++		/* Fallthrough */
+ 	case SIGINT:
+ 		/* Fallthrough */
+ 	case SIGTERM:
+@@ -327,6 +370,9 @@
+ 	struct wl_event_loop *event_loop = wl_display_get_event_loop(server.wl_display);
+ 	struct wl_event_source *sigint_source = wl_event_loop_add_signal(event_loop, SIGINT, handle_signal, &server);
+ 	struct wl_event_source *sigterm_source = wl_event_loop_add_signal(event_loop, SIGTERM, handle_signal, &server);
++	/* Zoomies: logind hangs up on a session as it stops it, which would
++	 * kill cage before it hands the screen over. */
++	struct wl_event_source *sighup_source = wl_event_loop_add_signal(event_loop, SIGHUP, handle_signal, &server);
+ 
+ 	server.backend = wlr_backend_autocreate(event_loop, &server.session);
+ 	if (!server.backend) {
+@@ -627,6 +673,7 @@
+ 
+ 	seat_center_cursor(server.seat);
+ 	wl_display_run(server.wl_display);
++	hand_over_screen(&server);
+ 
+ #if CAGE_HAS_XWAYLAND
+ 	if (xwayland) {
+@@ -661,6 +708,7 @@
+ 
+ 	wl_event_source_remove(sigint_source);
+ 	wl_event_source_remove(sigterm_source);
++	wl_event_source_remove(sighup_source);
+ 	if (sigchld_source) {
+ 		wl_event_source_remove(sigchld_source);
+ 	}

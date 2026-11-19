@@ -53,6 +53,12 @@ def when_ready(window, name, *conditions):
         with open(path + ".tmp", "w") as f:
             f.write(str(os.getpid()))
         os.replace(path + ".tmp", path)
+        # The session before keeps its last frame up until then.
+        if os.path.isdir(SPLASH_HANDOVER):
+            try:
+                os.utime(touch(os.path.join(SPLASH_HANDOVER, f"drawn-{os.getuid()}")))
+            except OSError:
+                pass
 
     def active(*_):
         if window.is_active():
@@ -221,14 +227,34 @@ SYSTEM_ACTIONS = {
 }
 
 
+# Where the platform's splash and cage meet to hand the screen over at power
+# off and restart; it only exists when that splash is installed.
+SPLASH_HANDOVER = "/run/zoomies-splash"
+
+
+def touch(path):
+    open(path, "a").close()
+    return path
+
+
+def power(action):
+    """Runs systemctl's action, asking cage to hand the screen to the splash."""
+    if os.path.isdir(SPLASH_HANDOVER):
+        try:
+            touch(os.path.join(SPLASH_HANDOVER, "requested"))
+        except OSError:
+            pass
+    subprocess.Popen(["systemctl", action])
+
+
 def system_button(overlay, action, text=None):
-    """A button that asks first, then runs systemctl's action."""
+    """A button that asks first, then fades to the sky and runs systemctl's action."""
     emoji, question_emoji, question = SYSTEM_ACTIONS[action]
     button = big_button(text, "subtle", emoji)
     button.connect(
         "clicked",
         lambda *_args: overlay.confirm(
-            _(question), question_emoji, lambda: subprocess.Popen(["systemctl", action])
+            _(question), question_emoji, lambda: overlay.fade_to_sky(lambda: power(action))
         ),
     )
     return button
@@ -336,6 +362,71 @@ def sky(slowness, strength=1.0):
     return None if state.calm_screen() else Sky(slowness, strength)
 
 
+# When each step of a screen's arrival starts, and how far apart the
+# widgets of one step start; the sky shows bare for a moment first.
+ARRIVALS = {"drop": 0.15, "pop": 0.35, "rise": 0.8}
+STAGGER = 0.06
+_delays = None
+_delay_classes = set()
+
+
+def children(widget):
+    found = []
+    child = widget.get_first_child()
+    while child is not None:
+        found.append(child)
+        child = child.get_next_sibling()
+    return found
+
+
+def arrive(window, *steps):
+    """Brings a screen in on the bare sky the screen before left.
+
+    Each step is a kind of entrance, one of ARRIVALS, and its widgets, which
+    start one after another: the title drops, the tiles pop, the buttons
+    rise. Keys work at once. A calm screen only fades in.
+
+    The first frame takes long to draw, without a GPU up to half a second,
+    and an animation started with it would be mostly over by the time it
+    shows. That frame shows the bare sky; the steps start once it is out.
+    """
+    calm = state.calm_screen()
+    timeline = []
+    for kind, widgets in steps:
+        for index, widget in enumerate(widgets):
+            if calm:
+                timeline.append((widget, "appear", 0))
+            else:
+                timeline.append((widget, kind, round(1000 * (ARRIVALS[kind] + STAGGER * min(index, 6)))))
+            widget.add_css_class("waiting")
+    global _delays
+    needed = {delay for _widget, _kind, delay in timeline} - _delay_classes
+    if needed:
+        if _delays is None:
+            _delays = Gtk.CssProvider()
+            Gtk.StyleContext.add_provider_for_display(
+                Gdk.Display.get_default(), _delays, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+            )
+        _delay_classes.update(needed)
+        _delays.load_from_string(
+            "".join(f".delay-{ms} {{ animation-delay: {ms}ms; }}\n" for ms in sorted(_delay_classes))
+        )
+
+    def start(clock):
+        clock.disconnect(painted)
+        for widget, kind, delay in timeline:
+            widget.add_css_class(f"arrive-{kind}")
+            widget.add_css_class(f"delay-{delay}")
+            widget.remove_css_class("waiting")
+
+    def realized(*_args):
+        nonlocal painted
+        painted = window.get_frame_clock().connect("after-paint", start)
+
+    painted = None
+    window.connect("realize", realized)
+
+
 class Overlay(Gtk.Overlay):
     """A full-window layer for dialogs; cage shows one window, so popups
     would otherwise take over the whole screen."""
@@ -396,6 +487,31 @@ class Overlay(Gtk.Overlay):
     @property
     def open(self):
         return self._layer is not None
+
+    FADE_SECONDS = 0.3
+
+    def fade_to_sky(self, then):
+        """Fades to the bare sky, then calls then.
+
+        The power off splash opens on that sky, so the screen never changes
+        all at once. The fade follows the clock, not the frames, so a slow
+        machine only shows fewer steps of it.
+        """
+        cover = Gtk.Box(hexpand=True, vexpand=True, can_target=False, css_classes=["sky-cover"])
+        cover.set_opacity(0)
+        self.add_overlay(cover)
+        self.get_child().set_sensitive(False)
+        start = GLib.get_monotonic_time()
+
+        def step(*_args):
+            done = (GLib.get_monotonic_time() - start) / 1e6 / self.FADE_SECONDS
+            cover.set_opacity(min(1.0, done))
+            if done < 1:
+                return GLib.SOURCE_CONTINUE
+            then()
+            return GLib.SOURCE_REMOVE
+
+        GLib.timeout_add(16, step)
 
     def confirm(self, question, emoji, on_yes):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=24)

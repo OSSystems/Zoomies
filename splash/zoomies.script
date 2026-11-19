@@ -29,13 +29,21 @@ DASH = 30;
 DASH_TICKS = 26;
 # The landing when the system stops: in from the left, then the pull up
 # onto the cloud. At power off night falls once he has waved for a moment.
-# All of it must fit the hold splash.nix gives the power off.
+# All of it must fit the hold splash.nix gives the power off. The splash
+# loads behind the last session's bare sky and waits there until it is on
+# the screen; the clouds fade in over that sky as he arrives. Should nobody
+# say so, he sets off anyway after LAND_ANYWAY.
 ARRIVE_TICKS = 26;
 FLARE_TICKS = 14;
 TOUCH = ARRIVE_TICKS + FLARE_TICKS;
 LANDED = TOUCH + 10;
 NIGHT_START = LANDED + 15;
 NIGHT_TICKS = 55;
+APPEAR_TICKS = 15;
+LAND_ANYWAY = 5 * RATE;
+# The firmware blanks the screen as the computer restarts or turns off; the
+# splash dims to black just before, so the change is not sudden.
+BLACKOUT_TICKS = 20;
 
 mode = Plymouth.GetMode();
 stopping = mode == "shutdown" || mode == "reboot";
@@ -70,6 +78,8 @@ fun layout ()
     sky.sprite.SetPosition(screen.x, screen.y, -100);
     night.sprite.SetImage(Image("night.png").Scale(screen.w, screen.h));
     night.sprite.SetPosition(screen.x, screen.y, -90);
+    black.sprite.SetImage(Image("black.png").Scale(screen.w, screen.h));
+    black.sprite.SetPosition(screen.x, screen.y, 100);
     for (local.i = 0; i < @STARS@; i++)
       {
         local.star = Image("star.png");
@@ -126,6 +136,8 @@ fun layout ()
 sky.sprite = Sprite();
 night.sprite = Sprite();
 night.sprite.SetOpacity(0);
+black.sprite = Sprite();
+black.sprite.SetOpacity(0);
 for (i = 0; i < @STARS@; i++)
   {
     stars[i].sprite = Sprite();
@@ -149,6 +161,9 @@ layout();
 
 tick = 0;
 takeoff = -1;
+landing = 0;
+waited = 0;
+blackout = -1;
 
 fun clamp (k)
   {
@@ -219,7 +234,14 @@ fun pose (name, step, x, y, flap)
 
 fun refresh ()
   {
-    global.tick = tick + 1;
+    if (stopping && !landing)
+      {
+        global.waited = waited + 1;
+        if (waited >= LAND_ANYWAY)
+          global.landing = 1;
+      }
+    if (!stopping || landing)
+      global.tick = tick + 1;
     local.t = tick / RATE;
     # A drawing every 0.1 s, for the mascot's wave and Super Zip's flap.
     local.flap = Math.Int(tick / 5);
@@ -258,7 +280,7 @@ fun refresh ()
           }
         if (sleeping)
           dark = clamp((tick - NIGHT_START) / NIGHT_TICKS);
-        fade = 1 - 0.6 * dark;
+        fade = (1 - 0.6 * dark) * clamp(tick / APPEAR_TICKS);
         if (dark > 0.7 && name == "hover")
           name = "asleep";
       }
@@ -331,13 +353,25 @@ fun refresh ()
     perch.sprite.SetPosition(Math.Int(zip.x - perch.dx), Math.Int(zip.y + float + dip + perch.below - perch.dy), 5);
     perch.sprite.SetOpacity(fade);
     pose(name, step, x, y, flap);
+    if (blackout >= 0)
+      black.sprite.SetOpacity(clamp((tick - blackout) / BLACKOUT_TICKS));
   }
 
-# zoomies-splash-takeoff.service sends this just before the greeter starts.
+# zoomies-splash-takeoff.service sends "zoomies-takeoff" just before the
+# greeter starts; the stopping splash's unit sends "zoomies-land" once the
+# splash is on the screen, and "zoomies-blackout" just before it lets the
+# computer stop.
 fun status (text)
   {
     if (text == "zoomies-takeoff" && takeoff < 0)
       global.takeoff = tick;
+    if (text == "zoomies-land")
+      global.landing = 1;
+    if (text == "zoomies-blackout" && blackout < 0)
+      {
+        global.landing = 1;
+        global.blackout = tick;
+      }
   }
 
 fun nothing ()

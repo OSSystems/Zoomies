@@ -256,7 +256,7 @@ class Parent(Gtk.ApplicationWindow):
 
         bottom = Gtk.Box(spacing=16)
         back = ui.big_button(_("Back to the kids"), "yes", "🐧")
-        back.connect("clicked", lambda *_args: app.quit())
+        back.connect("clicked", lambda *_args: self.overlay.fade_to_sky(app.quit))
         bottom.append(back)
         page.append(bottom)
 
